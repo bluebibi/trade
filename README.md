@@ -1,8 +1,8 @@
 ### 1. 환경 만들기
 # https://pytorch.org/
-- conda create -n upbit_auto_trade python=3.7
-- conda activate upbit_auto_trade
-- cd ~/git/upbit_auto_trade/
+- conda create -n trade python=3.7
+- conda activate trade
+- cd ~/git/trade/
 - pip install --ignore-installed pip
 - pip install -r requirements.txt
 - conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
@@ -28,12 +28,11 @@
 
 ### 5. crontab 설정
 
-- 2,22,42 * * * * ~/git/upbit_auto_trade/scripts/pull_models.sh
-- */5 * * * * ~/git/upbit_auto_trade/scripts/upbit_recorder_ubuntu.sh
-- */5 * * * * ~/git/upbit_auto_trade/scripts/buy_ubuntu.sh
-- #*/1 * * * * ~/git/upbit_auto_trade/scripts/sell_ubuntu.sh
-- #0 */6 * * * ~/git/upbit_auto_trade/scripts/make_models_ubuntu.sh
-- 0 */1 * * * ~/git/upbit_auto_trade/scripts/statistics_ubuntu.sh
+- 2,22,42 * * * * ~/git/trade/scripts/pull_models.sh
+- */5 * * * * ~/git/trade/scripts/buy_ubuntu.sh
+- #*/1 * * * * ~/git/trade/scripts/sell_ubuntu.sh
+- #0 */6 * * * ~/git/trade/scripts/make_models_ubuntu.sh
+- 0 */1 * * * ~/git/trade/scripts/statistics_ubuntu.sh
 
 ### 6. pm2 설정
 

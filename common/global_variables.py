@@ -8,8 +8,8 @@ from db.sqlite_handler import SqliteHandler
 from upbit.slack import PushSlack
 from upbit.upbit_api import Upbit
 
-idx = os.getcwd().index("upbit_auto_trade")
-PROJECT_HOME = os.getcwd()[:idx] + "upbit_auto_trade/"
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
 class CoinStatus(Enum):
@@ -36,11 +36,10 @@ class BuyType(Enum):
 fmt = "%Y-%m-%dT%H:%M:%S"
 
 sqlite3_buy_sell_db_filename = os.path.join(PROJECT_HOME, 'db/upbit_buy_sell.db')
-sqlite3_price_info_db_filename = os.path.join(PROJECT_HOME, 'db/upbit_price_info.db')
 sqlite3_order_book_db_filename = os.path.join(PROJECT_HOME, 'db/upbit_order_book_info.db')
 
 config = configparser.ConfigParser()
-read_ok = config.read(os.getcwd()[:idx] + "upbit_auto_trade/common/config.ini")
+read_ok = config.read(os.getcwd()[:idx] + "trade/common/config.ini")
 
 # USER
 USER_ID = int(config['USER']['user_id'])

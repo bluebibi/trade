@@ -8,8 +8,8 @@ import sys, os
 
 from common.utils import convert_to_daily_timestamp
 
-idx = os.getcwd().index("upbit_auto_trade")
-PROJECT_HOME = os.getcwd()[:idx] + "upbit_auto_trade/"
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import *
