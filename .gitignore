@@ -102,3 +102,22 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+common/config.ini
+
+*.db
+.idea/*
+
+*.gz
+*.pt
+temp/data/*
+temp/data/MNIST/raw/t10k-images-idx3-ubyte
+temp/data/MNIST/raw/t10k-labels-idx1-ubyte
+temp/data/MNIST/raw/train-images-idx3-ubyte
+temp/data/MNIST/raw/train-labels-idx1-ubyte
+
+scripts/upbit_record_mac.sh
+*.png
+*.log.*
+*.swp
+*.db.old
