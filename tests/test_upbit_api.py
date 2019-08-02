@@ -6,7 +6,7 @@ from pytz import timezone
 
 import sys, os
 
-from common.utils import convert_to_daily_timestamp
+from common.utils import convert_to_daily_timestamp, get_invest_krw
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
@@ -54,6 +54,27 @@ class UpBitAPITestCase(unittest.TestCase):
             ['KRW-GAS', 'KRW-MOC', 'KRW-IQ', 'KRW-WAX', 'KRW-NEO', 'KRW-AERGO', 'KRW-MEDX', 'KRW-XMR',
              'KRW-OST', 'KRW-STRAT', 'KRW-IOST', 'KRW-ONT', 'KRW-BSV']))
 
+    def test_get_right_invest_krw(self):
+        coin_names = self.upbit.get_all_coin_names();
+
+        select_by_datetime = "SELECT total_ask_size, total_bid_size FROM KRW_{0}_ORDER_BOOK ORDER BY collect_timestamp DESC LIMIT 1;"
+
+        upbit_order_book_recorder = UpbitOrderBookRecorder()
+
+        for coin_name in coin_names:
+            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, isolation_level=None,
+                                 check_same_thread=False) as conn:
+                cursor = conn.cursor()
+                cursor.execute(select_by_datetime.format(coin_name))
+
+                info = cursor.fetchone()
+
+                price = self.upbit.get_current_price(ticker="KRW-"+coin_name)
+                print("{0}, {1:9.0f}".format(coin_name, get_invest_krw(price, info[0], info[1])))
+
+                conn.commit()
+
+
 
 
     #### 매우 중요 <-- Missing Data 처리
@@ -77,11 +98,11 @@ class UpBitAPITestCase(unittest.TestCase):
 
         for coin_name in coin_names:
             start_base_datetime_str, final_base_datetime_str = upbit_order_book_recorder.get_order_book_start_and_final(coin_name)
-            print("{0:5s} - Start: {1}, Final: {2}".format(
+            logger.info("{0:5s} - Start: {1}, Final: {2}".format(
                 coin_name,
                 start_base_datetime_str,
                 final_base_datetime_str
-            ), flush=True)
+            ))
 
             missing_count = 0
             while True:
@@ -91,31 +112,31 @@ class UpBitAPITestCase(unittest.TestCase):
                 )
 
                 if last_base_datetime_str == final_base_datetime_str:
-                    print("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
                         coin_name, start_base_datetime_str, last_base_datetime_str
-                    ), flush=True)
+                    ))
                     break
 
                 if last_base_datetime_str is None:
                     missing_count += 1
-                    print("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
+                    logger.info("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
                         coin_name, start_base_datetime_str, missing_count
-                    ), flush=True)
+                    ))
                     previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
                     previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
                     previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
 
 
                     ### SWITCH
-                    #self.insert_missing_record(select_by_datetime, coin_name, previous_base_datetime_str, order_book_insert_sql, start_base_datetime_str)
+                    self.insert_missing_record(select_by_datetime, coin_name, previous_base_datetime_str, order_book_insert_sql, start_base_datetime_str)
 
                     start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
                     start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
                     start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
                 else:
-                    print("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
                         coin_name, start_base_datetime_str, last_base_datetime_str
-                    ), flush=True)
+                    ))
                     start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
                     start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
                     start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
@@ -129,7 +150,7 @@ class UpBitAPITestCase(unittest.TestCase):
             cursor.execute(select_by_datetime.format(coin_name), (previous_base_datetime_str,))
             info = cursor.fetchone()
 
-            print(info)
+            logger.info(info)
 
             cursor.execute(order_book_insert_sql.format(coin_name), (
                 start_base_datetime_str, convert_to_daily_timestamp(start_base_datetime_str), info[3],
@@ -177,8 +198,8 @@ class UpBitAPITestCase(unittest.TestCase):
         total_bid_size = order_book['total_bid_size']
 
 
-        print(current_time_str)
-        print(order_book)
+        logger.info(current_time_str)
+        logger.info(order_book)
 
     def test_get_market_index(self):
         pp.pprint(self.upbit.get_market_index())

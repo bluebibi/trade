@@ -90,9 +90,10 @@ LAST_SAVE_EPOCH_THRESHOLD = int(config['EVALUATION']['last_save_epoch_threshold'
 ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'])
 
 #SELL
-SELL_RATE = float(config['SELL']['sell_rate'])
+buy_control_constant=float(config['BUY_SELL']['buy_control_constant'])
+SELL_RATE = float(config['BUY_SELL']['sell_rate'])
 TRANSACTION_FEE_RATE = float(config['SELL']['transaction_fee_rate'])
-SELL_PERIOD = int(config['SELL']['sell_period'])
+SELL_PERIOD = int(config['BUY_SELL']['sell_period'])
 
 #PULL_MODELS
 REMOTE_SOURCE_HOST = config['PULL_MODELS']['remote_source_host']
