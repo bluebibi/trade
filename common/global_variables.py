@@ -4,7 +4,6 @@ import torch
 
 import sys, os
 
-from db.sqlite_handler import SqliteHandler
 from upbit.slack import PushSlack
 from upbit.upbit_api import Upbit
 
