@@ -92,7 +92,7 @@ ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'
 #SELL
 buy_control_constant=float(config['BUY_SELL']['buy_control_constant'])
 SELL_RATE = float(config['BUY_SELL']['sell_rate'])
-TRANSACTION_FEE_RATE = float(config['SELL']['transaction_fee_rate'])
+TRANSACTION_FEE_RATE = float(config['BUY_SELL']['transaction_fee_rate'])
 SELL_PERIOD = int(config['BUY_SELL']['sell_period'])
 
 #PULL_MODELS
