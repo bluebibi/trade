@@ -239,6 +239,5 @@ if __name__ == "__main__":
 
     sql_handler = SqliteHandler()
     sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
-    sql_handler.create_order_book_arrangement_table()
     sql_handler.create_order_book_table(upbit.get_all_coin_names())
     #sql_handler.drop_order_book_tables(upbit.get_all_coin_names())
