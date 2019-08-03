@@ -12,10 +12,11 @@ from predict.early_stopping import EarlyStopping
 import numpy as np
 import os
 from common.logger import get_logger
-from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
+from upbit.upbit_api import Upbit
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
 
 logger = get_logger("make_models")
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")
@@ -343,7 +344,7 @@ if __name__ == "__main__":
 
     SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
-    coin_names = UPBIT.get_all_coin_names()
+    coin_names = upbit.get_all_coin_names()
 
     main(model_type="CNN", coin_names=coin_names)
     main(model_type="LSTM", coin_names=coin_names)

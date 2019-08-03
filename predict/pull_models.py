@@ -3,13 +3,15 @@ import os
 import subprocess
 import sys
 
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import REMOTE_SOURCE_HOST, REMOTE_SOURCE
+from common.global_variables import REMOTE_SOURCE_HOST, REMOTE_SOURCE, CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 from common.global_variables import SSH_SCP_SOURCE_PORT, SSH_SCP_SOURCE_ID, SSH_SCP_SOURCE_PASSWORD, LOCAL_TARGET
-from common.global_variables import UPBIT, PROJECT_HOME
+from common.global_variables import PROJECT_HOME
 from common.logger import get_logger
 
 logger = get_logger("pull_models")
@@ -43,7 +45,8 @@ def download_remote_file(model_type, remote_file, local_file):
 
 if __name__ == "__main__":
     logger.info("\n#######################################################################\n")
-    coin_names = UPBIT.get_all_coin_names()
+    upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+    coin_names = upbit.get_all_coin_names()
     cnn_model_files = glob.glob(PROJECT_HOME + 'models/CNN/*.pt')
     lstm_model_files = glob.glob(PROJECT_HOME + 'models/LSTM/*.pt')
 

@@ -2,17 +2,20 @@ import sqlite3
 
 from pytz import timezone
 import sys, os
+
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import *
 from common.utils import *
 from common.logger import get_logger
 
 from db.sqlite_handler import *
 
 logger = get_logger("sell")
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")
@@ -58,7 +61,7 @@ class Seller:
 
         for coin_ticker_name in buy_trail_coin_info:
 
-            _, trail_price, sell_fee, sell_krw = UPBIT.get_expected_sell_coin_price_for_volume(
+            _, trail_price, sell_fee, sell_krw = upbit.get_expected_sell_coin_price_for_volume(
                 coin_ticker_name,
                 buy_trail_coin_info[coin_ticker_name]["buy_coin_volume"],
                 TRANSACTION_FEE_RATE

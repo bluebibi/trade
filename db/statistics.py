@@ -9,6 +9,9 @@ from email.mime.text import MIMEText
 from pytz import timezone
 
 import sys, os
+
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
@@ -17,6 +20,7 @@ from common.global_variables import *
 from common.utils import *
 
 import datetime as dt
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("db"):
     os.chdir("..")
@@ -41,7 +45,7 @@ def render_template(**kwargs):
 
 
 def get_model_status():
-    coin_names = UPBIT.get_all_coin_names()
+    coin_names = upbit.get_all_coin_names()
 
     cnn_model_files = glob.glob(PROJECT_HOME + 'models/CNN/*.pt')
     cnn_models = {}

@@ -166,7 +166,8 @@ def make_arrangement(coin_names):
 
 
 if __name__ == "__main__":
-    make_arrangement(UPBIT.get_all_coin_names())
+    upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+    make_arrangement(upbit.get_all_coin_names())
 
     # btc_order_book_arrangement = UpbitOrderBookArrangement("DCR")
     # missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()

@@ -47,3 +47,4 @@
 
 - ./download_orderbook_db.sh
 - ./upbit_order_book_arrangement_ubuntu.sh
+- ./make_models_ubuntu.sh

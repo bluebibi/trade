@@ -3,6 +3,9 @@ import datetime as dt
 import time
 
 import sys, os
+
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
@@ -13,6 +16,7 @@ from common.logger import get_logger
 from db.sqlite_handler import *
 
 logger = get_logger("upbit_order_book_recorder")
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("upbit"):
     os.chdir("..")
@@ -20,12 +24,12 @@ if os.getcwd().endswith("upbit"):
 
 class UpbitOrderBookRecorder:
     def __init__(self):
-        self.coin_names = UPBIT.get_all_coin_names()
+        self.coin_names = upbit.get_all_coin_names()
 
     def record(self, base_datetime, coin_ticker_name):
         daily_base_timestamp = convert_to_daily_timestamp(base_datetime)
 
-        order_book = UPBIT.get_orderbook(tickers=coin_ticker_name)[0]
+        order_book = upbit.get_orderbook(tickers=coin_ticker_name)[0]
 
         order_book_units = order_book["orderbook_units"]
         ask_price_lst = []

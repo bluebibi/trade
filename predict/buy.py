@@ -1,8 +1,10 @@
 import glob
 import locale
-import sqlite3
 
 import sys, os
+
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
@@ -16,6 +18,7 @@ from common.logger import get_logger
 from db.sqlite_handler import *
 
 logger = get_logger("buy")
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")
@@ -72,7 +75,7 @@ def get_db_right_time_coin_names():
 
     with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
-        all_coin_names = UPBIT.get_all_coin_names()
+        all_coin_names = upbit.get_all_coin_names()
         for coin_name in all_coin_names:
             cursor.execute(select_close_price_by_datetime.format(coin_name, current_time_str))
             close_price_ = cursor.fetchall()
@@ -196,7 +199,7 @@ def main():
                 if True:
 #                if current_total_krw - INVEST_KRW > 0:
 
-                    _, buy_fee, buy_price, buy_coin_volume = UPBIT.get_expected_buy_coin_price_for_krw(
+                    _, buy_fee, buy_price, buy_coin_volume = upbit.get_expected_buy_coin_price_for_krw(
                         coin_ticker_name,
                         INVEST_KRW,
                         TRANSACTION_FEE_RATE

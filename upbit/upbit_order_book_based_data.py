@@ -7,10 +7,10 @@ from common.utils import get_invest_krw
 from common.logger import get_logger
 
 from db.sqlite_handler import *
-
+from upbit.upbit_api import Upbit
 
 logger = get_logger("upbit_order_book_based_data")
-
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
@@ -125,7 +125,7 @@ class UpbitOrderBookBasedData:
                 total_bid_size=x[i][-1][123]
             )
 
-            original_krw, fee, calc_price, calc_size_sum = UPBIT.get_expected_buy_coin_price_for_krw_and_ask_list(
+            original_krw, fee, calc_price, calc_size_sum = upbit.get_expected_buy_coin_price_for_krw_and_ask_list(
                 ask_price_lst=ask_price_lst,
                 ask_size_lst=ask_size_lst,
                 krw=invest_krw,
@@ -139,7 +139,7 @@ class UpbitOrderBookBasedData:
                     bid_price_lst.append(data[i + window_size + j][61 + w].item())
                     bid_size_lst.append(data[i + window_size + j][63 + w].item())
 
-                original_volume, future_price, fee, future_krw_sum = UPBIT.get_expected_sell_coin_price_for_volume_and_bid_list(
+                original_volume, future_price, fee, future_krw_sum = upbit.get_expected_sell_coin_price_for_volume_and_bid_list(
                     bid_price_lst=bid_price_lst,
                     bid_size_lst=bid_size_lst,
                     volume=calc_size_sum,

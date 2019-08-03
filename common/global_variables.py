@@ -5,7 +5,6 @@ import torch
 import sys, os
 
 from upbit.slack import PushSlack
-from upbit.upbit_api import Upbit
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
@@ -81,7 +80,6 @@ INPUT_SIZE = 125 # 1 (daily_base_timestamp) + 30 (ask_price) + 30 (ask_price_btc
 VERBOSE = True
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-UPBIT = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 SLACK = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
 MIN_VALID_LOSS_THRESHOLD = float(config['EVALUATION']['min_valid_loss_threshold'])
