@@ -12,7 +12,7 @@ from common.logger import get_logger
 
 from db.sqlite_handler import *
 
-logger = get_logger("upbit_order_book_recorder_logger")
+logger = get_logger("upbit_order_book_recorder")
 
 if os.getcwd().endswith("upbit"):
     os.chdir("..")

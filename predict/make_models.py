@@ -15,7 +15,7 @@ from common.logger import get_logger
 from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
 
-logger = get_logger("make_models_logger")
+logger = get_logger("make_models")
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")

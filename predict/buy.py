@@ -15,7 +15,7 @@ from common.utils import *
 from common.logger import get_logger
 from db.sqlite_handler import *
 
-logger = get_logger("buy_logger")
+logger = get_logger("buy")
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")

@@ -12,7 +12,7 @@ from common.logger import get_logger
 
 from db.sqlite_handler import *
 
-logger = get_logger("sell_logger")
+logger = get_logger("sell")
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")

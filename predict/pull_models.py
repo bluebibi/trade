@@ -12,7 +12,7 @@ from common.global_variables import SSH_SCP_SOURCE_PORT, SSH_SCP_SOURCE_ID, SSH_
 from common.global_variables import UPBIT, PROJECT_HOME
 from common.logger import get_logger
 
-logger = get_logger("pull_models_logger")
+logger = get_logger("pull_models")
 
 
 def check_remote_file(model_type, coin_name):

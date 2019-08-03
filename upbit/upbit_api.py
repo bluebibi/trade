@@ -8,6 +8,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import pandas as pd
 import datetime
+from common.logger import get_logger
+
+logger = get_logger("upbit_api")
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -27,8 +30,8 @@ def _send_post_request(url, headers=None, data=None):
         contents = resp.json()
         return contents, remaining_req_dict
     except Exception as x:
-        print("send post request failed", x.__class__.__name__)
-        print("caller: ", eval(getframe_expr.format(2)))
+        logger.info("send post request failed", x.__class__.__name__)
+        logger.info("caller: ", eval(getframe_expr.format(2)))
         return None
 
 
@@ -54,8 +57,8 @@ def _send_get_request(url, headers=None):
         contents = resp.json()
         return contents, remaining_req_dict
     except Exception as x:
-        print("send get request failed", x.__class__.__name__)
-        print("caller: ", eval(getframe_expr.format(2)))
+        logger.info("send get request failed", x.__class__.__name__)
+        logger.info("caller: ", eval(getframe_expr.format(2)))
         return None
 
 
@@ -72,8 +75,8 @@ def _send_delete_request(url, headers=None, data=None):
         contents = resp.json()
         return contents, remaining_req_dict
     except Exception as x:
-        print("send post request failed", x.__class__.__name__)
-        print("caller: ", eval(getframe_expr.format(2)))
+        logger.info("send post request failed", x.__class__.__name__)
+        logger.info("caller: ", eval(getframe_expr.format(2)))
         return None
 
 
@@ -151,14 +154,14 @@ def _call_public_api(url, **kwargs):
             contents = resp.json()
 
             if contents and 'error' in contents and contents['error']['message'] == 'Too many API requests.':
-                print("Too many API requests.")
+                logger.info("Too many API requests.")
                 time.sleep(0.05)
             else:
                 break
 
         return contents
     except Exception as x:
-        print("It failed", x.__class__.__name__)
+        logger.info("It failed", x.__class__.__name__)
         return None
 
 
@@ -201,7 +204,7 @@ class Upbit:
             return balance
 
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
 
@@ -232,7 +235,7 @@ class Upbit:
             headers = self._request_headers(data)
             return _send_post_request(url, headers=headers, data=data)
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def buy_market_order(self, ticker, price):
@@ -251,7 +254,7 @@ class Upbit:
             headers = self._request_headers(data)
             return _send_post_request(url, headers=headers, data=data)
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def sell_market_order(self, ticker, volume):
@@ -270,7 +273,7 @@ class Upbit:
             headers = self._request_headers(data)
             return _send_post_request(url, headers=headers, data=data)
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def buy_market_order_old(self, ticker, price, margin=0.01):
@@ -304,7 +307,7 @@ class Upbit:
 
             return total_ask_size
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def sell_market_order_old(self, ticker, size):
@@ -333,7 +336,7 @@ class Upbit:
                 else:
                     break
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
 
@@ -355,7 +358,7 @@ class Upbit:
             headers = self._request_headers(data)
             return _send_post_request(url, headers=headers, data=data)
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def cancel_order(self, uuid):
@@ -370,7 +373,7 @@ class Upbit:
             headers = self._request_headers(data)
             return _send_delete_request(url, headers=headers, data=data)
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     ##########################
@@ -401,7 +404,7 @@ class Upbit:
             else:
                 return None
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_ohlcv(self, ticker="KRW-BTC", interval="day", count=200):
@@ -445,7 +448,7 @@ class Upbit:
                          "candle_acc_trade_volume": "volume"})
             return df.iloc[::-1]
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_daily_ohlcv_from_base(self, ticker="KRW-BTC", base=0):
@@ -456,7 +459,7 @@ class Upbit:
             )
             return df
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_current_price(self, ticker="KRW-BTC"):
@@ -483,7 +486,7 @@ class Upbit:
             else:
                 return None
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_orderbook(self, tickers="KRW-BTC"):
@@ -497,7 +500,7 @@ class Upbit:
             contents = _call_public_api(url, markets=tickers)
             return contents
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_market_index(self):
@@ -524,7 +527,7 @@ class Upbit:
 
             return idx_dict
         except Exception as x:
-            print(x.__class__.__name__)
+            logger.info(x.__class__.__name__)
             return None
 
     def get_all_coin_names(self):
