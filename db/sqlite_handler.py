@@ -77,17 +77,6 @@ select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin 
     ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
 """
 
-select_last_arrangement_base_datetime_for_coin_name = """
-    SELECT last_arrangement_base_datetime FROM ORDER_BOOK_ARRANGEMENT WHERE coin_ticker_name=?;
-"""
-
-insert_last_arrangement_base_datetime_for_coin_name = """
-    INSERT INTO ORDER_BOOK_ARRANGEMENT (coin_ticker_name, last_arrangement_base_datetime) VALUES (?, ?);
-"""
-
-update_last_arrangement_base_datetime_for_coin_name = """
-    UPDATE ORDER_BOOK_ARRANGEMENT SET last_arrangement_base_datetime=? WHERE coin_ticker_name=?;
-"""
 #print(select_all_from_order_book_for_one_coin)
 
 
@@ -119,6 +108,18 @@ insert_buy_try_coin_info = """
     buy_krw, buy_fee, buy_price, buy_coin_volume, total_krw, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
+###
+# select_last_arrangement_base_datetime_for_coin_name = """
+#     SELECT last_arrangement_base_datetime FROM ORDER_BOOK_ARRANGEMENT WHERE coin_ticker_name=?;
+# """
+#
+# insert_last_arrangement_base_datetime_for_coin_name = """
+#     INSERT INTO ORDER_BOOK_ARRANGEMENT (coin_ticker_name, last_arrangement_base_datetime) VALUES (?, ?);
+# """
+#
+# update_last_arrangement_base_datetime_for_coin_name = """
+#     UPDATE ORDER_BOOK_ARRANGEMENT SET last_arrangement_base_datetime=? WHERE coin_ticker_name=?;
+# """
 
 class SqliteHandler:
     def __init__(self):
@@ -154,17 +155,17 @@ class SqliteHandler:
 
             conn.commit()
 
-    def create_order_book_arrangement_table(self):
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS ORDER_BOOK_ARRANGEMENT (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                    coin_ticker_name TEXT,
-                    last_arrangement_base_datetime DATETIME
-                )"""
-            )
-            conn.commit()
+    # def create_order_book_arrangement_table(self):
+    #     with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+    #         cursor = conn.cursor()
+    #         cursor.execute("""
+    #             CREATE TABLE IF NOT EXISTS ORDER_BOOK_ARRANGEMENT (
+    #                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #                 coin_ticker_name TEXT,
+    #                 last_arrangement_base_datetime DATETIME
+    #             )"""
+    #         )
+    #         conn.commit()
 
     def create_order_book_table(self, coin_names):
         with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:

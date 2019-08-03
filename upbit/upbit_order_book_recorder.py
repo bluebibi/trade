@@ -3,9 +3,6 @@ import datetime as dt
 import time
 
 import sys, os
-
-from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)

@@ -1,8 +1,14 @@
 import datetime as dt
+from datetime import timedelta
+
+import sys, os
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
 
 from common.utils import convert_to_daily_timestamp
 from common.logger import get_logger
-from datetime import timedelta
+
 
 from db.sqlite_handler import *
 
@@ -14,7 +20,7 @@ class UpbitOrderBookArrangement:
         self.coin_name = coin_name
 
     def processing_missing_data(self):
-        logger.info("{0} - Processing Missing Data".format(self.coin_name))
+        logger.info("Processing Missing Data")
 
         start_base_datetime_str, final_base_datetime_str = self.get_order_book_start_and_final()
         logger.info("{0:5s} - Start: {1}, Final: {2}".format(
@@ -23,78 +29,45 @@ class UpbitOrderBookArrangement:
             final_base_datetime_str
         ))
 
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
-            cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
-            info = cursor.fetchone()
-            if info is not None:
-                start_base_datetime_str = info[0]
-                logger.info("{0:5s} - Start Date is newly set to {1}".format(
-                    self.coin_name,
-                    start_base_datetime_str
-                ))
-            conn.commit()
-
         missing_count = 0
+        while True:
+            last_base_datetime_str = self.get_order_book_consecutiveness(
+                start_base_datetime_str=start_base_datetime_str
+            )
 
-        if start_base_datetime_str != final_base_datetime_str:
-            while True:
-                last_base_datetime_str = self.get_order_book_consecutiveness(
-                    start_base_datetime_str=start_base_datetime_str
-                )
+            if last_base_datetime_str == final_base_datetime_str:
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    self.coin_name, start_base_datetime_str, last_base_datetime_str
+                ))
+                break
 
-                if last_base_datetime_str == final_base_datetime_str:
-                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
-                        self.coin_name, start_base_datetime_str, last_base_datetime_str
-                    ))
-                    break
+            if last_base_datetime_str is None:
+                missing_count += 1
+                logger.info("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
+                    self.coin_name, start_base_datetime_str, missing_count
+                ))
+                previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
+                previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
 
-                if last_base_datetime_str is None:
-                    missing_count += 1
-                    previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                    previous_base_datetime = previous_base_datetime
-                    previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
+                self.insert_missing_record(previous_base_datetime_str, start_base_datetime_str)
 
-                    last_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                    last_base_datetime = last_base_datetime + dt.timedelta(minutes=1)
-                    last_base_datetime_str = dt.datetime.strftime(last_base_datetime, fmt.replace("T", " "))
-
-                    self.insert_missing_record(previous_base_datetime_str, last_base_datetime_str)
-
-                    logger.info("{0:5s} - Missing Base Datetime: {1} - Missing: {2}".format(
-                        self.coin_name, last_base_datetime_str, missing_count
-                    ))
-
-                    if last_base_datetime_str == final_base_datetime_str:
-                        break
-
-                else:
-                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
-                        self.coin_name, start_base_datetime_str, last_base_datetime_str
-                    ))
-
+                start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+            else:
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    self.coin_name, start_base_datetime_str, last_base_datetime_str
+                ))
                 start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
                 start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
                 start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
 
-            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-                cursor = conn.cursor()
-                cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
-                info = cursor.fetchone()
-                if info is None:
-                    cursor.execute(insert_last_arrangement_base_datetime_for_coin_name, (
-                        "KRW-" + self.coin_name, last_base_datetime_str
-                    ))
-                    logger.info("{0}, {1} - INSERTED".format("KRW-" + self.coin_name, last_base_datetime_str))
-                else:
-                    cursor.execute(update_last_arrangement_base_datetime_for_coin_name, (
-                        last_base_datetime_str, "KRW-" + self.coin_name
-                    ))
-                    logger.info("{0}, {1} - UPDATED".format("KRW-" + self.coin_name, last_base_datetime_str))
-                conn.commit()
-        else:
-            last_base_datetime_str = None
-
+            if start_base_datetime_str == final_base_datetime_str:
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    self.coin_name, start_base_datetime_str, last_base_datetime_str
+                ))
+                break
         return missing_count, last_base_datetime_str
 
     def insert_missing_record(self, previous_base_datetime_str, missing_base_datetime_str):
@@ -150,10 +123,11 @@ class UpbitOrderBookArrangement:
 
             base_datetime = dt.datetime.strptime(start_base_datetime_str[0], fmt.replace("T", " "))
 
-            last_base_datetime_str = None
+            last_base_datetime_str = start_base_datetime_str[0]
             while True:
                 next_base_datetime = base_datetime + timedelta(minutes=1)
                 next_base_datetime_str = dt.datetime.strftime(next_base_datetime, fmt.replace("T", " "))
+
                 cursor.execute(select_by_datetime.format(self.coin_name), (next_base_datetime_str, ))
                 next_base_datetime_str = cursor.fetchone()
 
@@ -193,3 +167,12 @@ def make_arrangement(coin_names):
 
 if __name__ == "__main__":
     make_arrangement(UPBIT.get_all_coin_names())
+
+    # btc_order_book_arrangement = UpbitOrderBookArrangement("DCR")
+    # missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
+    # msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+    #     "BTC",
+    #     missing_count,
+    #     last_base_datetime_str
+    # )
+    # logger.info(msg)

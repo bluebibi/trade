@@ -94,7 +94,6 @@ class UpbitOrderBookBasedData:
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate, scaler):
-        y_col_index = 3
         future_target = future_target_size - 1
 
         dim_0 = data.shape[0] - window_size - future_target
@@ -132,7 +131,6 @@ class UpbitOrderBookBasedData:
                 krw=invest_krw,
                 transaction_fee_rate=TRANSACTION_FEE_RATE
             )
-            #
 
             for j in range(future_target + 1):
                 bid_price_lst = []

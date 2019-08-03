@@ -42,3 +42,8 @@
 - sudo npm ins
 - pm2 start sell_ubuntu.sh: 1
 - pm2 start start_web_app_ubuntu.sh: 2
+
+###7. 순서
+
+- ./download_orderbook_db.sh
+- ./upbit_order_book_arrangement_ubuntu.sh
