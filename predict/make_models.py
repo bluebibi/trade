@@ -338,36 +338,12 @@ def main(model_type, coin_names):
     SLACK.send_message("me", slack_msg)
 
 
-def data_preprocess_before_make_models(coin_names):
-    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
-    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
-    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
-    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-        "BTC",
-        missing_count,
-        last_base_datetime_str
-    )
-    logger.info(msg)
-
-    for coin_name in coin_names:
-        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
-        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
-        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-            coin_name,
-            missing_count,
-            last_base_datetime_str
-        )
-        logger.info(msg)
-
-
 if __name__ == "__main__":
     mkdir_models()
 
     SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
     coin_names = UPBIT.get_all_coin_names()
-
-    data_preprocess_before_make_models(coin_names)
 
     main(model_type="CNN", coin_names=coin_names)
     main(model_type="LSTM", coin_names=coin_names)
