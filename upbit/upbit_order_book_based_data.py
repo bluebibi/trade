@@ -2,6 +2,11 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
+import sys, os
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
+
 from common.utils import get_invest_krw
 
 from common.logger import get_logger

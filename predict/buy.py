@@ -1,13 +1,8 @@
 import glob
 import locale
 
-import sys, os
 
-from upbit.upbit_api import Upbit
 
-idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
-sys.path.append(PROJECT_HOME)
 
 from predict.model_cnn import CNN
 from predict.model_rnn import LSTM

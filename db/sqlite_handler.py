@@ -1,13 +1,11 @@
 import sqlite3
 
 import sys, os
-
-from upbit.upbit_api import Upbit
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
+from upbit.upbit_api import Upbit
 from common.global_variables import *
 
 

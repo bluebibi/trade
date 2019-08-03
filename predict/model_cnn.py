@@ -2,7 +2,6 @@ import math
 
 import torch.nn as nn
 from torch.nn import init
-from common.global_variables import *
 
 
 def get_conv2d_size(w, h, kernel_size, padding_size, stride):

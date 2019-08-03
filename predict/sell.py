@@ -2,9 +2,6 @@ import sqlite3
 
 from pytz import timezone
 import sys, os
-
-from upbit.upbit_api import Upbit
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)

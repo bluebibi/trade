@@ -3,6 +3,11 @@ import glob
 import time
 import torch.nn as nn
 
+import sys, os
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
+
 from common.global_variables import *
 import matplotlib.pyplot as plt
 
@@ -20,7 +25,6 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")
-
 
 def mkdir_models():
     if not os.path.exists("./models/"):
