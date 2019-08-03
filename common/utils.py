@@ -1,14 +1,8 @@
 import math
-import sys, os
 import datetime as dt
 
-import time
-from datetime import datetime, timedelta, date
-import pickle
-import numpy as np
 
 from common.global_variables import CoinStatus, fmt
-from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
 
 
 def convert_unit_2(unit):

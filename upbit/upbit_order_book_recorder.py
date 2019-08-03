@@ -10,7 +10,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.utils import convert_to_daily_timestamp, data_preprocess_before_make_models
+from common.utils import convert_to_daily_timestamp
 from common.logger import get_logger
 
 from db.sqlite_handler import *
