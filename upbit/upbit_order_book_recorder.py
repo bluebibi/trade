@@ -3,6 +3,9 @@ import datetime as dt
 import time
 
 import sys, os
+
+from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
@@ -159,6 +162,28 @@ class UpbitOrderBookRecorder:
             conn.commit()
 
 
+def data_preprocess_before_make_models(coin_names):
+    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
+    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
+    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
+    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+        "BTC",
+        missing_count,
+        last_base_datetime_str
+    )
+    logger.info(msg)
+
+    for coin_name in coin_names:
+        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
+        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
+        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+            coin_name,
+            missing_count,
+            last_base_datetime_str
+        )
+        logger.info(msg)
+
+
 if __name__ == "__main__":
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
@@ -181,6 +206,6 @@ if __name__ == "__main__":
 
     elapsed_time = time.time() - current_time
 
-    data_preprocess_before_make_models(upbit_order_book_recorder.coin_names, logger=logger)
+    data_preprocess_before_make_models(upbit_order_book_recorder.coin_names)
 
     logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))

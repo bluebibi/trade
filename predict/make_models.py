@@ -6,7 +6,6 @@ import torch.nn as nn
 from common.global_variables import *
 import matplotlib.pyplot as plt
 
-from common.utils import data_preprocess_before_make_models
 from predict.model_rnn import LSTM
 from predict.model_cnn import CNN
 from predict.early_stopping import EarlyStopping
@@ -339,6 +338,28 @@ def main(model_type, coin_names):
     SLACK.send_message("me", slack_msg)
 
 
+def data_preprocess_before_make_models(coin_names):
+    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
+    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
+    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
+    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+        "BTC",
+        missing_count,
+        last_base_datetime_str
+    )
+    logger.info(msg)
+
+    for coin_name in coin_names:
+        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
+        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
+        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+            coin_name,
+            missing_count,
+            last_base_datetime_str
+        )
+        logger.info(msg)
+
+
 if __name__ == "__main__":
     mkdir_models()
 
@@ -346,7 +367,7 @@ if __name__ == "__main__":
 
     coin_names = UPBIT.get_all_coin_names()
 
-    data_preprocess_before_make_models(coin_names, logger=logger)
+    data_preprocess_before_make_models(coin_names)
 
     main(model_type="CNN", coin_names=coin_names)
     main(model_type="LSTM", coin_names=coin_names)

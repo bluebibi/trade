@@ -79,24 +79,3 @@ def get_invest_krw(current_price, total_ask_size, total_bid_size):
     else:
         return 100000
 
-
-def data_preprocess_before_make_models(coin_names, logger):
-    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
-    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
-    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
-    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-        "BTC",
-        missing_count,
-        last_base_datetime_str
-    )
-    logger.info(msg)
-
-    for coin_name in coin_names:
-        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
-        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
-        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-            coin_name,
-            missing_count,
-            last_base_datetime_str
-        )
-        logger.info(msg)
