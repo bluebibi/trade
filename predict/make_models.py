@@ -12,7 +12,8 @@ from predict.early_stopping import EarlyStopping
 import numpy as np
 import os
 from common.logger import get_logger
-from upbit.upbit_orderbook_based_data import UpbitOrderBookBasedData, get_data_loader
+from upbit.upbit_order_book_arrangement import UpbitOrderBookArrangement
+from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
 
 logger = get_logger("make_models_logger")
 
@@ -42,7 +43,8 @@ def mkdir_models():
     #         os.remove(f)
 
 
-def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate, avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list):
+def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
+               avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list):
     files = glob.glob('./models/{0}/graphs/{1}*'.format(model_type, coin_name))
     for f in files:
         os.remove(f)
@@ -133,7 +135,7 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
-def main(model_type):
+def main(model_type, coin_names):
     start_time = time.time()
 
     coin_names_high_quality_models = []
@@ -141,7 +143,7 @@ def main(model_type):
     batch_size = 6
     lr = 0.001
 
-    heading_msg = "**************************\n"
+    heading_msg = "\n**************************\n"
     heading_msg += "{0} Model - WINDOW SIZE:{1}, FUTURE_TARGET_SIZE:{2}, UP_RATE:{3}, INPUT_SIZE:{4}, DEVICE:{5}".format(
         model_type,
         WINDOW_SIZE,
@@ -150,23 +152,22 @@ def main(model_type):
         INPUT_SIZE,
         DEVICE
     )
-
     logger.info(heading_msg)
 
     patience = 50
 
-    coin_names = UPBIT.get_all_coin_names()
-
     for i, coin_name in enumerate(coin_names):
-        upbit_data = UpbitOrderBookBasedData(coin_name)
+        upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
-        x_train_original, x_train_normalized_original, y_train_original, y_train_normalized_original, y_up_train_original, \
+        x_train_original, x_train_normalized_original, y_train_original, y_up_train_original, \
         one_rate_train, train_size, \
-        x_valid_original, x_valid_normalized_original, y_valid_original, y_valid_normalized_original, y_up_valid_original, \
-        one_rate_valid, valid_size = upbit_data.get_data(model_type=model_type)
+        x_valid_original, x_valid_normalized_original, y_valid_original, y_up_valid_original, \
+        one_rate_valid, valid_size = upbit_order_book_data.get_data(
+            model_type=model_type
+        )
 
         if VERBOSE:
-            msg = "{0:>2} [{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Validation Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
+            t_msg = "{0:>2} [{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Validation Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
                 i,
                 coin_name,
                 int(y_up_train_original.sum()),
@@ -176,138 +177,150 @@ def main(model_type):
                 valid_size,
                 one_rate_valid
             )
-            logger.info(msg)
+            logger.info(t_msg)
 
-        if model_type == "CNN":
-            model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
-        elif model_type == "LSTM":
-            model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
-        else:
-            pass
+        if one_rate_valid > ONE_RATE_VALID_THRESHOLD:
+            coin_model_start_time = time.time()
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        criterion = nn.BCEWithLogitsLoss()
+            if model_type == "CNN":
+                model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
+            elif model_type == "LSTM":
+                model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
+            else:
+                model = None
 
-        train_losses = []
-        valid_losses = []
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+            criterion = nn.BCEWithLogitsLoss()
 
-        avg_train_losses = []
-        avg_valid_losses = []
+            train_losses = []
+            valid_losses = []
 
-        train_accuracy_list = []
-        valid_accuracy_list = []
+            avg_train_losses = []
+            avg_valid_losses = []
 
-        early_stopping = EarlyStopping(model_type=model_type, coin_name=coin_name, patience=patience, verbose=VERBOSE, logger=logger)
+            train_accuracy_list = []
+            valid_accuracy_list = []
 
-        early_stopped = False
-        for epoch in range(1, NUM_EPOCHS + 1):
-            x_train = x_train_original.clone().detach()
-            x_train_normalized = x_train_normalized_original.clone().detach()
-            y_train = y_train_original.clone().detach()
-            y_train_normalized = y_train_normalized_original.clone().detach()
-            y_up_train = y_up_train_original.clone().detach()
-
-            train_data_loader = get_data_loader(
-                x_train, x_train_normalized, y_train, y_train_normalized, y_up_train, batch_size=batch_size, suffle=True
+            early_stopping = EarlyStopping(
+                model_type=model_type, coin_name=coin_name, patience=patience, verbose=VERBOSE, logger=logger
             )
 
-            correct = 0.0
-            total = 0.0
+            early_stopped = False
+            for epoch in range(1, NUM_EPOCHS + 1):
+                x_train = x_train_original.clone().detach()
+                x_train_normalized = x_train_normalized_original.clone().detach()
+                y_train = y_train_original.clone().detach()
+                y_up_train = y_up_train_original.clone().detach()
 
-            # training
-            for x_train, x_train_normalized, y_train, y_train_normalized, y_up_train, num_batches in train_data_loader:
-                total_batch, correct_batch = train(
-                    optimizer, model, criterion, train_losses,
-                    x_train_normalized, y_up_train
+                train_data_loader = get_data_loader(
+                    x_train, x_train_normalized, y_train, y_up_train, batch_size=batch_size, suffle=True
                 )
-                total += total_batch
-                correct += correct_batch
 
-            train_loss, train_accuracy = post_train_processing(
-                train_losses, avg_train_losses, train_accuracy_list, correct, total
-            )
+                correct = 0.0
+                total = 0.0
 
-            # validation
-            # 배치정규화나 드롭아웃은 학습할때와 테스트 할때 다르게 동작하기 때문에 모델을 evaluation 모드로 바꿔서 테스트함.
-            x_valid = x_valid_original.clone().detach()
-            x_valid_normalized = x_valid_normalized_original.clone().detach()
-            y_valid = y_valid_original.clone().detach()
-            y_valid_normalized = y_valid_normalized_original.clone().detach()
-            y_up_valid = y_up_valid_original.clone().detach()
+                # training
+                for x_train, x_train_normalized, y_train, y_up_train, num_batches in train_data_loader:
+                    total_batch, correct_batch = train(
+                        optimizer, model, criterion, train_losses, x_train_normalized, y_up_train
+                    )
+                    total += total_batch
+                    correct += correct_batch
 
-            valid_data_loader = get_data_loader(
-                x_valid, x_valid_normalized, y_valid, y_valid_normalized, y_up_valid, batch_size=batch_size, suffle=False
-            )
-
-            correct = 0.0
-            total = 0.0
-
-            for x_valid, x_valid_normalized, y_valid, y_valid_normalized, y_up_valid, num_batches in valid_data_loader:
-                total_batch, correct_batch = validate(
-                    epoch, model, criterion, valid_losses, x_valid_normalized, y_up_valid
+                train_loss, train_accuracy = post_train_processing(
+                    train_losses, avg_train_losses, train_accuracy_list, correct, total
                 )
-                total += total_batch
-                correct += correct_batch
 
-            if VERBOSE: logger.info("\n")
+                # validation
+                # 배치정규화나 드롭아웃은 학습할때와 테스트 할때 다르게 동작하기 때문에 모델을 evaluation 모드로 바꿔서 테스트함.
+                x_valid = x_valid_original.clone().detach()
+                x_valid_normalized = x_valid_normalized_original.clone().detach()
+                y_valid = y_valid_original.clone().detach()
+                y_up_valid = y_up_valid_original.clone().detach()
 
-            valid_loss, valid_accuracy = post_validation_processing(
-                valid_losses, avg_valid_losses, valid_accuracy_list, correct, total
-            )
+                valid_data_loader = get_data_loader(
+                    x_valid, x_valid_normalized, y_valid, y_up_valid, batch_size=batch_size, suffle=False
+                )
 
-            print_msg = "{0} - Epoch[{1}/{2}] - \n  t_loss:{3:.6f},   t_accuracy:{4:.2f},   v_loss:{5:.6f},   v_accuracy:{6:.2f}".format(
-                coin_name,
-                epoch,
-                NUM_EPOCHS,
-                train_loss,
-                train_accuracy,
-                valid_loss,
-                valid_accuracy
-            )
+                correct = 0.0
+                total = 0.0
 
-            if VERBOSE: logger.info(print_msg)
+                for x_valid, x_valid_normalized, y_valid, y_up_valid, num_batches in valid_data_loader:
+                    total_batch, correct_batch = validate(
+                        epoch, model, criterion, valid_losses, x_valid_normalized, y_up_valid
+                    )
+                    total += total_batch
+                    correct += correct_batch
 
-            early_stopping(valid_loss, valid_accuracy, epoch, model, valid_size, one_rate_valid)
+                if VERBOSE: logger.info("\n")
 
-            if early_stopping.early_stop:
-                early_stopped = True
-                if VERBOSE: logger.info("Early stopping @ Epoch {0}: Last Save Epoch {1}".format(epoch, early_stopping.last_save_epoch))
-                break
+                valid_loss, valid_accuracy = post_validation_processing(
+                    valid_losses, avg_valid_losses, valid_accuracy_list, correct, total
+                )
 
-        if (not early_stopped) and VERBOSE:
-            logger.info("Normal Stopping @ Epoch {0}: Last Save Epoch {1}".format(NUM_EPOCHS, early_stopping.last_save_epoch))
+                print_msg = "{0}:Epoch[{1}/{2}] - t_loss:{3:.4f}, t_accuracy:{4:.2f}, v_loss:{5:.4f}, " \
+                            "v_accuracy:{6:.2f}".format(
+                    coin_name,
+                    epoch,
+                    NUM_EPOCHS,
+                    train_loss,
+                    train_accuracy,
+                    valid_loss,
+                    valid_accuracy
+                )
 
-        high_quality_model_condition_list = [
-            early_stopping.min_valid_loss < MIN_VALID_LOSS_THRESHOLD,
-            early_stopping.last_valid_accuracy > LAST_VALID_ACCURACY_THRESHOLD,
-            early_stopping.last_save_epoch > LAST_SAVE_EPOCH_THRESHOLD,
-            one_rate_valid > ONE_RATE_VALID_THRESHOLD
-        ]
+                if VERBOSE: logger.info(print_msg)
 
-        msg = "Last Save Epoch: {0:3d} - Min of Valid Loss: {1:.4f}, Last Valid Accuracy:{2:.4f} - {3}".format(
-            early_stopping.last_save_epoch,
-            early_stopping.min_valid_loss,
-            early_stopping.last_valid_accuracy,
-            all(high_quality_model_condition_list)
-        )
-        logger.info(msg)
+                early_stopping(valid_loss, valid_accuracy, epoch, model, valid_size, one_rate_valid)
 
-        if all(high_quality_model_condition_list):
-            coin_names_high_quality_models.append(coin_name)
+                if early_stopping.early_stop:
+                    early_stopped = True
+                    if VERBOSE: logger.info("Early stopping @ Epoch {0}: Last Save Epoch {1}".format(
+                        epoch, early_stopping.last_save_epoch
+                    ))
+                    break
 
-            save_graph(
-                coin_name,
-                model_type,
+            if (not early_stopped) and VERBOSE:
+                logger.info("Normal Stopping @ Epoch {0}: Last Save Epoch {1}".format(
+                    NUM_EPOCHS, early_stopping.last_save_epoch
+                ))
+
+            high_quality_model_condition_list = [
+                early_stopping.min_valid_loss < MIN_VALID_LOSS_THRESHOLD,
+                early_stopping.last_valid_accuracy > LAST_VALID_ACCURACY_THRESHOLD,
+                early_stopping.last_save_epoch > LAST_SAVE_EPOCH_THRESHOLD,
+                one_rate_valid > ONE_RATE_VALID_THRESHOLD
+            ]
+
+            e_msg = "Last Save Epoch: {0:3d} - Min of Valid Loss: {1:.4f}, Last Valid Accuracy:{2:.4f} - {3}".format(
+                early_stopping.last_save_epoch,
                 early_stopping.min_valid_loss,
                 early_stopping.last_valid_accuracy,
-                early_stopping.last_save_epoch,
-                valid_size, one_rate_valid,
-                avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list
+                all(high_quality_model_condition_list)
             )
+            logger.info(e_msg)
 
-            early_stopping.save_last_model()
+            if all(high_quality_model_condition_list):
+                coin_names_high_quality_models.append(coin_name)
 
-            if VERBOSE: logger.info("\n")
+                save_graph(
+                    coin_name,
+                    model_type,
+                    early_stopping.min_valid_loss,
+                    early_stopping.last_valid_accuracy,
+                    early_stopping.last_save_epoch,
+                    valid_size, one_rate_valid,
+                    avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list
+                )
+
+                early_stopping.save_last_model()
+
+                if VERBOSE: logger.info("\n")
+            coin_model_elapsed_time = time.time() - coin_model_start_time
+            coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+            logger.info("==> {0}:{1} Elapsed Time: {2}\n".format(coin_name, model, coin_model_elapsed_time_str))
+        else:
+            logger.info("--> {0}:{1} Model Construction Cancelled.\n".format(coin_name, model_type))
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -315,7 +328,7 @@ def main(model_type):
     logger.info("####################################################################")
     logger.info("Coin Name with High Quality Model: {0}".format(coin_names_high_quality_models))
     logger.info("Elapsed Time: {0}".format(elapsed_time_str))
-    logger.info("####################################################################")
+    logger.info("####################################################################\n")
 
     slack_msg = "MODEL TYPE:{0} - HIGH QUALITY MODELS:{1} - ELAPSED_TIME:{2} @ {3}".format(
         model_type, coin_names_high_quality_models, elapsed_time_str, SOURCE
@@ -328,6 +341,27 @@ if __name__ == "__main__":
 
     SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
-    main(model_type="CNN")
-    main(model_type="LSTM")
+    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
+    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
+    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
+    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+        "BTC",
+        missing_count,
+        last_base_datetime_str
+    )
+    logger.info(msg)
 
+    coin_names = UPBIT.get_all_coin_names()
+
+    for coin_name in enumerate(coin_names):
+        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
+        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
+        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+            coin_name,
+            missing_count,
+            last_base_datetime_str
+        )
+        logger.info(msg)
+
+    main(model_type="CNN", coin_names=coin_names)
+    main(model_type="LSTM", coin_names=coin_names)

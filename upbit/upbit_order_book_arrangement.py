@@ -1,0 +1,159 @@
+import datetime as dt
+
+from common.utils import convert_to_daily_timestamp
+from common.logger import get_logger
+from datetime import timedelta
+
+from db.sqlite_handler import *
+
+logger = get_logger("upbit_order_book_arrangement")
+
+
+class UpbitOrderBookArrangement:
+    def __init__(self, coin_name):
+        self.coin_name = coin_name
+
+    def processing_missing_data(self):
+        logger.info("{0} - Processing Missing Data".format(self.coin_name))
+
+        start_base_datetime_str, final_base_datetime_str = self.get_order_book_start_and_final()
+        logger.info("{0:5s} - Start: {1}, Final: {2}".format(
+            self.coin_name,
+            start_base_datetime_str,
+            final_base_datetime_str
+        ))
+
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
+            info = cursor.fetchone()
+            if info is not None:
+                start_base_datetime_str = info[0]
+                logger.info("{0:5s} - Start Date is newly set to : {1}".format(
+                    self.coin_name,
+                    start_base_datetime_str
+                ))
+            conn.commit()
+
+        missing_count = 0
+        while True:
+            last_base_datetime_str = self.get_order_book_consecutiveness(
+                start_base_datetime_str=start_base_datetime_str
+            )
+
+            if last_base_datetime_str == final_base_datetime_str:
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    self.coin_name, start_base_datetime_str, last_base_datetime_str
+                ))
+                break
+
+            if last_base_datetime_str is None:
+                missing_count += 1
+                logger.info("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
+                    self.coin_name, start_base_datetime_str, missing_count
+                ))
+                previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
+                previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
+
+                self.insert_missing_record(previous_base_datetime_str, start_base_datetime_str)
+
+                start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+            else:
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                    self.coin_name, start_base_datetime_str, last_base_datetime_str
+                ))
+                start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
+            info = cursor.fetchone()
+            if info is None:
+                cursor.execute(insert_last_arrangement_base_datetime_for_coin_name, (
+                    "KRW-" + self.coin_name,
+                    last_base_datetime_str
+                ))
+            else:
+                cursor.execute(update_last_arrangement_base_datetime_for_coin_name, (
+                    last_base_datetime_str,
+                    "KRW-" + self.coin_name
+                ))
+            conn.commit()
+
+        return missing_count, last_base_datetime_str
+
+    def insert_missing_record(self, previous_base_datetime_str, missing_base_datetime_str):
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute(select_order_book_by_datetime.format(self.coin_name), (previous_base_datetime_str,))
+            info = cursor.fetchone()
+
+            cursor.execute(order_book_insert_sql.format(self.coin_name), (
+                missing_base_datetime_str, convert_to_daily_timestamp(missing_base_datetime_str), info[3],
+                info[4], info[5], info[6], info[7], info[8], info[9], info[10], info[11], info[12],
+                info[13],
+                info[14], info[15], info[16], info[17], info[18], info[19], info[20], info[21], info[22],
+                info[23],
+                info[24], info[25], info[26], info[27], info[28], info[29], info[30], info[31], info[32],
+                info[33],
+                info[34], info[35], info[36], info[37], info[38], info[39], info[40], info[41], info[42],
+                info[43],
+                info[44], info[45], info[46], info[47], info[48], info[49], info[50], info[51], info[52],
+                info[53],
+                info[54], info[55], info[56], info[57], info[58], info[59], info[60], info[61], info[62],
+                info[63],
+                info[64], info[65]
+            ))
+            conn.commit()
+
+    def get_order_book_start_and_final(self):
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(select_by_start_base_datetime.format(self.coin_name))
+            start_base_datetime_str = cursor.fetchone()[0]
+
+            cursor.execute(select_by_final_base_datetime.format(self.coin_name))
+            final_base_datetime_str = cursor.fetchone()[0]
+
+            conn.commit()
+        return start_base_datetime_str, final_base_datetime_str
+
+    def get_order_book_consecutiveness(self, start_base_datetime_str=None):
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+
+            if start_base_datetime_str is None:
+                cursor.execute(select_by_start_base_datetime.format(self.coin_name))
+                start_base_datetime_str = cursor.fetchone()[0]
+
+            cursor.execute(select_by_datetime.format(self.coin_name), (start_base_datetime_str,))
+            start_base_datetime_str = cursor.fetchone()
+
+            if start_base_datetime_str is None:
+                return None
+
+            base_datetime = dt.datetime.strptime(start_base_datetime_str[0], fmt.replace("T", " "))
+
+            last_base_datetime_str = None
+            while True:
+                next_base_datetime = base_datetime + timedelta(minutes=1)
+                next_base_datetime_str = dt.datetime.strftime(next_base_datetime, fmt.replace("T", " "))
+                cursor.execute(select_by_datetime.format(self.coin_name), (next_base_datetime_str, ))
+                next_base_datetime_str = cursor.fetchone()
+
+                if not next_base_datetime_str:
+                    break
+
+                next_base_datetime_str = next_base_datetime_str[0]
+                last_base_datetime_str = next_base_datetime_str
+                base_datetime = dt.datetime.strptime(next_base_datetime_str, fmt.replace("T", " "))
+
+            conn.commit()
+
+        return last_base_datetime_str

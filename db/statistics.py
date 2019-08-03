@@ -129,7 +129,7 @@ def get_model_status():
 
 
 def get_KRW_BTC_info():
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         rows = cursor.execute(select_one_record_KRW_BTC_sql)
@@ -146,7 +146,7 @@ def get_KRW_BTC_info():
 
 
 def buy_sell_tables():
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         rows = cursor.execute(select_all_buy_sell_sql)
@@ -236,5 +236,5 @@ def main():
     s.quit()
 
 
-if __name__ =="__main__":
+if __name__ == "__main__":
     main()

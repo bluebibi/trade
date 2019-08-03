@@ -21,7 +21,7 @@ from common.logger import get_logger
 
 logger = get_logger("test_upbit")
 
-from upbit.upbit_orderbook_recorder import UpbitOrderBookRecorder
+from upbit.upbit_order_book_recorder import UpbitOrderBookRecorder
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -62,7 +62,7 @@ class UpBitAPITestCase(unittest.TestCase):
         upbit_order_book_recorder = UpbitOrderBookRecorder()
 
         for coin_name in coin_names:
-            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, isolation_level=None,
+            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10,
                                  check_same_thread=False) as conn:
                 cursor = conn.cursor()
                 cursor.execute(select_by_datetime.format(coin_name))
@@ -144,7 +144,7 @@ class UpBitAPITestCase(unittest.TestCase):
             print()
 
     def insert_missing_record(self, select_by_datetime, coin_name, previous_base_datetime_str, order_book_insert_sql, start_base_datetime_str):
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, isolation_level=None,
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10,
                              check_same_thread=False) as conn:
             cursor = conn.cursor()
             cursor.execute(select_by_datetime.format(coin_name), (previous_base_datetime_str,))

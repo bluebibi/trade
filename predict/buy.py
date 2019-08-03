@@ -7,13 +7,13 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import *
 from predict.model_cnn import CNN
 from predict.model_rnn import LSTM
-from upbit.upbit_data import UpbitData
+from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from pytz import timezone
 from common.utils import *
 from common.logger import get_logger
+from db.sqlite_handler import *
 
 logger = get_logger("buy_logger")
 
@@ -23,17 +23,10 @@ if os.getcwd().endswith("predict"):
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
-select_coin_ticker_name_by_status_sql = "SELECT coin_ticker_name FROM BUY_SELL WHERE status=0 or status=1;"
-select_by_datetime = "SELECT close_price FROM {0} WHERE datetime='{1}';"
-select_total_krw = "SELECT total_krw FROM BUY_SELL ORDER BY id DESC LIMIT 1;"
-insert_buy_try_coin_info = "INSERT INTO BUY_SELL (coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, " \
-                           "buy_krw, buy_fee, buy_price, buy_coin_volume, total_krw, status) VALUES (?, ?, ?, ?, ?, " \
-                           "?, ?, ?, ?, ?, ?);"
-
 
 def get_coin_ticker_name_by_status():
     coin_ticker_name_list = []
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         rows = cursor.execute(select_coin_ticker_name_by_status_sql)
@@ -77,11 +70,11 @@ def get_db_right_time_coin_names():
     current_time_str = now_str.replace("T", " ")
     current_time_str = current_time_str[:-4] + "0:00"
 
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
         all_coin_names = UPBIT.get_all_coin_names()
         for coin_name in all_coin_names:
-            cursor.execute(select_by_datetime.format("KRW_" + coin_name, current_time_str))
+            cursor.execute(select_close_price_by_datetime.format(coin_name, current_time_str))
             close_price_ = cursor.fetchall()
             if close_price_:
                 coin_right_time_info[coin_name] = [close_price_[0][0], current_time_str]
@@ -91,7 +84,7 @@ def get_db_right_time_coin_names():
 
 
 def evaluate_coin_by_models(model, coin_name, model_type):
-    upbit_data = UpbitData(coin_name)
+    upbit_data = UpbitOrderBookBasedData(coin_name)
     x = upbit_data.get_buy_for_data(model_type=model_type)
 
     out = model.forward(x)
@@ -110,7 +103,7 @@ def evaluate_coin_by_models(model, coin_name, model_type):
 
 def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, buy_krw, buy_fee,
                          buy_price, buy_coin_volume, total_krw, status):
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         "INSERT INTO BUY_SELL (coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, " \
@@ -136,8 +129,7 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, bu
 
 
 def get_total_krw():
-    with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None,
-                         check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
         cursor.execute(select_total_krw)
 

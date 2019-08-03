@@ -10,20 +10,17 @@ from common.global_variables import *
 from common.utils import *
 from common.logger import get_logger
 
+from db.sqlite_handler import *
+
 logger = get_logger("sell_logger")
 
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
-select_all_bought_or_trailed_coin_names_sql = "SELECT * FROM BUY_SELL WHERE status=? or status=?;"
-update_trail_coin_info_sql = "UPDATE BUY_SELL SET trail_datetime=?, trail_price=?, sell_fee=?, " \
-                             "sell_krw=?, trail_rate=?, total_krw=?, status=? WHERE " \
-                             "coin_ticker_name=? and buy_datetime=?;"
-
 
 class Seller:
     def select_all_bought_coin_names(self):
-        with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 select_all_bought_or_trailed_coin_names_sql, (CoinStatus.bought.value, CoinStatus.trailed.value)
@@ -109,7 +106,7 @@ class Seller:
 
     def update_coin_info(self, trail_datetime, trail_price, sell_fee, sell_krw, trail_rate, total_krw, status,
                          coin_ticker_name, buy_datetime):
-        with sqlite3.connect(sqlite3_price_info_db_filename, timeout=10, isolation_level=None, check_same_thread=False) as conn:
+        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
 
             cursor.execute(update_trail_coin_info_sql, (

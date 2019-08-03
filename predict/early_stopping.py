@@ -34,7 +34,7 @@ class EarlyStopping:
         self.logger = logger
 
     def __call__(self, valid_loss, valid_accuracy, epoch, model, valid_size, one_count_rate):
-        if epoch > 0:
+        if epoch > 1:
             if self.min_valid_loss is np.Inf:
                 self.save_checkpoint(valid_loss, valid_accuracy, epoch, model, valid_size, one_count_rate)
             elif valid_loss > self.min_valid_loss:
@@ -52,8 +52,8 @@ class EarlyStopping:
     def save_checkpoint(self, valid_loss, valid_accuracy, epoch, model, valid_size, one_count_rate):
         '''Saves model when validation loss decrease.'''
         if self.verbose:
-            self.logger.info(f'{self.coin_name}: Saving Model @ Epoch {epoch} - Validation Loss Decreased '
-                             f'({self.min_valid_loss:.6f} --> {valid_loss:.6f}) - Validation Accuracy {valid_accuracy:.6f}\n')
+            self.logger.info(f'{self.coin_name}: Saving Model @ Epoch {epoch} - v_loss decreased '
+                             f'({self.min_valid_loss:.4f} --> {valid_loss:.4f}) - v_accuracy {valid_accuracy:.6f}\n')
 
         new_filename = "{0}_{1}_{2:.2f}_{3:.2f}_{4}_{5:.2f}.pt".format(
             self.coin_name,

@@ -71,9 +71,9 @@ def convert_to_daily_timestamp(datetime_str):
 
 def get_invest_krw(current_price, total_ask_size, total_bid_size):
     base_price = current_price * (total_ask_size + total_bid_size) * 0.001
-    if base_price > 200000:
+    if base_price > 300000:
+        return 300000
+    elif 150000 < base_price <= 300000:
         return 200000
-    elif 100000 < base_price <= 250000:
-        return 100000
     else:
-        return 50000
+        return 100000

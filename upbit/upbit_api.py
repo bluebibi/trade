@@ -151,6 +151,7 @@ def _call_public_api(url, **kwargs):
             contents = resp.json()
 
             if contents and 'error' in contents and contents['error']['message'] == 'Too many API requests.':
+                print("Too many API requests.")
                 time.sleep(0.05)
             else:
                 break
@@ -536,6 +537,32 @@ class Upbit:
                 coin_names.append(m['market'].split('-')[1])
         return coin_names
 
+    def get_expected_buy_coin_price_for_krw_and_ask_list(self, ask_price_lst, ask_size_lst, krw, transaction_fee_rate):
+        original_krw = krw
+
+        fee = krw * transaction_fee_rate
+        krw = krw - fee
+
+        calc_size_sum = 0.0
+
+        # print(0, krw, calc_size_sum, 0)
+        for i, ask_size in enumerate(ask_size_lst):
+            calc_krw_sum = ask_price_lst[i] * ask_size
+            if calc_krw_sum > krw:
+                calc_size_sum += krw / ask_price_lst[i]
+                krw = krw - krw
+                # print(i+1, krw, calc_size_sum)
+                break
+            else:
+                calc_size_sum += ask_size
+                krw = krw - calc_krw_sum
+                # print(i+1, krw, calc_size_sum)
+
+        calc_price = (original_krw - fee) / calc_size_sum
+
+        # 매수원금: 1000000, 수수료: 500.0, 매수단가: 1823.7691975619496, 확보한 코인수량: 548.0408383561644
+        return original_krw, fee, calc_price, calc_size_sum
+
     def get_expected_buy_coin_price_for_krw(self, ticker, krw, transaction_fee_rate):
         orderbook = self.get_orderbook(tickers=ticker)[0]
         orderbook_units = orderbook["orderbook_units"]
@@ -547,44 +574,14 @@ class Upbit:
 
         # print(ask_price_lst)
         # print(ask_size_lst)
+        return self.get_expected_buy_coin_price_for_krw_and_ask_list(
+            ask_price_lst=ask_price_lst,
+            ask_size_lst=ask_size_lst,
+            krw=krw,
+            transaction_fee_rate=transaction_fee_rate
+        )
 
-        original_krw = krw
-
-        fee = krw * transaction_fee_rate
-        krw = krw - fee
-
-        calc_size_sum = 0.0
-
-        #print(0, krw, calc_size_sum, 0)
-        for i, ask_size in enumerate(ask_size_lst):
-            calc_krw_sum = ask_price_lst[i] * ask_size
-            if calc_krw_sum > krw:
-                calc_size_sum += krw / ask_price_lst[i]
-                krw = krw - krw
-                #print(i+1, krw, calc_size_sum)
-                break
-            else:
-                calc_size_sum += ask_size
-                krw = krw - calc_krw_sum
-                #print(i+1, krw, calc_size_sum)
-
-        calc_price = (original_krw - fee) / calc_size_sum
-
-        # 매수원금: 1000000, 수수료: 500.0, 매수단가: 1823.7691975619496, 확보한 코인수량: 548.0408383561644
-        return original_krw, fee, calc_price, calc_size_sum
-
-    def get_expected_sell_coin_price_for_volume(self, ticker, volume, transaction_fee_rate):
-        orderbook = self.get_orderbook(tickers=ticker)[0]
-        orderbook_units = orderbook["orderbook_units"]
-        bid_price_lst = []
-        bid_size_lst = []
-        for item in orderbook_units:
-            bid_price_lst.append(item["bid_price"])
-            bid_size_lst.append(item["bid_size"])
-
-        # print(bid_price_lst)
-        # print(bid_size_lst)
-
+    def get_expected_sell_coin_price_for_volume_and_bid_list(self, bid_price_lst, bid_size_lst, volume, transaction_fee_rate):
         calc_krw_sum = 0.0
         original_volume = volume
 
@@ -608,6 +605,25 @@ class Upbit:
 
         # 매도 코인수량: 548.0408383561644, 매도단가: 1805.0, 수수료: 494.79924644171336, 매도결과금:989103.693636985
         return original_volume, calc_price, fee, calc_krw_sum
+
+    def get_expected_sell_coin_price_for_volume(self, ticker, volume, transaction_fee_rate):
+        orderbook = self.get_orderbook(tickers=ticker)[0]
+        orderbook_units = orderbook["orderbook_units"]
+        bid_price_lst = []
+        bid_size_lst = []
+        for item in orderbook_units:
+            bid_price_lst.append(item["bid_price"])
+            bid_size_lst.append(item["bid_size"])
+
+        # print(bid_price_lst)
+        # print(bid_size_lst)
+        return self.get_expected_sell_coin_price_for_volume_and_bid_list(
+            bid_price_lst=bid_price_lst,
+            bid_size_lst=bid_size_lst,
+            volume=volume,
+            transaction_fee_rate=transaction_fee_rate
+        )
+
 
 
 

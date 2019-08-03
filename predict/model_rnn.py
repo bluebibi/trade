@@ -5,7 +5,7 @@ from common.global_variables import *
 
 
 class LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size=256, output_size=1, num_layers=3):
+    def __init__(self, input_size, hidden_size=256, output_size=1, num_layers=2):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
