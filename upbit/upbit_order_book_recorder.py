@@ -7,7 +7,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.utils import convert_to_daily_timestamp
+from common.utils import convert_to_daily_timestamp, data_preprocess_before_make_models
 from common.logger import get_logger
 
 from db.sqlite_handler import *
@@ -180,4 +180,7 @@ if __name__ == "__main__":
     upbit_order_book_recorder.insert_order_book(order_book_info)
 
     elapsed_time = time.time() - current_time
+
+    data_preprocess_before_make_models(upbit_order_book_recorder.coin_names, logger=logger)
+
     logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))

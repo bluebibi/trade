@@ -29,61 +29,65 @@ class UpbitOrderBookArrangement:
             info = cursor.fetchone()
             if info is not None:
                 start_base_datetime_str = info[0]
-                logger.info("{0:5s} - Start Date is newly set to : {1}".format(
+                logger.info("{0:5s} - Start Date is newly set to {1}".format(
                     self.coin_name,
                     start_base_datetime_str
                 ))
             conn.commit()
 
         missing_count = 0
-        while True:
-            last_base_datetime_str = self.get_order_book_consecutiveness(
-                start_base_datetime_str=start_base_datetime_str
-            )
 
-            if last_base_datetime_str == final_base_datetime_str:
-                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
-                    self.coin_name, start_base_datetime_str, last_base_datetime_str
-                ))
-                break
+        if start_base_datetime_str != final_base_datetime_str:
+            while True:
+                last_base_datetime_str = self.get_order_book_consecutiveness(
+                    start_base_datetime_str=start_base_datetime_str
+                )
 
-            if last_base_datetime_str is None:
-                missing_count += 1
-                logger.info("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
-                    self.coin_name, start_base_datetime_str, missing_count
-                ))
-                previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
-                previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
+                if last_base_datetime_str == final_base_datetime_str:
+                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                        self.coin_name, start_base_datetime_str, last_base_datetime_str
+                    ))
+                    break
 
-                self.insert_missing_record(previous_base_datetime_str, start_base_datetime_str)
+                if last_base_datetime_str is None:
+                    missing_count += 1
+                    logger.info("{0:5s} - Start Base Datetime: {1} - Missing: {2}".format(
+                        self.coin_name, start_base_datetime_str, missing_count
+                    ))
+                    previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                    previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
+                    previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
 
-                start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
-                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
-            else:
-                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
-                    self.coin_name, start_base_datetime_str, last_base_datetime_str
-                ))
-                start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
-                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
-                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+                    self.insert_missing_record(previous_base_datetime_str, start_base_datetime_str)
 
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
-            cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
-            info = cursor.fetchone()
-            if info is None:
-                cursor.execute(insert_last_arrangement_base_datetime_for_coin_name, (
-                    "KRW-" + self.coin_name,
-                    last_base_datetime_str
-                ))
-            else:
-                cursor.execute(update_last_arrangement_base_datetime_for_coin_name, (
-                    last_base_datetime_str,
-                    "KRW-" + self.coin_name
-                ))
-            conn.commit()
+                    start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+                    start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                    start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+                else:
+                    logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                        self.coin_name, start_base_datetime_str, last_base_datetime_str
+                    ))
+                    start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
+                    start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                    start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+
+            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+                cursor = conn.cursor()
+                cursor.execute(select_last_arrangement_base_datetime_for_coin_name, ("KRW-" + self.coin_name,))
+                info = cursor.fetchone()
+                if info is None:
+                    cursor.execute(insert_last_arrangement_base_datetime_for_coin_name, (
+                        "KRW-" + self.coin_name, last_base_datetime_str
+                    ))
+                    logger.info("{0}, {1} - INSERTED".format("KRW-" + self.coin_name, last_base_datetime_str))
+                else:
+                    cursor.execute(update_last_arrangement_base_datetime_for_coin_name, (
+                        last_base_datetime_str, "KRW-" + self.coin_name
+                    ))
+                    logger.info("{0}, {1} - UPDATED".format("KRW-" + self.coin_name, last_base_datetime_str))
+                conn.commit()
+        else:
+            last_base_datetime_str = None
 
         return missing_count, last_base_datetime_str
 

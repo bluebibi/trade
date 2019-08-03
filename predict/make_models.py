@@ -6,6 +6,7 @@ import torch.nn as nn
 from common.global_variables import *
 import matplotlib.pyplot as plt
 
+from common.utils import data_preprocess_before_make_models
 from predict.model_rnn import LSTM
 from predict.model_cnn import CNN
 from predict.early_stopping import EarlyStopping
@@ -144,7 +145,7 @@ def main(model_type, coin_names):
     lr = 0.001
 
     heading_msg = "\n**************************\n"
-    heading_msg += "{0} Model - WINDOW SIZE:{1}, FUTURE_TARGET_SIZE:{2}, UP_RATE:{3}, INPUT_SIZE:{4}, DEVICE:{5}".format(
+    heading_msg += "{0} - WINDOW SIZE:{1}, FUTURE_TARGET_SIZE:{2}, UP_RATE:{3}, INPUT_SIZE:{4}, DEVICE:{5}".format(
         model_type,
         WINDOW_SIZE,
         FUTURE_TARGET_SIZE,
@@ -167,7 +168,7 @@ def main(model_type, coin_names):
         )
 
         if VERBOSE:
-            t_msg = "{0:>2} [{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Validation Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
+            t_msg = "{0:>2}[{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Validation Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
                 i,
                 coin_name,
                 int(y_up_train_original.sum()),
@@ -320,7 +321,9 @@ def main(model_type, coin_names):
             coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
             logger.info("==> {0}:{1} Elapsed Time: {2}\n".format(coin_name, model, coin_model_elapsed_time_str))
         else:
-            logger.info("--> {0}:{1} Model Construction Cancelled.\n".format(coin_name, model_type))
+            logger.info("--> {0}:{1} Model construction cancelled since one_rate_valid is too low.\n".format(
+                coin_name, model_type
+            ))
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -341,27 +344,9 @@ if __name__ == "__main__":
 
     SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
-    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
-    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
-    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
-    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-        "BTC",
-        missing_count,
-        last_base_datetime_str
-    )
-    logger.info(msg)
-
     coin_names = UPBIT.get_all_coin_names()
 
-    for coin_name in enumerate(coin_names):
-        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
-        missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
-        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-            coin_name,
-            missing_count,
-            last_base_datetime_str
-        )
-        logger.info(msg)
+    data_preprocess_before_make_models(coin_names, logger=logger)
 
     main(model_type="CNN", coin_names=coin_names)
     main(model_type="LSTM", coin_names=coin_names)
