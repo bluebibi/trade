@@ -147,9 +147,9 @@ def make_model(
 
     coin_names_high_quality_models = []
 
-    batch_size = 6
+    batch_size = 16
     lr = 0.001
-    patience = 50
+    patience = 30
 
     coin_model_start_time = time.time()
 
