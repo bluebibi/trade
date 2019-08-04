@@ -10,22 +10,22 @@ from common.global_variables import *
 
 
 ### upbit_order_book_recorder.py
-select_by_start_base_datetime = "SELECT base_datetime FROM KRW_{0}_ORDER_BOOK ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT 1;"
-select_by_final_base_datetime = "SELECT base_datetime FROM KRW_{0}_ORDER_BOOK ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT 1;"
+select_by_start_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT 1;"
+select_by_final_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT 1;"
 
-select_by_datetime = "SELECT base_datetime FROM KRW_{0}_ORDER_BOOK WHERE base_datetime=? LIMIT 1;"
+select_by_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;"
 
 
 ### upbit_order_book_based_data.py
 order_book_insert_sql = """
-    INSERT INTO KRW_{0}_ORDER_BOOK VALUES(
+    INSERT INTO 'KRW_{0}_ORDER_BOOK' VALUES(
     NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_order_book_by_datetime = """
-    SELECT * FROM KRW_{0}_ORDER_BOOK WHERE base_datetime=? LIMIT 1;
+    SELECT * FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;
 """
 
 order_book_for_one_coin = """
@@ -96,8 +96,8 @@ select_coin_ticker_name_by_status_sql = """
     SELECT coin_ticker_name FROM BUY_SELL WHERE status=0 or status=1;
 """
 
-select_close_price_by_datetime = """
-    SELECT close_price FROM KRW_{0}_ORDER_BOOK WHERE base_datetime='{1}';
+select_current_base_datetime_by_datetime = """
+    SELECT base_datetime, ask_price_0 FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime='{1}';
 """
 
 select_total_krw = """
@@ -105,8 +105,19 @@ select_total_krw = """
 """
 
 insert_buy_try_coin_info = """
-    INSERT INTO BUY_SELL (coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, 
-    buy_krw, buy_fee, buy_price, buy_coin_volume, total_krw, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    INSERT INTO BUY_SELL (
+        coin_ticker_name, 
+        buy_datetime, 
+        cnn_prob, 
+        lstm_prob, 
+        ask_price_0, 
+        buy_krw, 
+        buy_fee, 
+        buy_price, 
+        buy_coin_volume, 
+        total_krw, 
+        status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 ###
@@ -139,7 +150,7 @@ class SqliteHandler:
                         buy_datetime DATETIME,
                         cnn_prob FLOAT,
                         lstm_prob FLOAT, 
-                        buy_base_price FLOAT,
+                        ask_price_0 FLOAT,
                         buy_krw INT, 
                         buy_fee INT, 
                         buy_price FLOAT, 
@@ -238,6 +249,7 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     sql_handler = SqliteHandler()
-    sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
-    sql_handler.create_order_book_table(upbit.get_all_coin_names())
-    #sql_handler.drop_order_book_tables(upbit.get_all_coin_names())
+    # sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
+    # sql_handler.create_order_book_table(upbit.get_all_coin_names())
+    # sql_handler.drop_order_book_tables(upbit.get_all_coin_names())
+    sql_handler.drop_buy_sell_tables()

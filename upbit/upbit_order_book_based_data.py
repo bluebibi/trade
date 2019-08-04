@@ -31,8 +31,6 @@ class UpbitOrderBookBasedData:
 
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
-        #print(df)
-
         min_max_scaler = MinMaxScaler()
         x_normalized = min_max_scaler.fit_transform(df.values)
         x_normalized = torch.from_numpy(x_normalized).float().to(DEVICE)
@@ -42,7 +40,7 @@ class UpbitOrderBookBasedData:
         else:
             return x_normalized.unsqueeze(dim=0)
 
-    def get_data(self, model_type):
+    def get_data(self):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin.format(self.coin_name),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -90,12 +88,8 @@ class UpbitOrderBookBasedData:
         train_size = x_train.size(0)
         valid_size = x_valid.size(0)
 
-        if model_type == "CNN":
-            return x_train.unsqueeze(dim=1), x_train_normalized.unsqueeze(dim=1), y_train, y_up_train, one_rate_train, train_size,\
-                   x_valid.unsqueeze(dim=1), x_valid_normalized.unsqueeze(dim=1), y_valid, y_up_valid, one_rate_valid, valid_size
-        else:
-            return x_train, x_train_normalized, y_train, y_up_train, one_rate_train, train_size,\
-                   x_valid, x_valid_normalized, y_valid, y_up_valid, one_rate_valid, valid_size
+        return x_train, x_train_normalized, y_train, y_up_train, one_rate_train, train_size,\
+               x_valid, x_valid_normalized, y_valid, y_up_valid, one_rate_valid, valid_size
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate, scaler):
@@ -182,7 +176,7 @@ def get_data_loader(x, x_normalized, y, y_up_train, batch_size, suffle=True):
 def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("ADA")
 
-    upbit_orderbook_based_data.get_data("CNN")
+    upbit_orderbook_based_data.get_data()
 
     #upbit_orderbook_based_data.get_buy_for_data("CNN")
 
