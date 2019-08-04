@@ -216,14 +216,13 @@ def make_model(
             total += total_batch
             correct += correct_batch
 
-        if VERBOSE: logger.info("\n")
-
         valid_loss, valid_accuracy = post_validation_processing(
             valid_losses, avg_valid_losses, valid_accuracy_list, correct, total
         )
 
-        print_msg = "{0}:Epoch[{1}/{2}] - t_loss:{3:.4f}, t_accuracy:{4:.2f}, v_loss:{5:.4f}, " \
-                    "v_accuracy:{6:.2f}".format(
+        print_msg = "{0}-{1}:Epoch[{2}/{3}] - t_loss:{4:.4f}, t_accuracy:{5:.2f}, v_loss:{6:.4f}, " \
+                    "v_accuracy:{7:.2f}".format(
+            model_type,
             coin_name,
             epoch,
             NUM_EPOCHS,

@@ -17,6 +17,7 @@ from upbit.upbit_api import Upbit
 logger = get_logger("upbit_order_book_based_data")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
+
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
