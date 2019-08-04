@@ -8,6 +8,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import pandas as pd
 import datetime
+
+#from common.global_variables import CLIENT_ID_UPBIT, fmt, CLIENT_SECRET_UPBIT
 from common.logger import get_logger
 
 logger = get_logger("upbit_api")
@@ -503,6 +505,12 @@ class Upbit:
             logger.info(x.__class__.__name__)
             return None
 
+    def test_bulk_order_book(self):
+        coin_names = self.get_all_coin_names()
+        for i, coin_name in enumerate(coin_names):
+            order_book = self.get_orderbook("KRW-" + coin_name)
+            print(i, order_book[0]['market'])
+
     def get_market_index(self):
         try:
             url = "https://crix-api-cdn.upbit.com/v1/crix/index/recents?codes=IDX.UPBIT.UBMI&codes=IDX.UPBIT.UBAI"
@@ -628,8 +636,16 @@ class Upbit:
         )
 
 
-
-
+# if __name__ == "__main__":
+#     while True:
+#         start_time = time.time()
+#
+#         upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+#         upbit.test_bulk_order_book()
+#
+#         elapsed_time = time.time() - start_time
+#         elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+#         print(elapsed_time_str)
 
 
 

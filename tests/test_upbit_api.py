@@ -170,9 +170,11 @@ class UpBitAPITestCase(unittest.TestCase):
             ))
             conn.commit()
 
-
-
-
+    def test_bulk_order_book(self):
+        coin_names = self.upbit.get_all_coin_names()
+        for i, coin_name in enumerate(coin_names):
+            order_book = self.upbit.get_orderbook("KRW-" + coin_name)
+            print(i, order_book[0]['market'])
 
     def test_get_order_book(self):
         now = dt.datetime.now(timezone('Asia/Seoul'))

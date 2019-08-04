@@ -1,8 +1,10 @@
 import glob
 import locale
 
-
-
+import sys, os
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
 
 from predict.model_cnn import CNN
 from predict.model_rnn import LSTM
@@ -18,11 +20,10 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
-
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 
-def get_coin_ticker_name_by_status():
+def get_coin_ticker_names_by_bought_or_trailed_status():
     coin_ticker_name_list = []
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
@@ -35,12 +36,12 @@ def get_coin_ticker_name_by_status():
     return coin_ticker_name_list
 
 
-def get_good_quality_coin_names_for_buy():
+def get_good_quality_models_for_buy():
     cnn_models = {}
-    cnn_files = glob.glob('./models/CNN/*.pt')
+    cnn_files = glob.glob(PROJECT_HOME + 'models/CNN/*.pt')
 
     lstm_models = {}
-    lstm_files = glob.glob('./models/LSTM/*.pt')
+    lstm_files = glob.glob(PROJECT_HOME + 'models/LSTM/*.pt')
 
     for f in cnn_files:
         if os.path.isfile(f):
@@ -66,16 +67,16 @@ def get_db_right_time_coin_names():
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
-    current_time_str = current_time_str[:-4] + "0:00"
+    current_time_str = current_time_str[:-3] + ":00"
 
     with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
         all_coin_names = upbit.get_all_coin_names()
         for coin_name in all_coin_names:
-            cursor.execute(select_close_price_by_datetime.format(coin_name, current_time_str))
-            close_price_ = cursor.fetchall()
-            if close_price_:
-                coin_right_time_info[coin_name] = [close_price_[0][0], current_time_str]
+            cursor.execute(select_current_base_datetime_by_datetime.format(coin_name, current_time_str))
+            base_datetime_info = cursor.fetchone()
+            if base_datetime_info:                  # base_datetime, ask_price_0
+                coin_right_time_info[coin_name] = (base_datetime_info[0], base_datetime_info[1])
         conn.commit()
 
     return coin_right_time_info
@@ -99,24 +100,20 @@ def evaluate_coin_by_models(model, coin_name, model_type):
         return -1
 
 
-def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, buy_krw, buy_fee,
+def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, ask_price_0, buy_krw, buy_fee,
                          buy_price, buy_coin_volume, total_krw, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
-        "INSERT INTO BUY_SELL (coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, " \
-        "buy_krw, buy_fee, buy_price, buy_coin_volume, total_krw, status) VALUES (?, ?, ?, ?, ?, " \
-        "?, ?, ?, ?, ?, ?);"
-
         cursor.execute(insert_buy_try_coin_info, (
-            coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, buy_base_price, buy_krw, buy_fee, buy_price,
+            coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, ask_price_0, buy_krw, buy_fee, buy_price,
             buy_coin_volume, total_krw, status
         ))
         conn.commit()
 
-    msg_str = "*** BUY [{0}, buy_base_price: {1}, buy_price: {2}, buy_coin_volume: {3}, total_krw: {4}] @ {5}".format(
+    msg_str = "*** BUY [{0}, ask_price_0: {1}, buy_price: {2}, buy_coin_volume: {3}, total_krw: {4}] @ {5}".format(
         coin_ticker_name,
-        locale.format_string("%.2f", float(buy_base_price), grouping=True),
+        locale.format_string("%.2f", float(ask_price_0), grouping=True),
         locale.format_string("%.2f", float(buy_price), grouping=True),
         locale.format_string("%.2f", float(buy_coin_volume), grouping=True),
         total_krw,
@@ -141,11 +138,11 @@ def get_total_krw():
 
 
 def main():
-    good_cnn_models, good_lstm_models = get_good_quality_coin_names_for_buy()
+    good_cnn_models, good_lstm_models = get_good_quality_models_for_buy()
 
     right_time_coin_info = get_db_right_time_coin_names()
 
-    already_coin_ticker_names = get_coin_ticker_name_by_status()
+    already_coin_ticker_names = get_coin_ticker_names_by_bought_or_trailed_status()
 
     target_coin_names = (set(good_cnn_models) & set(good_lstm_models) & set(right_time_coin_info)) - set(
         already_coin_ticker_names)
@@ -181,8 +178,8 @@ def main():
             if cnn_prob > 0 and lstm_prob > 0:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
-                    "buy_base_price": float(right_time_coin_info[coin_name][0]),
-                    "right_time": right_time_coin_info[coin_name][1],
+                    "ask_price_0": float(right_time_coin_info[coin_name][1]),
+                    "right_time": right_time_coin_info[coin_name][0],
                     "cnn_prob": cnn_prob,
                     "lstm_prob": lstm_prob
                 }
@@ -205,7 +202,7 @@ def main():
                         buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
                         cnn_prob=buy_try_coin_info[coin_ticker_name]['cnn_prob'],
                         lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
-                        buy_base_price=buy_try_coin_info[coin_ticker_name]['buy_base_price'],
+                        ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
                         buy_krw=INVEST_KRW,
                         buy_fee=buy_fee,
                         buy_price=buy_price,
