@@ -154,10 +154,11 @@ def make_arrangement(coin_names):
     )
     logger.info(msg)
 
-    for coin_name in coin_names:
+    for idx, coin_name in enumerate(coin_names):
         coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
         missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
-        msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+        msg = "{0}, {1}: {2} Missing Data was Processed!. Last arranged data: {3}".format(
+            idx,
             coin_name,
             missing_count,
             last_base_datetime_str
