@@ -29,6 +29,8 @@ class UpbitOrderBookArrangement:
             final_base_datetime_str
         ))
 
+        final_base_datetime = dt.datetime.strptime(final_base_datetime_str, fmt.replace("T", " "))
+
         missing_count = 0
         while True:
             last_base_datetime_str = self.get_order_book_consecutiveness(
@@ -63,10 +65,7 @@ class UpbitOrderBookArrangement:
                 start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
                 start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
 
-            if start_base_datetime_str == final_base_datetime_str:
-                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
-                    self.coin_name, start_base_datetime_str, last_base_datetime_str
-                ))
+            if start_base_datetime >= final_base_datetime:
                 break
         return missing_count, last_base_datetime_str
 
