@@ -227,12 +227,11 @@ class SqliteHandler:
 
             conn.commit()
 
-    def drop_buy_sell_tables(self, coin_names):
+    def drop_buy_sell_tables(self):
         with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
-            for coin_name in coin_names:
-                table_name = "KRW_" + coin_name + "_BUY_SELL"
-                cursor.execute("DROP TABLE IF EXISTS {0}".format(table_name))
+            table_name = "BUY_SELL"
+            cursor.execute("DROP TABLE IF EXISTS {0}".format(table_name))
 
             conn.commit()
 
@@ -249,7 +248,9 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     sql_handler = SqliteHandler()
-    # sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
+    sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
     # sql_handler.create_order_book_table(upbit.get_all_coin_names())
+
+    # sql_handler.drop_buy_sell_tables()
     # sql_handler.drop_order_book_tables(upbit.get_all_coin_names())
-    sql_handler.drop_buy_sell_tables()
+
