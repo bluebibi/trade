@@ -67,6 +67,10 @@ class UpbitOrderBookBasedData:
 
         # Imbalanced Preprocessing - Start
         if one_rate > 0.01:
+
+            x_normalized = x_normalized.cpu()
+            y_up = y_up.cpu()
+
             x_samp, y_up_samp = SMOTEENN(random_state=0).fit_sample(
                 x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
                 y_up
