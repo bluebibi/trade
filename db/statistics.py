@@ -180,7 +180,7 @@ def buy_sell_tables():
         total_rate += float(row[14])
         txt += "<tr>"
         txt += "<td>{0}</td><td>{1}</td><td>{2} | {3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{" \
-               "8}</td><td>{9}</td><td>{10}%</td><td>{11}%</td>".format(
+               "8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
             row[2].replace(":00", ""), #buy_datetime - 매수 기준 날짜/시각
             "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}'>{0}</a>".format(row[1]), #coin_ticker_name - 구매
             # 코인
