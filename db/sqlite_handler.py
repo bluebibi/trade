@@ -110,7 +110,7 @@ insert_buy_try_coin_info = """
         buy_datetime, 
         cnn_prob, 
         lstm_prob, 
-        ask_price_0, 
+        buy_base_price, 
         buy_krw, 
         buy_fee, 
         buy_price, 
