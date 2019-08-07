@@ -3,18 +3,17 @@ import locale
 import smtplib
 import sqlite3
 import jinja2
-
 from email.mime.text import MIMEText
 
 from pytz import timezone
 
 import sys, os
 
-from upbit.upbit_api import Upbit
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
+from upbit.upbit_api import Upbit
+from db.sqlite_handler import *
 
 from common.global_variables import *
 from common.utils import *
@@ -26,12 +25,6 @@ if os.getcwd().endswith("db"):
     os.chdir("..")
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-
-select_all_buy_sell_sql = "SELECT * FROM BUY_SELL ORDER BY id DESC;"
-
-select_one_record_KRW_BTC_sql = "SELECT datetime FROM KRW_BTC ORDER BY id DESC LIMIT 1;"
-
-count_rows_KRW_BTC_sql = "SELECT * FROM KRW_BTC ORDER BY id DESC LIMIT 1;"
 
 now = dt.datetime.now(timezone('Asia/Seoul'))
 now_str = now.strftime(fmt.replace("T", " "))
@@ -133,7 +126,7 @@ def get_model_status():
 
 
 def get_KRW_BTC_info():
-    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
+    with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         rows = cursor.execute(select_one_record_KRW_BTC_sql)

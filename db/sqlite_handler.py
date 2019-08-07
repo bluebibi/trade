@@ -120,6 +120,16 @@ insert_buy_try_coin_info = """
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
+
+### statistics
+select_all_buy_sell_sql = "SELECT * FROM BUY_SELL ORDER BY id DESC;"
+
+select_one_record_KRW_BTC_sql = """
+SELECT base_datetime FROM KRW_BTC_ORDER_BOOK ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT 1;
+"""
+
+count_rows_KRW_BTC_sql = "SELECT count(*) FROM KRW_BTC_ORDER_BOOK;"
+
 ###
 # select_last_arrangement_base_datetime_for_coin_name = """
 #     SELECT last_arrangement_base_datetime FROM ORDER_BOOK_ARRANGEMENT WHERE coin_ticker_name=?;
