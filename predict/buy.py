@@ -156,10 +156,10 @@ def main():
     ))
 
     logger.info("*** CNN: {0}, LSTM: {1}, Right Time Coins: {2}, Already Coins: {3}, Target Coins: {4} ***".format(
-        good_cnn_models,
-        good_lstm_models,
-        right_time_coin_info,
-        already_coin_ticker_names,
+        set(good_cnn_models),
+        set(good_lstm_models),
+        set(right_time_coin_info),
+        set(already_coin_ticker_names),
         target_coin_names
     ))
 
