@@ -37,7 +37,7 @@ class EarlyStopping:
         if epoch > 1:
             if self.min_valid_loss is np.Inf:
                 self.save_checkpoint(valid_loss, valid_accuracy, epoch, model, valid_size, one_count_rate)
-            elif valid_loss > self.min_valid_loss:
+            elif valid_loss >= self.min_valid_loss:
                 self.counter += 1
                 if self.verbose:
                     self.logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience} @ Epoch {epoch}\n')
