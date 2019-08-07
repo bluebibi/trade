@@ -155,13 +155,13 @@ def main():
         target_coin_names
     ))
 
-    logger.info("*** CNN: {0}, LSTM: {1}, Right Time Coins: {2}, Already Coins: {3}, Target Coins: {4} ***".format(
-        set(good_cnn_models.keys()),
-        set(good_lstm_models.keys()),
-        set(right_time_coin_info.keys()),
-        set(already_coin_ticker_names),
-        target_coin_names
-    ))
+    # logger.info("*** CNN: {0}, LSTM: {1}, Right Time Coins: {2}, Already Coins: {3}, Target Coins: {4} ***".format(
+    #     set(good_cnn_models.keys()),
+    #     set(good_lstm_models.keys()),
+    #     set(right_time_coin_info.keys()),
+    #     set(already_coin_ticker_names),
+    #     target_coin_names
+    # ))
 
     if len(target_coin_names) > 0:
         buy_try_coin_info = {}
