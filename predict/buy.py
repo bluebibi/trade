@@ -111,12 +111,12 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, as
         ))
         conn.commit()
 
-    msg_str = "*** BUY [{0}, ask_price_0: {1}, buy_price: {2}, buy_coin_volume: {3}, total_krw: {4}] @ {5}".format(
+    msg_str = "*** BUY [{0}, ask_price_0: {1}, buy_price: {2}, buy_krw: {3}, buy_coin_volume: {4}] @ {5}".format(
         coin_ticker_name,
         locale.format_string("%.2f", float(ask_price_0), grouping=True),
         locale.format_string("%.2f", float(buy_price), grouping=True),
-        locale.format_string("%.2f", float(buy_coin_volume), grouping=True),
-        total_krw,
+        locale.format_string("%d", float(buy_krw), grouping=True),
+        locale.format_string("%.4f", float(buy_coin_volume), grouping=True),
         SOURCE
     )
 

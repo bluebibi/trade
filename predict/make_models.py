@@ -25,6 +25,7 @@ logger = get_logger("make_models")
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
+
 def mkdir_models():
     if not os.path.exists("./models/"):
         os.makedirs("./models/")
@@ -322,7 +323,7 @@ def main(coin_names):
 
             high_quality_models[coin_name]["LSTM"] = coin_names_high_quality_models
 
-            #CNN First
+            #CNN Second
             model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
 
             x_train_normalized_original = x_train_normalized_original.unsqueeze(dim=1)
