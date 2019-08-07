@@ -75,8 +75,9 @@ class UpbitOrderBookBasedData:
                 x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
                 y_up
             )
-            x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2]))
-            y_up = torch.from_numpy(y_up_samp)
+            x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1],
+                                                           x_normalized.shape[2])).to(DEVICE)
+            y_up = torch.from_numpy(y_up_samp).to(DEVICE)
 
             total_size = len(x_samp)
         # Imbalanced Preprocessing - End
