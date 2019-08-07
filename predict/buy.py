@@ -188,12 +188,12 @@ def main():
         if buy_try_coin_ticker_names:
             for coin_ticker_name in buy_try_coin_ticker_names:
                 current_total_krw = get_total_krw()
-                if True:
-#                if current_total_krw - INVEST_KRW > 0:
+                invest_krw = get_invest_krw_live(upbit=upbit, coin_ticker_name=coin_ticker_name)
 
+                if True:           # if current_total_krw - invest_krw > 0:
                     _, buy_fee, buy_price, buy_coin_volume = upbit.get_expected_buy_coin_price_for_krw(
                         coin_ticker_name,
-                        INVEST_KRW,
+                        invest_krw,
                         TRANSACTION_FEE_RATE
                     )
 
@@ -203,11 +203,11 @@ def main():
                         cnn_prob=buy_try_coin_info[coin_ticker_name]['cnn_prob'],
                         lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
                         ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
-                        buy_krw=INVEST_KRW,
+                        buy_krw=invest_krw,
                         buy_fee=buy_fee,
                         buy_price=buy_price,
                         buy_coin_volume=buy_coin_volume,
-                        total_krw=current_total_krw - INVEST_KRW,
+                        total_krw=current_total_krw - invest_krw,
                         status=CoinStatus.bought.value
                     )
 

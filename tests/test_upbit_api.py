@@ -57,22 +57,17 @@ class UpBitAPITestCase(unittest.TestCase):
     def test_get_right_invest_krw(self):
         coin_names = self.upbit.get_all_coin_names();
 
-        select_by_datetime = "SELECT total_ask_size, total_bid_size FROM KRW_{0}_ORDER_BOOK ORDER BY collect_timestamp DESC LIMIT 1;"
-
-        upbit_order_book_recorder = UpbitOrderBookRecorder()
-
         for coin_name in coin_names:
-            with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10,
-                                 check_same_thread=False) as conn:
-                cursor = conn.cursor()
-                cursor.execute(select_by_datetime.format(coin_name))
 
-                info = cursor.fetchone()
+            info = self.upbit.get_orderbook(tickers="KRW-"+coin_name)
+            current_price = info[0]['orderbook_units'][0]['ask_price']
+            total_ask_size = info[0]['total_ask_size']
+            total_bid_size = info[0]['total_bid_size']
+            print(info)
+            print(current_price, total_ask_size, total_bid_size)
+            print("{0}, {1:9.0f}".format(coin_name, get_invest_krw(current_price, total_ask_size=total_ask_size,
+                                                                   total_bid_size=total_bid_size)))
 
-                price = self.upbit.get_current_price(ticker="KRW-"+coin_name)
-                print("{0}, {1:9.0f}".format(coin_name, get_invest_krw(price, info[0], info[1])))
-
-                conn.commit()
 
 
 

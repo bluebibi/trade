@@ -73,3 +73,10 @@ def get_invest_krw(current_price, total_ask_size, total_bid_size):
     else:
         return 100000
 
+
+def get_invest_krw_live(upbit, coin_ticker_name):
+    info = upbit.get_orderbook(tickers=coin_ticker_name)
+    current_price = info[0]['orderbook_units'][0]['ask_price']
+    total_ask_size = info[0]['total_ask_size']
+    total_bid_size = info[0]['total_bid_size']
+    return get_invest_krw(current_price, total_ask_size, total_bid_size)

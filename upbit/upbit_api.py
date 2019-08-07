@@ -561,7 +561,6 @@ class Upbit:
             calc_krw_sum = ask_price_lst[i] * ask_size
             if calc_krw_sum > krw:
                 calc_size_sum += krw / ask_price_lst[i]
-                krw = krw - krw
                 # print(i+1, krw, calc_size_sum)
                 break
             else:
@@ -600,7 +599,6 @@ class Upbit:
         for i, bid_size in enumerate(bid_size_lst):
             if bid_size > volume:
                 calc_krw_sum += bid_price_lst[i] * volume
-                volume = volume - volume
                 #print(i+1, volume, calc_krw_sum)
                 break
             else:
