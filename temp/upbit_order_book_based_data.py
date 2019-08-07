@@ -66,15 +66,14 @@ class UpbitOrderBookBasedData:
         )
 
         # Imbalanced Preprocessing - Start
-        if one_rate > 0.01:
-            x_samp, y_up_samp = SMOTEENN(random_state=0).fit_sample(
-                x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
-                y_up
-            )
-            x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2]))
-            y_up = torch.from_numpy(y_up_samp)
+        x_samp, y_up_samp = SMOTEENN(random_state=0).fit_sample(
+            x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
+            y_up
+        )
+        x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2]))
+        y_up = torch.from_numpy(y_up_samp)
 
-            total_size = len(x_samp)
+        total_size = len(x_samp)
         # Imbalanced Preprocessing - End
 
         indices = list(range(total_size))
@@ -83,8 +82,15 @@ class UpbitOrderBookBasedData:
         train_indices = list(set(indices[:int(total_size * 0.8)]))
         validation_indices = list(set(range(total_size)) - set(train_indices))
 
+        x_train = x[train_indices]
         x_train_normalized = x_normalized[train_indices]
+
+        x_valid = x[validation_indices]
         x_valid_normalized = x_normalized[validation_indices]
+
+        y_train = y[train_indices]
+
+        y_valid = y[validation_indices]
 
         y_up_train = y_up[train_indices]
         y_up_valid = y_up[validation_indices]
@@ -92,11 +98,11 @@ class UpbitOrderBookBasedData:
         one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
         one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
 
-        train_size = x_train_normalized.size(0)
-        valid_size = x_valid_normalized.size(0)
+        train_size = x_train.size(0)
+        valid_size = x_valid.size(0)
 
-        return x_train_normalized, y_up_train, one_rate_train, train_size,\
-               x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+        return x_train, x_train_normalized, y_train, y_up_train, one_rate_train, train_size,\
+               x_valid, x_valid_normalized, y_valid, y_up_valid, one_rate_valid, valid_size
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate, scaler):
@@ -201,9 +207,8 @@ class UpbitOrderBookBasedData:
         print(x_samp.shape, y_up_samp.shape)
         print("one_rate: {0}, total_size: {1}".format(one_rate, len(x_samp)))
 
-
-def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
-    total_size = x_normalized.size(0)
+def get_data_loader(x, x_normalized, y, y_up_train, batch_size, suffle=True):
+    total_size = x.size(0)
     if total_size % batch_size == 0:
         num_batches = int(total_size / batch_size)
     else:
@@ -215,8 +220,7 @@ def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
         else:
             indices = np.asarray(range(i * batch_size, min((i + 1) * batch_size, total_size)))
 
-        yield x_normalized[indices], y_up_train[indices], num_batches
-
+        yield x[indices], x_normalized[indices], y[indices], y_up_train[indices], num_batches
 
 def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")

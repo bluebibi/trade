@@ -141,13 +141,12 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
 
 def make_model(
         model, model_type, coin_name,
-        x_train_original, x_train_normalized_original, y_train_original, y_up_train_original,
-        x_valid_original, x_valid_normalized_original, y_valid_original, y_up_valid_original,
+        x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
         valid_size, one_rate_valid):
 
     coin_names_high_quality_models = []
 
-    batch_size = 16
+    batch_size = 32
     lr = 0.001
     patience = 30
 
@@ -171,20 +170,18 @@ def make_model(
 
     early_stopped = False
     for epoch in range(1, NUM_EPOCHS + 1):
-        x_train = x_train_original.clone().detach()
         x_train_normalized = x_train_normalized_original.clone().detach()
-        y_train = y_train_original.clone().detach()
         y_up_train = y_up_train_original.clone().detach()
 
         train_data_loader = get_data_loader(
-            x_train, x_train_normalized, y_train, y_up_train, batch_size=batch_size, suffle=True
+            x_train_normalized, y_up_train, batch_size=batch_size, suffle=True
         )
 
         correct = 0.0
         total = 0.0
 
         # training
-        for x_train, x_train_normalized, y_train, y_up_train, num_batches in train_data_loader:
+        for x_train_normalized, y_up_train, num_batches in train_data_loader:
             total_batch, correct_batch = train(
                 optimizer, model, criterion, train_losses, x_train_normalized, y_up_train
             )
@@ -197,19 +194,17 @@ def make_model(
 
         # validation
         # 배치정규화나 드롭아웃은 학습할때와 테스트 할때 다르게 동작하기 때문에 모델을 evaluation 모드로 바꿔서 테스트함.
-        x_valid = x_valid_original.clone().detach()
         x_valid_normalized = x_valid_normalized_original.clone().detach()
-        y_valid = y_valid_original.clone().detach()
         y_up_valid = y_up_valid_original.clone().detach()
 
         valid_data_loader = get_data_loader(
-            x_valid, x_valid_normalized, y_valid, y_up_valid, batch_size=batch_size, suffle=False
+            x_valid_normalized, y_up_valid, batch_size=batch_size, suffle=False
         )
 
         correct = 0.0
         total = 0.0
 
-        for x_valid, x_valid_normalized, y_valid, y_up_valid, num_batches in valid_data_loader:
+        for x_valid_normalized, y_up_valid, num_batches in valid_data_loader:
             total_batch, correct_batch = validate(
                 epoch, model, criterion, valid_losses, x_valid_normalized, y_up_valid
             )
@@ -222,14 +217,7 @@ def make_model(
 
         print_msg = "{0}-{1}:Epoch[{2}/{3}] - t_loss:{4:.4f}, t_accuracy:{5:.2f}, v_loss:{6:.4f}, " \
                     "v_accuracy:{7:.2f}".format(
-            model_type,
-            coin_name,
-            epoch,
-            NUM_EPOCHS,
-            train_loss,
-            train_accuracy,
-            valid_loss,
-            valid_accuracy
+            model_type, coin_name, epoch, NUM_EPOCHS, train_loss, train_accuracy, valid_loss, valid_accuracy
         )
 
         if VERBOSE: logger.info(print_msg)
@@ -304,10 +292,8 @@ def main(coin_names):
     for i, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
-        x_train_original, x_train_normalized_original, y_train_original, y_up_train_original, \
-        one_rate_train, train_size, \
-        x_valid_original, x_valid_normalized_original, y_valid_original, y_up_valid_original, \
-        one_rate_valid, valid_size = upbit_order_book_data.get_data()
+        x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
+        x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_order_book_data.get_data()
 
         if VERBOSE:
             t_msg = "{0:>2}-[{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Valid Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
@@ -330,8 +316,7 @@ def main(coin_names):
 
             coin_names_high_quality_models = make_model(
                 model, "LSTM", coin_name,
-                x_train_original, x_train_normalized_original, y_train_original, y_up_train_original,
-                x_valid_original, x_valid_normalized_original, y_valid_original, y_up_valid_original,
+                x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
                 valid_size, one_rate_valid
             )
 
@@ -340,15 +325,12 @@ def main(coin_names):
             #CNN First
             model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
 
-            x_train_original = x_train_original.unsqueeze(dim=1)
             x_train_normalized_original = x_train_normalized_original.unsqueeze(dim=1)
-            x_valid_original = x_valid_original.unsqueeze(dim=1)
             x_valid_normalized_original = x_valid_normalized_original.unsqueeze(dim=1)
 
             coin_names_high_quality_models = make_model(
                 model, "CNN", coin_name,
-                x_train_original, x_train_normalized_original, y_train_original, y_up_train_original,
-                x_valid_original, x_valid_normalized_original, y_valid_original, y_up_valid_original,
+                x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
                 valid_size, one_rate_valid
             )
 
