@@ -1,5 +1,5 @@
 import pandas as pd
-from imblearn.combine import SMOTEENN
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
@@ -71,7 +71,7 @@ class UpbitOrderBookBasedData:
             x_normalized = x_normalized.cpu()
             y_up = y_up.cpu()
 
-            x_samp, y_up_samp = SMOTEENN(random_state=0).fit_sample(
+            x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
                 x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
                 y_up
             )
@@ -194,7 +194,7 @@ class UpbitOrderBookBasedData:
         print(x_normalized.shape, y_up.shape)
         print("one_rate: {0}, total_size: {1}".format(one_rate, total_size))
 
-        x_samp, y_up_samp = SMOTEENN(random_state=0).fit_sample(
+        x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
             x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
             y_up
         )
