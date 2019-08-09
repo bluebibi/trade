@@ -270,7 +270,7 @@ def make_model(
         if VERBOSE: logger.info("\n")
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
-    logger.info("==> {0}:{1} Elapsed Time: {2}\n".format(coin_name, model, coin_model_elapsed_time_str))
+    logger.info("==> {0}:{1} Elapsed Time: {2}\n".format(coin_name, model_type, coin_model_elapsed_time_str))
 
     return coin_names_high_quality_models
 
