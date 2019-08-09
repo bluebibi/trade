@@ -213,7 +213,7 @@ def main():
 
     html_data = render_template(
         buy_sell_text=buy_sell_text,
-        total_gain=total_gain,
+        total_gain=locale.format_string("%d", total_gain, grouping=True),
         num=num,
         num_trail_bought=num_trail_bought,
         num_success=num_success,
