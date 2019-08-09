@@ -67,7 +67,7 @@ def get_db_right_time_coin_names():
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
-    current_time_str = current_time_str[:-3] + ":00"
+    current_time_str = current_time_str[:-4] + "0:00"
 
     with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
