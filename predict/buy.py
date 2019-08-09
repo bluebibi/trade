@@ -180,11 +180,24 @@ def main():
                 model_type="LSTM"
             )
 
-            logger.info("{0:5} --> CNN Probability:{1:.4f}, LSTM Probability:{2:.4f}".format(
-                coin_name, cnn_prob, lstm_prob
-            ))
+            if cnn_prob > 0.0 and lstm_prob > 0.0:
+                logger.info("{0:5} --> [[[CNN Probability:{1:.4f}]]], [[[LSTM Probability:{2:.4f}]]]".format(
+                    coin_name, cnn_prob, lstm_prob
+                ))
+            elif cnn_prob > 0.0:
+                logger.info("{0:5} --> [[[CNN Probability:{1:.4f}]]], LSTM Probability:{2:.4f}".format(
+                    coin_name, cnn_prob, lstm_prob
+                ))
+            elif lstm_prob > 0.0:
+                logger.info("{0:5} --> CNN Probability:{1:.4f}, [[[LSTM Probability:{2:.4f}]]]".format(
+                    coin_name, cnn_prob, lstm_prob
+                ))
+            else:
+                logger.info("{0:5} --> CNN Probability:{1:.4f}, LSTM Probability:{2:.4f}".format(
+                    coin_name, cnn_prob, lstm_prob
+                ))
 
-            if cnn_prob > 0 and lstm_prob > 0:
+            if cnn_prob > 0.0 and lstm_prob > 0.0:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
