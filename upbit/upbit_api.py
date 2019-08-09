@@ -8,6 +8,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import pandas as pd
 import datetime
+import random
 
 #from common.global_variables import CLIENT_ID_UPBIT, fmt, CLIENT_SECRET_UPBIT
 from common.logger import get_logger
@@ -546,6 +547,9 @@ class Upbit:
         for m in contents:
             if m['market'].startswith('KRW-'):
                 coin_names.append(m['market'].split('-')[1])
+
+        random.shuffle(coin_names)
+
         return coin_names
 
     def get_expected_buy_coin_price_for_krw_and_ask_list(self, ask_price_lst, ask_size_lst, krw, transaction_fee_rate):
