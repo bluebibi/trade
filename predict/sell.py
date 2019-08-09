@@ -75,7 +75,7 @@ class Seller:
             if trail_rate > SELL_RATE:
                 coin_status = CoinStatus.success_sold.value
             else:
-                if time_diff_minutes > FUTURE_TARGET_SIZE:
+                if time_diff_minutes > FUTURE_TARGET_SIZE * 10:
                     if trail_rate > TRANSACTION_FEE_RATE:
                         coin_status = CoinStatus.gain_sold.value
                     else:
