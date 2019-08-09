@@ -226,9 +226,14 @@ def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
 def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")
 
-    upbit_orderbook_based_data.get_data_imbance_processed()
+    #upbit_orderbook_based_data.get_data_imbance_processed()
 
     #upbit_orderbook_based_data.get_buy_for_data("CNN")
+
+    x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
+    x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_data()
+
+    print(x_train_normalized_original, y_up_train_original, one_rate_train, train_size)
 
 
 if __name__ == "__main__":

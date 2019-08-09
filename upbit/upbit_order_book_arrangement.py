@@ -19,6 +19,37 @@ class UpbitOrderBookArrangement:
     def __init__(self, coin_name):
         self.coin_name = coin_name
 
+    def arrange_10(self):
+        start_base_datetime_str, final_base_datetime_str = self.get_order_book_start_and_final()
+        logger.info("{0:5s} - Start: {1}, Final: {2}".format(
+            self.coin_name,
+            start_base_datetime_str,
+            final_base_datetime_str
+        ))
+
+        start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+        select_by_start_base_datetime = "DELETE FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=?;".format(self.coin_name)
+
+        next_10_datetime_str = "2019-07-31 00:10:00"
+        next_10_datetime = dt.datetime.strptime(next_10_datetime_str, fmt.replace("T", " "))
+
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            while True:
+                if start_base_datetime_str > final_base_datetime_str:
+                    break
+
+                if start_base_datetime_str != next_10_datetime_str:
+                    cursor.execute(select_by_start_base_datetime, (start_base_datetime_str,))
+                else:
+                    next_10_datetime = next_10_datetime + dt.timedelta(minutes=10)
+                    next_10_datetime_str = dt.datetime.strftime(next_10_datetime, fmt.replace("T", " "))
+
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
+
+            conn.commit()
+
     def processing_missing_data(self):
         logger.info("Processing Missing Data")
 
@@ -49,20 +80,20 @@ class UpbitOrderBookArrangement:
                     self.coin_name, start_base_datetime_str, missing_count
                 ))
                 previous_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=1)
+                previous_base_datetime = previous_base_datetime - dt.timedelta(minutes=10)
                 previous_base_datetime_str = dt.datetime.strftime(previous_base_datetime, fmt.replace("T", " "))
 
                 self.insert_missing_record(previous_base_datetime_str, start_base_datetime_str)
 
                 start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
-                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=10)
                 start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
             else:
                 logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
                     self.coin_name, start_base_datetime_str, last_base_datetime_str
                 ))
                 start_base_datetime = dt.datetime.strptime(last_base_datetime_str, fmt.replace("T", " "))
-                start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
+                start_base_datetime = start_base_datetime + dt.timedelta(minutes=10)
                 start_base_datetime_str = dt.datetime.strftime(start_base_datetime, fmt.replace("T", " "))
 
             if start_base_datetime >= final_base_datetime:
@@ -124,7 +155,7 @@ class UpbitOrderBookArrangement:
 
             last_base_datetime_str = start_base_datetime_str[0]
             while True:
-                next_base_datetime = base_datetime + timedelta(minutes=1)
+                next_base_datetime = base_datetime + timedelta(minutes=10)
                 next_base_datetime_str = dt.datetime.strftime(next_base_datetime, fmt.replace("T", " "))
 
                 cursor.execute(select_by_datetime.format(self.coin_name), (next_base_datetime_str, ))
@@ -167,7 +198,12 @@ def make_arrangement(coin_names):
 
 if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
-    make_arrangement(upbit.get_all_coin_names())
+    for idx, coin_name in enumerate(upbit.get_all_coin_names()):
+        print(idx, coin_name)
+        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
+        coin_order_book_arrangement.arrange_10()
+
+    #make_arrangement(upbit.get_all_coin_names())
 
     # btc_order_book_arrangement = UpbitOrderBookArrangement("DCR")
     # missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
