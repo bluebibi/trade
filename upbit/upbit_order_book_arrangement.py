@@ -198,12 +198,12 @@ def make_arrangement(coin_names):
 
 if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
-    for idx, coin_name in enumerate(upbit.get_all_coin_names()):
-        print(idx, coin_name)
-        coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
-        coin_order_book_arrangement.arrange_10()
+    # for idx, coin_name in enumerate(upbit.get_all_coin_names()):
+    #     print(idx, coin_name)
+    #     coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
+    #     coin_order_book_arrangement.arrange_10()
 
-    #make_arrangement(upbit.get_all_coin_names())
+    make_arrangement(upbit.get_all_coin_names())
 
     # btc_order_book_arrangement = UpbitOrderBookArrangement("DCR")
     # missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
