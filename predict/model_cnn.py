@@ -36,8 +36,6 @@ class CNN(nn.Module):
         w, h = get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
         w, h = get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
 
-        print(w, h)
-
         self.fc_layer = nn.Sequential(
             nn.Linear(w * h * 6, 128),
             nn.LeakyReLU(),
