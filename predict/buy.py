@@ -180,7 +180,7 @@ def main():
                 model_type="LSTM"
             )
 
-            logger.info("{0} --> CNN Probability:{1:.4f}, LSTM Probability:{2:.4f}".format(
+            logger.info("{0:5} --> CNN Probability:{1:.4f}, LSTM Probability:{2:.4f}".format(
                 coin_name, cnn_prob, lstm_prob
             ))
 
