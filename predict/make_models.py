@@ -309,7 +309,7 @@ def main(coin_names):
             )
             logger.info(t_msg)
 
-        if one_rate_valid > ONE_RATE_VALID_THRESHOLD:
+        if one_rate_valid > ONE_RATE_VALID_THRESHOLD and valid_size > VALID_SIZE_THRESHOLD:
             high_quality_models[coin_name] = {}
 
             #LSTM First
@@ -339,7 +339,8 @@ def main(coin_names):
 
 
         else:
-            logger.info("--> {0}: Model construction cancelled since one_rate_valid is too low.\n".format(
+            logger.info("--> {0}: Model construction cancelled since 'one_rate_valid' or 'valid_size' is too low."
+                        "va.\n".format(
                 coin_name
             ))
 
