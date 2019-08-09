@@ -151,8 +151,8 @@ def buy_sell_tables():
         conn.commit()
 
     txt = "<tr><th>매수 기준 날짜/시각</th><th>구매 코인</th><th>모델 확신도<br/>(CNN | LSTM)</th><th>구매 기준 가격</th><th>구매 가격</th>"
-    txt += "<th>투자 금액</th><th>현재 가격</th><th>현재 원화</th><th>경과 시간</th><th>등락 비율</th><th>상태</th></tr>"
-    total_rate = 0.0
+    txt += "<th>현재 가격</th><th>투자 금액</th><th>현재 원화</th><th>경과 시간</th><th>등락 비율</th><th>상태</th></tr>"
+    total_gain = 0.0
     num = 0
     num_success = 0
     num_trail_bought = 0
@@ -177,7 +177,7 @@ def buy_sell_tables():
         elif row[16] == CoinStatus.bought.value:
             num_trail_bought += 1
 
-        total_rate += float(row[14])
+        total_gain += float(row[13] - row[6])
         txt += "<tr>"
         txt += "<td>{0}</td><td>{1}</td><td>{2} | {3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{" \
                "8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
@@ -188,8 +188,8 @@ def buy_sell_tables():
             convert_unit_2(row[4]), #lstm_prob
             locale.format_string("%.2f", row[5], grouping=True), #buy_base_price - 구매 기준 가격
             locale.format_string("%.2f", row[8], grouping=True), #buy_price - 구매 가격
+            locale.format_string("%.2f", row[11], grouping=True),  # trail_price - 현재 금액
             locale.format_string("%.2f", row[6], grouping=True), #buy_krw - 투자 금액
-            locale.format_string("%.2f", row[11], grouping=True), #trail_price - 현재 금액
             locale.format_string("%.2f", row[13], grouping=True), #sell_krw - 현재 원화
             elapsed_time_str(row[2], row[10]), #경과 시간
             convert_unit_2(row[14] * 100), #trail_rate - 등락 비율
@@ -197,7 +197,7 @@ def buy_sell_tables():
         )
         txt += "</tr>"
 
-    return txt, convert_unit_2(total_rate * 100), num, num_trail_bought, num_success, num_gain, num_loss
+    return txt, total_gain, num, num_trail_bought, num_success, num_gain, num_loss
 
 
 def main():
@@ -205,7 +205,7 @@ def main():
     s.starttls()
     s.login('yh21.han@gmail.com', GOOGLE_APP_PASSWORD)
 
-    buy_sell_text, total_rate, num, num_trail_bought, num_success, num_gain, num_loss = buy_sell_tables()
+    buy_sell_text, total_gain, num, num_trail_bought, num_success, num_gain, num_loss = buy_sell_tables()
 
     last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
 
@@ -213,7 +213,7 @@ def main():
 
     html_data = render_template(
         buy_sell_text=buy_sell_text,
-        total_rate=total_rate,
+        total_gain=total_gain,
         num=num,
         num_trail_bought=num_trail_bought,
         num_success=num_success,
