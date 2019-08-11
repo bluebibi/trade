@@ -219,22 +219,37 @@ def main():
                         TRANSACTION_FEE_RATE
                     )
 
-                    msg_str = insert_buy_coin_info(
-                        coin_ticker_name=coin_ticker_name,
-                        buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
-                        cnn_prob=buy_try_coin_info[coin_ticker_name]['cnn_prob'],
-                        lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
-                        ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
-                        buy_krw=invest_krw,
-                        buy_fee=buy_fee,
-                        buy_price=buy_price,
-                        buy_coin_volume=buy_coin_volume,
-                        total_krw=current_total_krw - invest_krw,
-                        status=CoinStatus.bought.value
-                    )
+                    year_month_day = buy_try_coin_info[coin_ticker_name]['right_time'].split()[0]
+                    selecr_buy_prohibited_coins_sql = """
+                        SELECT * FROM BUY_SELL WHERE coin_ticker_name=? and DATE(buy_datetime)=? and buy_base_price > ?
+                    """
+                    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(selecr_buy_prohibited_coins_sql, (
+                            coin_ticker_name,
+                            year_month_day,
+                            buy_price
+                        ))
 
-                    SLACK.send_message("me", msg_str)
-                    logger.info("{0}".format(msg_str))
+                        rows = cursor.fetchall()
+
+                        if rows:
+                            msg_str = insert_buy_coin_info(
+                                coin_ticker_name=coin_ticker_name,
+                                buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
+                                cnn_prob=buy_try_coin_info[coin_ticker_name]['cnn_prob'],
+                                lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
+                                ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
+                                buy_krw=invest_krw,
+                                buy_fee=buy_fee,
+                                buy_price=buy_price,
+                                buy_coin_volume=buy_coin_volume,
+                                total_krw=current_total_krw - invest_krw,
+                                status=CoinStatus.bought.value
+                            )
+
+                            SLACK.send_message("me", msg_str)
+                            logger.info("{0}".format(msg_str))
 
 
 if __name__ == "__main__":

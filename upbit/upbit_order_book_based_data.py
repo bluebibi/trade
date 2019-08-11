@@ -168,44 +168,6 @@ class UpbitOrderBookBasedData:
 
         return x, x_normalized, y, y_up, count_one / dim_0, dim_0
 
-    def get_data_imbance_processed(self):
-        df = pd.read_sql_query(
-            select_all_from_order_book_for_one_coin.format(self.coin_name),
-            sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-        )
-
-        df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
-
-        data = torch.from_numpy(df.values).to(DEVICE)
-
-        min_max_scaler = MinMaxScaler()
-        data_normalized = min_max_scaler.fit_transform(df.values)
-        data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
-
-        x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(
-            data=data,
-            data_normalized=data_normalized,
-            window_size=WINDOW_SIZE,
-            future_target_size=FUTURE_TARGET_SIZE,
-            up_rate=UP_RATE,
-            scaler=min_max_scaler
-        )
-
-        print(x_normalized.shape, y_up.shape)
-        print("one_rate: {0}, total_size: {1}".format(one_rate, total_size))
-
-        x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
-            x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
-            y_up
-        )
-        one_rate = (y_up_samp == 1).sum() / len(y_up_samp)
-
-        x_samp = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2]))
-        y_up_samp = torch.from_numpy(y_up_samp)
-
-        print(x_samp.shape, y_up_samp.shape)
-        print("one_rate: {0}, total_size: {1}".format(one_rate, len(x_samp)))
-
 
 def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
     total_size = x_normalized.size(0)
@@ -226,7 +188,7 @@ def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
 def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")
 
-    #upbit_orderbook_based_data.get_data_imbance_processed()
+    #upbit_orderbook_based_data.get_data_imbalance_processed()
 
     #upbit_orderbook_based_data.get_buy_for_data("CNN")
 

@@ -6,7 +6,11 @@ from pytz import timezone
 
 import sys, os
 
+from sklearn.preprocessing import MinMaxScaler
+
 from common.utils import convert_to_daily_timestamp, get_invest_krw
+from db.sqlite_handler import select_all_from_order_book_for_one_coin
+from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
@@ -16,6 +20,8 @@ from common.global_variables import *
 from upbit.upbit_api import Upbit
 import pprint
 import datetime as dt
+import pandas as pd
+from imblearn.under_sampling import RandomUnderSampler
 
 from common.logger import get_logger
 
@@ -123,7 +129,7 @@ class UpBitAPITestCase(unittest.TestCase):
 
 
                     ### SWITCH
-                    self.insert_missing_record(select_by_datetime, coin_name, previous_base_datetime_str, order_book_insert_sql, start_base_datetime_str)
+                    #self.insert_missing_record(select_by_datetime, coin_name, previous_base_datetime_str, order_book_insert_sql, start_base_datetime_str)
 
                     start_base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
                     start_base_datetime = start_base_datetime + dt.timedelta(minutes=1)
@@ -237,6 +243,49 @@ class UpBitAPITestCase(unittest.TestCase):
         # 주문 취소
         # print(upbit.cancel_order('82e211da-21f6-4355-9d76-83e7248e2c0c'))
 
+    def test_get_data_imbalance_processed(self):
+        coin_name = "BTC"
+        order_book_based_data = UpbitOrderBookBasedData(coin_name)
+
+        df = pd.read_sql_query(
+            select_all_from_order_book_for_one_coin.format(coin_name),
+            sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
+        )
+
+        df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
+
+        data = torch.from_numpy(df.values).to(DEVICE)
+
+        min_max_scaler = MinMaxScaler()
+        data_normalized = min_max_scaler.fit_transform(df.values)
+        data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
+
+        x, x_normalized, y, y_up, one_rate, total_size = order_book_based_data.build_timeseries(
+            data=data,
+            data_normalized=data_normalized,
+            window_size=WINDOW_SIZE,
+            future_target_size=FUTURE_TARGET_SIZE,
+            up_rate=UP_RATE,
+            scaler=min_max_scaler
+        )
+
+        print()
+        print(x_normalized.shape, y_up.shape)
+        print("one_rate: {0}, total_size: {1}".format(one_rate, total_size))
+
+        print()
+
+        x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
+            x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
+            y_up
+        )
+        one_rate = (y_up_samp == 1).sum() / len(y_up_samp)
+
+        x_samp = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2]))
+        y_up_samp = torch.from_numpy(y_up_samp)
+
+        print(x_samp.shape, y_up_samp.shape)
+        print("one_rate: {0}, total_size: {1}".format(one_rate, len(x_samp)))
 
 if __name__ == '__main__':
     unittest.main()

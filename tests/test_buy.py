@@ -33,6 +33,20 @@ class TestBuy(unittest.TestCase):
         d = buyer.get_buy_for_data("CNN")
         print(d)
 
+    def test_right_buy(self):
+        print()
+        selecr_buy_prohibited_coins_sql = """
+            SELECT * FROM BUY_SELL WHERE coin_ticker_name=? and DATE(buy_datetime)=? and buy_base_price > ?
+        """
+        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute(selecr_buy_prohibited_coins_sql, ("KRW-QKC", "2019-08-11", 20.8))
+
+            rows = cursor.fetchall()
+            for row in rows:
+                print(row)
+
+
     def tearDown(self):
         pass
 
