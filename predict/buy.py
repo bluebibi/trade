@@ -50,7 +50,7 @@ def get_good_quality_models_for_buy():
 
     for f in cnn_files:
         if os.path.isfile(f):
-            coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}CNN/".format(model_source), "")
+            coin_name = f.split(PROJECT_HOME + '{0}CNN/'.format(model_source))[1].split("_")[0]
             logger.info(coin_name)
             model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
@@ -59,7 +59,7 @@ def get_good_quality_models_for_buy():
 
     for f in lstm_files:
         if os.path.isfile(f):
-            coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}LSTM/".format(model_source), "")
+            coin_name = f.split(PROJECT_HOME + '{0}LSTM/'.format(model_source))[1].split("_")[0]
             logger.info(coin_name)
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
