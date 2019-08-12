@@ -49,18 +49,18 @@ def get_good_quality_models_for_buy():
     lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
 
     for f in cnn_files:
-        logger.info(f)
         if os.path.isfile(f):
             coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}CNN/".format(model_source), "")
+            logger.info(coin_name)
             model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()
             cnn_models[coin_name] = model
 
     for f in lstm_files:
-        logger.info(f)
         if os.path.isfile(f):
             coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}LSTM/".format(model_source), "")
+            logger.info(coin_name)
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()
