@@ -12,7 +12,7 @@ import sys, os
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
-from upbit.upbit_api import Upbit
+
 from db.sqlite_handler import *
 
 from common.global_variables import *
@@ -29,6 +29,10 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 now = dt.datetime.now(timezone('Asia/Seoul'))
 now_str = now.strftime(fmt.replace("T", " "))
 
+if SELF_MODELS_MODE:
+    model_source = SELF_MODEL_SOURCE
+else:
+    model_source = LOCAL_MODEL_SOURCE
 
 def render_template(**kwargs):
     templateLoader = jinja2.FileSystemLoader(searchpath="db")
@@ -40,7 +44,7 @@ def render_template(**kwargs):
 def get_model_status():
     coin_names = upbit.get_all_coin_names()
 
-    cnn_model_files = glob.glob(PROJECT_HOME + 'models/CNN/*.pt')
+    cnn_model_files = glob.glob(PROJECT_HOME + '{0}CNN/*.pt'.format(model_source))
     cnn_models = {}
     for cnn_file in cnn_model_files:
         cnn_file_name = cnn_file.split("/")[-1].split("_")
@@ -60,7 +64,7 @@ def get_model_status():
             "last_modified": time_diff
         }
 
-    lstm_model_files = glob.glob(PROJECT_HOME + 'models/LSTM/*.pt')
+    lstm_model_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
     lstm_models = {}
     for lstm_file in lstm_model_files:
         lstm_file_name = lstm_file.split("/")[-1].split("_")
