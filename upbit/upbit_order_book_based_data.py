@@ -2,6 +2,7 @@ import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+from torch.utils.data import Dataset
 
 import sys, os
 idx = os.getcwd().index("trade")
@@ -23,7 +24,7 @@ class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
 
-    def get_buy_for_data(self, model_type):
+    def get_dataset_for_buy(self, model_type):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin_recent_window.format(self.coin_name, WINDOW_SIZE),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -42,7 +43,7 @@ class UpbitOrderBookBasedData:
         else:
             return x_normalized.unsqueeze(dim=0)
 
-    def get_data(self):
+    def get_dataset(self):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin.format(self.coin_name),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -61,8 +62,7 @@ class UpbitOrderBookBasedData:
             data_normalized=data_normalized,
             window_size=WINDOW_SIZE,
             future_target_size=FUTURE_TARGET_SIZE,
-            up_rate=UP_RATE,
-            scaler=min_max_scaler
+            up_rate=UP_RATE
         )
 
         # Imbalanced Preprocessing - Start
@@ -104,7 +104,7 @@ class UpbitOrderBookBasedData:
                x_valid_normalized, y_up_valid, one_rate_valid, valid_size
 
     @staticmethod
-    def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate, scaler):
+    def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):
         future_target = future_target_size - 1
 
         dim_0 = data.shape[0] - window_size - future_target
@@ -169,20 +169,20 @@ class UpbitOrderBookBasedData:
         return x, x_normalized, y, y_up, count_one / dim_0, dim_0
 
 
-def get_data_loader(x_normalized, y_up_train, batch_size, suffle=True):
+def get_data_loader(x_normalized, y_up, batch_size, shuffle=True):
     total_size = x_normalized.size(0)
     if total_size % batch_size == 0:
         num_batches = int(total_size / batch_size)
     else:
         num_batches = int(total_size / batch_size) + 1
 
-    for i in range(num_batches):
-        if suffle:
+    for idx in range(num_batches):
+        if shuffle:
             indices = np.random.choice(total_size, batch_size)
         else:
-            indices = np.asarray(range(i * batch_size, min((i + 1) * batch_size, total_size)))
+            indices = np.asarray(range(idx * batch_size, min((idx + 1) * batch_size, total_size)))
 
-        yield x_normalized[indices], y_up_train[indices], num_batches
+        yield x_normalized[indices], y_up[indices], num_batches
 
 
 def main():
@@ -190,10 +190,10 @@ def main():
 
     #upbit_orderbook_based_data.get_data_imbalance_processed()
 
-    #upbit_orderbook_based_data.get_buy_for_data("CNN")
+    #upbit_orderbook_based_data.get_dataset_for_buy("CNN")
 
     x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
-    x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_data()
+    x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_dataset()
 
     print(x_train_normalized_original, y_up_train_original, one_rate_train, train_size)
 

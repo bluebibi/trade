@@ -22,6 +22,11 @@ if os.getcwd().endswith("predict"):
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
+if SELF_MODELS_MODE:
+    model_source = SELF_MODEL_SOURCE
+else:
+    model_source = LOCAL_MODEL_SOURCE
+
 
 def get_coin_ticker_names_by_bought_or_trailed_status():
     coin_ticker_name_list = []
@@ -38,22 +43,22 @@ def get_coin_ticker_names_by_bought_or_trailed_status():
 
 def get_good_quality_models_for_buy():
     cnn_models = {}
-    cnn_files = glob.glob(PROJECT_HOME + 'models/CNN/*.pt')
+    cnn_files = glob.glob(PROJECT_HOME + '{0}CNN/*.pt'.format(model_source))
 
     lstm_models = {}
-    lstm_files = glob.glob(PROJECT_HOME + 'models/LSTM/*.pt')
+    lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
 
     for f in cnn_files:
         if os.path.isfile(f):
-            coin_name = f.split("_")[0].replace("/home/ubuntu/git/trade/models/CNN/", "")
-            model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
+            coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}CNN/".format(model_source), "")
+            model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()
             cnn_models[coin_name] = model
 
     for f in lstm_files:
         if os.path.isfile(f):
-            coin_name = f.split("_")[0].replace("/home/ubuntu/git/trade/models/LSTM/", "")
+            coin_name = f.split("_")[0].replace(PROJECT_HOME + "{0}LSTM/".format(model_source), "")
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()
@@ -76,7 +81,9 @@ def get_db_right_time_coin_names():
             cursor.execute(select_current_base_datetime_by_datetime.format(coin_name, current_time_str))
             base_datetime_info = cursor.fetchone()
             if base_datetime_info:                  # base_datetime, ask_price_0
-                coin_right_time_info[coin_name] = (base_datetime_info[0], base_datetime_info[1])
+                base_datetime = base_datetime_info[0]
+                ask_price_0 = base_datetime_info[1]
+                coin_right_time_info[coin_name] = (base_datetime, ask_price_0)
         conn.commit()
 
     return coin_right_time_info
@@ -84,17 +91,17 @@ def get_db_right_time_coin_names():
 
 def evaluate_coin_by_models(model, coin_name, model_type):
     upbit_data = UpbitOrderBookBasedData(coin_name)
-    x = upbit_data.get_buy_for_data(model_type=model_type)
+    x = upbit_data.get_dataset_for_buy(model_type=model_type)
 
     out = model.forward(x)
     out = torch.sigmoid(out)
-    t = torch.Tensor([0.5]).to(DEVICE)
+    t = torch.tensor(0.5).to(DEVICE)
     output_index = (out > t).float() * 1
 
     prob = out.item()
-    idx = int(output_index.item())
+    index = int(output_index.item())
 
-    if idx and prob > 0.9:
+    if index and prob > 0.9:
         return prob
     else:
         return -1
@@ -219,21 +226,24 @@ def main():
                         TRANSACTION_FEE_RATE
                     )
 
-                    year_month_day = buy_try_coin_info[coin_ticker_name]['right_time'].split()[0]
-                    selecr_buy_prohibited_coins_sql = """
-                        SELECT * FROM BUY_SELL WHERE coin_ticker_name=? and DATE(buy_datetime)=? and buy_base_price > ?
-                    """
                     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
                         cursor = conn.cursor()
-                        cursor.execute(selecr_buy_prohibited_coins_sql, (
+                        cursor.execute(select_buy_prohibited_coins_sql, (
                             coin_ticker_name,
-                            year_month_day,
-                            buy_price
+                            buy_try_coin_info[coin_ticker_name]['right_time']
                         ))
 
                         rows = cursor.fetchall()
 
+                        is_insert = False
                         if rows:
+                            for row in rows:
+                                if float(row[0]) > buy_price:
+                                    is_insert = True
+                        else:
+                            is_insert = True
+
+                        if is_insert:
                             msg_str = insert_buy_coin_info(
                                 coin_ticker_name=coin_ticker_name,
                                 buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
@@ -248,7 +258,7 @@ def main():
                                 status=CoinStatus.bought.value
                             )
 
-                            SLACK.send_message("me", msg_str)
+                            if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
                             logger.info("{0}".format(msg_str))
 
 

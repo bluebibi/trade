@@ -6,8 +6,18 @@ import subprocess
 import numpy as np
 import torch
 
+import sys, os
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
+
 from common.global_variables import SSH_SCP_TARGET_PEM_FILE_PATH, SSH_SCP_TARGET_ID, REMOTE_TARGET_HOST, REMOTE_TARGET, \
-    IS_PUSH_AFTER_MAKE_MODELS
+    IS_PUSH_AFTER_MAKE_MODELS, SELF_MODELS_MODE, SELF_MODEL_SOURCE, LOCAL_MODEL_SOURCE
+
+if SELF_MODELS_MODE:
+    model_source = SELF_MODEL_SOURCE
+else:
+    model_source = LOCAL_MODEL_SOURCE
 
 
 class EarlyStopping:
@@ -72,11 +82,11 @@ class EarlyStopping:
         self.last_valid_accuracy = valid_accuracy
 
     def save_last_model(self):
-        files = glob.glob('./models/{0}/{1}*'.format(self.model_type, self.coin_name))
+        files = glob.glob(PROJECT_HOME + '{0}{1}/{2}*'.format(model_source, self.model_type, self.coin_name))
         for f in files:
             os.remove(f)
 
-        file_name = "./models/{0}/{1}".format(self.model_type, self.last_filename)
+        file_name = "{0}{1}/{2}".format(model_source, self.model_type, self.last_filename)
         torch.save(self.last_state_dict, file_name)
 
         if IS_PUSH_AFTER_MAKE_MODELS:

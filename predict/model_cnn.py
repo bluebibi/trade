@@ -13,7 +13,7 @@ def get_pool2d_size(w, h, kernel_size, stride):
 
 
 class CNN(nn.Module):
-    def __init__(self, input_width, input_height):
+    def __init__(self, input_size, input_height):
         super(CNN, self).__init__()
 
         self.layer = nn.Sequential(
@@ -30,7 +30,7 @@ class CNN(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=1)                       # [batch_size,64,6,6] -> [batch_size,64,3,3]
         )
 
-        w, h = get_conv2d_size(w=input_width, h=input_height, kernel_size=3, padding_size=0, stride=1)
+        w, h = get_conv2d_size(w=input_size, h=input_height, kernel_size=3, padding_size=0, stride=1)
         w, h = get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
         w, h = get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
         w, h = get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)

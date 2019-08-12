@@ -25,22 +25,27 @@ logger = get_logger("make_models")
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
+if SELF_MODELS_MODE:
+    model_source = SELF_MODEL_SOURCE
+else:
+    model_source = LOCAL_MODEL_SOURCE
 
-def mkdir_models():
-    if not os.path.exists("./models/"):
-        os.makedirs("./models/")
 
-    if not os.path.exists("./models/CNN"):
-        os.makedirs("./models/CNN")
+def mkdir_models(source):
+    if not os.path.exists(PROJECT_HOME + "{0}".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}".format(source))
 
-    if not os.path.exists("./models/CNN/graphs"):
-        os.makedirs("./models/CNN/graphs")
+    if not os.path.exists(PROJECT_HOME + "{0}CNN".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}CNN".format(source))
 
-    if not os.path.exists("./models/LSTM"):
-        os.makedirs("./models/LSTM")
+    if not os.path.exists(PROJECT_HOME + "{0}CNN/graphs".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}CNN/graphs".format(source))
 
-    if not os.path.exists("./models/LSTM/graphs"):
-        os.makedirs("./models/LSTM/graphs")
+    if not os.path.exists(PROJECT_HOME + "{0}LSTM".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}LSTM".format(source))
+
+    if not os.path.exists(PROJECT_HOME + "{0}LSTM/graphs".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}LSTM/graphs".format(source))
 
     # files = glob.glob('./{0}/*'.format(filename))
     # for f in files:
@@ -50,7 +55,7 @@ def mkdir_models():
 
 def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
                avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list):
-    files = glob.glob('./models/{0}/graphs/{1}*'.format(model_type, coin_name))
+    files = glob.glob(PROJECT_HOME + '{0}{1}/graphs/{2}*'.format(model_source, model_type, coin_name))
     for f in files:
         os.remove(f)
 
@@ -72,7 +77,8 @@ def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_
     ax_lst[1][1].set_title('VALIDATION ACCURACY CHANGE', fontweight="bold", size=10)
     ax_lst[1][1].set_xlabel('EPISODES', size=10)
 
-    filename = "./models/{0}/graphs/{1}_{2}_{3:.2f}_{4:.2f}_{5}_{6:.2f}.png".format(
+    filename = PROJECT_HOME + "{0}{1}/graphs/{2}_{3}_{4:.2f}_{5:.2f}_{6}_{7:.2f}.png".format(
+        model_source,
         model_type,
         coin_name,
         last_save_epoch,
@@ -97,18 +103,17 @@ def train(optimizer, model, criterion, train_losses, x_train_normalized, y_up_tr
     train_losses.append(loss.item())
 
     out = torch.sigmoid(out)
-    t = torch.Tensor([0.5]).to(DEVICE)
-    output_index = (out > t).float()
-    output_index = output_index * 1
+    t = torch.tensor(0.5).to(DEVICE)
+    output_index = (out > t).float() * 1
 
     return y_up_train.size(0), (output_index == y_up_train).sum().float()
 
 
-def post_train_processing(train_losses, avg_train_losses, train_accuracy_list, correct, total):
+def post_train_processing(train_losses, avg_train_losses, train_accuracy_list, correct, total_size):
     train_loss = np.average(train_losses)
     avg_train_losses.append(train_loss)
 
-    train_accuracy = 100 * correct / total
+    train_accuracy = 100 * correct / total_size
     train_accuracy_list.append(train_accuracy)
 
     return train_loss, train_accuracy
@@ -121,31 +126,31 @@ def validate(epoch, model, criterion, valid_losses, x_valid_normalized, y_up_val
     valid_losses.append(loss.item())
 
     out = torch.sigmoid(out)
-    t = torch.Tensor([0.5]).to(DEVICE)
-    output_index = (out > t).float()
-    output_index = output_index * 1
+    t = torch.tensor(0.5).to(DEVICE)
+    output_index = (out > t).float() * 1
 
-    if VERBOSE: logger.info("{0}: Predict - {1}, Y - {2}".format(epoch, output_index, y_up_valid))
+    if VERBOSE: logger.info("Epoch {0} - Y_pred: {1}, Y_true: {2}".format(epoch, output_index, y_up_valid))
 
     return y_up_valid.size(0), (output_index == y_up_valid).sum().float()
 
 
-def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_list, correct, total):
-    valid_accuracy = 100 * correct / total
-    valid_accuracy_list.append(valid_accuracy)
-
+def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_list, correct, total_size):
     valid_loss = np.average(valid_losses)
     avg_valid_losses.append(valid_loss)
+
+    valid_accuracy = 100 * correct / total_size
+    valid_accuracy_list.append(valid_accuracy)
 
     return valid_loss, valid_accuracy
 
 
 def make_model(
         model, model_type, coin_name,
-        x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
+        x_train_normalized_original, y_up_train_original,
+        x_valid_normalized_original, y_up_valid_original,
         valid_size, one_rate_valid):
 
-    coin_names_high_quality_models = []
+    is_high_quality = False
 
     batch_size = 32
     lr = 0.001
@@ -175,7 +180,7 @@ def make_model(
         y_up_train = y_up_train_original.clone().detach()
 
         train_data_loader = get_data_loader(
-            x_train_normalized, y_up_train, batch_size=batch_size, suffle=True
+            x_train_normalized, y_up_train, batch_size=batch_size, shuffle=True
         )
 
         correct = 0.0
@@ -199,7 +204,7 @@ def make_model(
         y_up_valid = y_up_valid_original.clone().detach()
 
         valid_data_loader = get_data_loader(
-            x_valid_normalized, y_up_valid, batch_size=batch_size, suffle=False
+            x_valid_normalized, y_up_valid, batch_size=batch_size, shuffle=False
         )
 
         correct = 0.0
@@ -253,7 +258,7 @@ def make_model(
     logger.info(e_msg)
 
     if all(high_quality_model_condition_list):
-        coin_names_high_quality_models.append(coin_name)
+        is_high_quality = True
 
         save_graph(
             coin_name,
@@ -272,29 +277,32 @@ def make_model(
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
     logger.info("==> {0}:{1} Elapsed Time: {2}\n".format(coin_name, model, coin_model_elapsed_time_str))
 
-    return coin_names_high_quality_models
+    return is_high_quality
 
 
-def main(coin_names):
+def main(coin_names, model_source):
     start_time = time.time()
 
     heading_msg = "\n**************************\n"
-    heading_msg += "WINDOW SIZE:{0}, FUTURE_TARGET_SIZE:{1}, UP_RATE:{2}, INPUT_SIZE:{3}, DEVICE:{4}".format(
+    heading_msg += "WINDOW SIZE:{0}, FUTURE_TARGET_SIZE:{1}, UP_RATE:{2}, INPUT_SIZE:{3}, DEVICE:{4}, SELF_MODEL_MODE:{5}, MODEL_SOURCE:{6}".format(
         WINDOW_SIZE,
         FUTURE_TARGET_SIZE,
         UP_RATE,
         INPUT_SIZE,
-        DEVICE
+        DEVICE,
+        SELF_MODELS_MODE,
+        model_source
     )
     logger.info(heading_msg)
 
-    high_quality_models = {}
+    high_quality_models_lstm = []
+    high_quality_models_cnn = []
 
     for i, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
         x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
-        x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_order_book_data.get_data()
+        x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_order_book_data.get_dataset()
 
         if VERBOSE:
             t_msg = "{0:>2}-[{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Valid Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
@@ -310,34 +318,33 @@ def main(coin_names):
             logger.info(t_msg)
 
         if one_rate_valid > ONE_RATE_VALID_THRESHOLD and valid_size > VALID_SIZE_THRESHOLD:
-            high_quality_models[coin_name] = {}
-
             #LSTM First
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
 
-            coin_names_high_quality_models = make_model(
+            is_high_quality_lstm = make_model(
                 model, "LSTM", coin_name,
                 x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
                 valid_size, one_rate_valid
             )
 
-            high_quality_models[coin_name]["LSTM"] = coin_names_high_quality_models
+            if is_high_quality_lstm:
+                high_quality_models_lstm.append(coin_name)
 
             #CNN Second
-            model = CNN(input_width=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
+            model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
 
             x_train_normalized_original = x_train_normalized_original.unsqueeze(dim=1)
             x_valid_normalized_original = x_valid_normalized_original.unsqueeze(dim=1)
 
-            coin_names_high_quality_models = make_model(
+            is_high_quality_cnn = make_model(
                 model, "CNN", coin_name,
-                x_train_normalized_original, y_up_train_original, x_valid_normalized_original, y_up_valid_original,
+                x_train_normalized_original, y_up_train_original,
+                x_valid_normalized_original, y_up_valid_original,
                 valid_size, one_rate_valid
             )
 
-            high_quality_models[coin_name]["CNN"] = coin_names_high_quality_models
-
-
+            if is_high_quality_cnn:
+                high_quality_models_cnn.append(coin_name)
         else:
             logger.info("--> {0}: Model construction cancelled since 'one_rate_valid' or 'valid_size' is too low."
                         "va.\n".format(
@@ -348,21 +355,27 @@ def main(coin_names):
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
 
     logger.info("####################################################################")
-    logger.info("Coin Name with High Quality Model: {0}".format(high_quality_models))
+    logger.info("Coin Name with High Quality LSTM Model: {0}".format(high_quality_models_lstm))
+    logger.info("Coin Name with High Quality CNN Model: {0}".format(high_quality_models_cnn))
     logger.info("Elapsed Time: {0}".format(elapsed_time_str))
     logger.info("####################################################################\n")
 
-    slack_msg = "HIGH QUALITY MODELS:{0} - ELAPSED_TIME:{1} @ {2}".format(
-        high_quality_models, elapsed_time_str, SOURCE
+    slack_msg = "HIGH QUALITY LSTM MODELS:{0}, HIGH QUALITY CNN MODELS: {1} - ELAPSED_TIME:{2} @ {3}".format(
+        high_quality_models_lstm, high_quality_models_cnn, elapsed_time_str, SOURCE
     )
-    SLACK.send_message("me", slack_msg)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", slack_msg)
 
 
 if __name__ == "__main__":
-    mkdir_models()
+    mkdir_models(LOCAL_MODEL_SOURCE)
+    mkdir_models(SELF_MODEL_SOURCE)
 
-    SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-    main(coin_names=upbit.get_all_coin_names())
+    if SELF_MODELS_MODE:
+        main(coin_names=upbit.get_all_coin_names(), model_source=SELF_MODEL_SOURCE)
+    else:
+        main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
+    #main(coin_names=["OMG"])

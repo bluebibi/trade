@@ -120,6 +120,9 @@ insert_buy_try_coin_info = """
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
+select_buy_prohibited_coins_sql = """
+    SELECT buy_base_price FROM BUY_SELL WHERE coin_ticker_name=? and DATETIME(buy_datetime) > DATETIME(?, '-1 day');
+"""
 
 ### statistics
 select_all_buy_sell_sql = "SELECT * FROM BUY_SELL ORDER BY id DESC;"

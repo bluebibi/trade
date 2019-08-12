@@ -125,8 +125,7 @@ class Seller:
             if msg_str:
                 msg_str = "### SELL\n" + msg_str + " @ " + SOURCE
 
-                pusher = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
-                pusher.send_message("me", msg_str)
+                if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
 
                 logger.info("{0}".format(msg_str))
 

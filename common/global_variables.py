@@ -10,6 +10,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
+
 class CoinStatus(Enum):
     bought = 0
     trailed = 1
@@ -48,6 +49,7 @@ SYSTEM_PASSWORD = config['USER']['system_password']
 EXCHANGE = config['USER']['exchange']
 SOURCE = config['USER']['source']
 INITIAL_TOTAL_KRW = int(config['USER']['initial_total_krw'])
+SELF_MODELS_MODE = config.getboolean('USER', 'self_models_mode')
 
 # UPBIT
 CLIENT_ID_UPBIT = config['UPBIT']['access_key']
@@ -60,6 +62,7 @@ TELEGRAM_API_HASH = config['TELEGRAM']['api_hash']
 TELEGRAM_APP_TITLE = config['TELEGRAM']['app_title']
 
 #SLACK
+PUSH_SLACK_MESSAGE = config.getboolean('SLACK', 'push_slack_message')
 SLACK_WEBHOOK_URL_1 = config['SLACK']['webhook_url_1']
 SLACK_WEBHOOK_URL_2 = config['SLACK']['webhook_url_2']
 
@@ -109,3 +112,7 @@ SSH_SCP_TARGET_PORT = config['PUSH_MODELS']['ssh_scp_target_port']
 SSH_SCP_TARGET_ID = config['PUSH_MODELS']['ssh_scp_target_id']
 SSH_SCP_TARGET_PEM_FILE_PATH = config['PUSH_MODELS']['ssh_scp_target_pem_file_path']
 LOCAL_SOURCE = config['PUSH_MODELS']['local_source']
+LOCAL_MODEL_SOURCE = config['PUSH_MODELS']['local_model_source']
+
+#SELF_MODELS
+SELF_MODEL_SOURCE = config['SELF_MODELS']['self_model_source']

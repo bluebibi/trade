@@ -162,6 +162,11 @@ def buy_sell_tables():
     for row in rows:
         coin_status = coin_status_to_hangul(row[16])
 
+        if ":00:00" in row[2]:
+            buy_datetime = row[2].replace(":00:00", ":00")
+        else:
+            buy_datetime = row[2].replace(":00", "")
+
         num += 1
         if row[16] == CoinStatus.success_sold.value:
             num_success += 1
@@ -181,7 +186,7 @@ def buy_sell_tables():
         txt += "<tr>"
         txt += "<td>{0}</td><td>{1}</td><td>{2} | {3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{" \
                "8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
-            row[2].replace(":00", ""), #buy_datetime - 매수 기준 날짜/시각
+            buy_datetime,
             "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}'>{0}</a>".format(row[1]), #coin_ticker_name - 구매
             # 코인
             convert_unit_2(row[3]), #cnn_prob

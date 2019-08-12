@@ -30,7 +30,7 @@ class TestBuy(unittest.TestCase):
 
     def test_buy(self):
         buyer = UpbitOrderBookBasedData("BTC")
-        d = buyer.get_buy_for_data("CNN")
+        d = buyer.get_dataset_for_buy("CNN")
         print(d)
 
     def test_right_buy(self):

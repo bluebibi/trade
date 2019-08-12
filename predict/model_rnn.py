@@ -12,13 +12,24 @@ class LSTM(nn.Module):
         self.output_size = output_size
         self.num_layers = num_layers
 
-        self.rnn = nn.LSTM(self.input_size, self.hidden_size, self.num_layers, bias=True, dropout=0.4, batch_first=True)
-        self.fc = nn.Linear(self.hidden_size, self.output_size)
+        self.lstm = nn.LSTM(
+            input_size=self.input_size,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            bias=True,
+            dropout=0.4,
+            batch_first=True
+        )
+        self.fc = nn.Linear(
+            in_features=self.hidden_size,
+            out_features=self.output_size,
+            bias=True
+        )
 
     def forward(self, x):
         hidden, cell = self.init_hidden(x)
 
-        out, _ = self.rnn(x, (hidden, cell))
+        out, _ = self.lstm(input=x, hx=(hidden, cell))
         out = self.fc(out[:, -1, :])
 
         return out.squeeze(dim=1)
