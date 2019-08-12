@@ -20,17 +20,21 @@ class LSTM(nn.Module):
             dropout=0.4,
             batch_first=True
         )
-        self.fc = nn.Linear(
-            in_features=self.hidden_size,
-            out_features=self.output_size,
-            bias=True
+
+        self.fc_layer = nn.Sequential(
+            nn.Linear(self.hidden_size, 128),
+            nn.LeakyReLU(),
+            nn.Dropout2d(0.25),
+            nn.Linear(128, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, 1)
         )
 
     def forward(self, x):
         hidden, cell = self.init_hidden(x)
 
         out, _ = self.lstm(input=x, hx=(hidden, cell))
-        out = self.fc(out[:, -1, :])
+        out = self.fc_layer(out[:, -1, :])
 
         return out.squeeze(dim=1)
 
