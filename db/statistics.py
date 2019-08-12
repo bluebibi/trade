@@ -34,6 +34,7 @@ if SELF_MODELS_MODE:
 else:
     model_source = LOCAL_MODEL_SOURCE
 
+
 def render_template(**kwargs):
     templateLoader = jinja2.FileSystemLoader(searchpath="db")
     templateEnv = jinja2.Environment(loader=templateLoader)
