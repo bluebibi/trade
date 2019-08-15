@@ -238,6 +238,7 @@ def main():
                         is_insert = False
                         if rows:
                             for row in rows:
+                                logger.info("LAST CHECK: coin_name:{0}, buy_base_price:{1}, buy_price:{2}".format(coin_name, row[0], buy_price))
                                 if float(row[0]) > buy_price:
                                     is_insert = True
                         else:
