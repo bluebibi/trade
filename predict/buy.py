@@ -236,11 +236,20 @@ def main():
                         rows = cursor.fetchall()
 
                         is_insert = False
+                        min_buy_base_rise = sys.maxsize
                         if rows:
                             for row in rows:
-                                logger.info("LAST CHECK: coin_name:{0}, buy_base_price:{1}, buy_price:{2}".format(coin_name, row[0], buy_price))
-                                if float(row[0]) > buy_price:
-                                    is_insert = True
+                                if float(row[0]) < min_buy_base_rise:
+                                    min_buy_base_rise = float(row[0])
+
+                            logger.info("LAST CHECK: coin_ticker_name:{0}, min_buy_base_price:{1}, buy_price:{2}".format(
+                                coin_ticker_name,
+                                min_buy_base_rise,
+                                buy_price
+                            ))
+
+                            if buy_price < min_buy_base_rise:
+                                is_insert = True
                         else:
                             is_insert = True
 
