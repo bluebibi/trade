@@ -152,13 +152,13 @@ def make_model(
 
     is_high_quality = False
 
-    batch_size = 32
+    batch_size = 16
     lr = 0.001
     patience = 30
 
     coin_model_start_time = time.time()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     criterion = nn.BCEWithLogitsLoss()
 
     train_losses = []
