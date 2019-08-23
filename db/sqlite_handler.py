@@ -16,6 +16,46 @@ select_by_final_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' 
 select_by_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;"
 
 
+create_order_book_table = """
+                    CREATE TABLE IF NOT EXISTS KRW_{0}_ORDER_BOOK (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        base_datetime DATETIME, 
+                        daily_base_timestamp INTEGER, 
+                        collect_timestamp INTEGER,
+                        ask_price_0 FLOAT, ask_size_0 FLOAT,
+                        ask_price_1 FLOAT, ask_size_1 FLOAT,
+                        ask_price_2 FLOAT, ask_size_2 FLOAT,
+                        ask_price_3 FLOAT, ask_size_3 FLOAT,
+                        ask_price_4 FLOAT, ask_size_4 FLOAT,
+                        ask_price_5 FLOAT, ask_size_5 FLOAT,
+                        ask_price_6 FLOAT, ask_size_6 FLOAT,
+                        ask_price_7 FLOAT, ask_size_7 FLOAT,
+                        ask_price_8 FLOAT, ask_size_8 FLOAT,
+                        ask_price_9 FLOAT, ask_size_9 FLOAT,
+                        ask_price_10 FLOAT, ask_size_10 FLOAT,
+                        ask_price_11 FLOAT, ask_size_11 FLOAT,
+                        ask_price_12 FLOAT, ask_size_12 FLOAT,
+                        ask_price_13 FLOAT, ask_size_13 FLOAT,
+                        ask_price_14 FLOAT, ask_size_14 FLOAT,
+                        bid_price_0 FLOAT, bid_size_0 FLOAT,
+                        bid_price_1 FLOAT, bid_size_1 FLOAT,
+                        bid_price_2 FLOAT, bid_size_2 FLOAT,
+                        bid_price_3 FLOAT, bid_size_3 FLOAT,
+                        bid_price_4 FLOAT, bid_size_4 FLOAT,
+                        bid_price_5 FLOAT, bid_size_5 FLOAT,
+                        bid_price_6 FLOAT, bid_size_6 FLOAT,
+                        bid_price_7 FLOAT, bid_size_7 FLOAT,
+                        bid_price_8 FLOAT, bid_size_8 FLOAT,
+                        bid_price_9 FLOAT, bid_size_9 FLOAT,
+                        bid_price_10 FLOAT, bid_size_10 FLOAT,
+                        bid_price_11 FLOAT, bid_size_11 FLOAT,
+                        bid_price_12 FLOAT, bid_size_12 FLOAT,
+                        bid_price_13 FLOAT, bid_size_13 FLOAT,
+                        bid_price_14 FLOAT, bid_size_14 FLOAT,
+                        total_ask_size FLOAT, total_bid_size FLOAT
+                    )
+                    """
+
 ### upbit_order_book_based_data.py
 order_book_insert_sql = """
     INSERT INTO 'KRW_{0}_ORDER_BOOK' VALUES(
@@ -77,6 +117,27 @@ select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin 
     FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
     ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
 """
+
+create_buy_sell_table = """
+                CREATE TABLE IF NOT EXISTS BUY_SELL (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    coin_ticker_name TEXT,
+                    buy_datetime DATETIME,
+                    cnn_prob FLOAT,
+                    lstm_prob FLOAT, 
+                    ask_price_0 FLOAT,
+                    buy_krw INT, 
+                    buy_fee INT, 
+                    buy_price FLOAT, 
+                    buy_coin_volume FLOAT, 
+                    trail_datetime DATETIME, 
+                    trail_price FLOAT, 
+                    sell_fee INT, 
+                    sell_krw INT, 
+                    trail_rate FLOAT, 
+                    total_krw INT, 
+                    status TINYINT
+                )"""
 
 #print(select_all_from_order_book_for_one_coin)
 
@@ -154,30 +215,7 @@ class SqliteHandler:
     def create_buy_sell_table(self, coin_names):
         with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
-
-            for coin_name in coin_names:
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS BUY_SELL (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                        coin_ticker_name TEXT,
-                        buy_datetime DATETIME,
-                        cnn_prob FLOAT,
-                        lstm_prob FLOAT, 
-                        ask_price_0 FLOAT,
-                        buy_krw INT, 
-                        buy_fee INT, 
-                        buy_price FLOAT, 
-                        buy_coin_volume FLOAT, 
-                        trail_datetime DATETIME, 
-                        trail_price FLOAT, 
-                        sell_fee INT, 
-                        sell_krw INT, 
-                        trail_rate FLOAT, 
-                        total_krw INT, 
-                        status TINYINT
-                    )""".format(coin_name)
-                )
-
+            cursor.execute(create_buy_sell_table)
             conn.commit()
 
     # def create_order_book_arrangement_table(self):
@@ -197,45 +235,7 @@ class SqliteHandler:
             cursor = conn.cursor()
 
             for coin_name in coin_names:
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS KRW_{0}_ORDER_BOOK (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                        base_datetime DATETIME, 
-                        daily_base_timestamp INTEGER, 
-                        collect_timestamp INTEGER,
-                        ask_price_0 FLOAT, ask_size_0 FLOAT,
-                        ask_price_1 FLOAT, ask_size_1 FLOAT,
-                        ask_price_2 FLOAT, ask_size_2 FLOAT,
-                        ask_price_3 FLOAT, ask_size_3 FLOAT,
-                        ask_price_4 FLOAT, ask_size_4 FLOAT,
-                        ask_price_5 FLOAT, ask_size_5 FLOAT,
-                        ask_price_6 FLOAT, ask_size_6 FLOAT,
-                        ask_price_7 FLOAT, ask_size_7 FLOAT,
-                        ask_price_8 FLOAT, ask_size_8 FLOAT,
-                        ask_price_9 FLOAT, ask_size_9 FLOAT,
-                        ask_price_10 FLOAT, ask_size_10 FLOAT,
-                        ask_price_11 FLOAT, ask_size_11 FLOAT,
-                        ask_price_12 FLOAT, ask_size_12 FLOAT,
-                        ask_price_13 FLOAT, ask_size_13 FLOAT,
-                        ask_price_14 FLOAT, ask_size_14 FLOAT,
-                        bid_price_0 FLOAT, bid_size_0 FLOAT,
-                        bid_price_1 FLOAT, bid_size_1 FLOAT,
-                        bid_price_2 FLOAT, bid_size_2 FLOAT,
-                        bid_price_3 FLOAT, bid_size_3 FLOAT,
-                        bid_price_4 FLOAT, bid_size_4 FLOAT,
-                        bid_price_5 FLOAT, bid_size_5 FLOAT,
-                        bid_price_6 FLOAT, bid_size_6 FLOAT,
-                        bid_price_7 FLOAT, bid_size_7 FLOAT,
-                        bid_price_8 FLOAT, bid_size_8 FLOAT,
-                        bid_price_9 FLOAT, bid_size_9 FLOAT,
-                        bid_price_10 FLOAT, bid_size_10 FLOAT,
-                        bid_price_11 FLOAT, bid_size_11 FLOAT,
-                        bid_price_12 FLOAT, bid_size_12 FLOAT,
-                        bid_price_13 FLOAT, bid_size_13 FLOAT,
-                        bid_price_14 FLOAT, bid_size_14 FLOAT,
-                        total_ask_size FLOAT, total_bid_size FLOAT
-                    )
-                    """.format(coin_name)
+                cursor.execute(create_order_book_table.format(coin_name)
                 )
 
             conn.commit()

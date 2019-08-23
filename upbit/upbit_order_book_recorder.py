@@ -22,6 +22,13 @@ if os.getcwd().endswith("upbit"):
 class UpbitOrderBookRecorder:
     def __init__(self):
         self.coin_names = upbit.get_all_coin_names()
+        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
+            cursor = conn.cursor()
+
+            for coin_name in self.coin_names:
+                cursor.execute(create_order_book_table.format(coin_name))
+
+            conn.commit()
 
     def record(self, base_datetime, coin_ticker_name):
         daily_base_timestamp = convert_to_daily_timestamp(base_datetime)
