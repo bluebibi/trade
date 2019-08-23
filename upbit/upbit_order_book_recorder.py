@@ -1,6 +1,7 @@
 from pytz import timezone
 import datetime as dt
 import time
+import traceback
 
 import sys, os
 idx = os.getcwd().index("trade")
@@ -168,25 +169,30 @@ class UpbitOrderBookRecorder:
 
 
 if __name__ == "__main__":
-    now = dt.datetime.now(timezone('Asia/Seoul'))
-    now_str = now.strftime(fmt)
-    current_time_str = now_str.replace("T", " ")
-    base_datetime = current_time_str[:-3] + ":00"
+    try:
+        now = dt.datetime.now(timezone('Asia/Seoul'))
+        now_str = now.strftime(fmt)
+        current_time_str = now_str.replace("T", " ")
+        base_datetime = current_time_str[:-3] + ":00"
 
-    upbit_order_book_recorder = UpbitOrderBookRecorder()
+        upbit_order_book_recorder = UpbitOrderBookRecorder()
 
-    current_time = time.time()
+        current_time = time.time()
 
-    order_book_info = {}
-    for coin_name in upbit_order_book_recorder.coin_names:
-        order_book_info[coin_name] = upbit_order_book_recorder.record(
-            base_datetime=base_datetime,
-            coin_ticker_name="KRW-" + coin_name
-        )
-        time.sleep(0.2)
+        order_book_info = {}
+        for coin_name in upbit_order_book_recorder.coin_names:
+            order_book_info[coin_name] = upbit_order_book_recorder.record(
+                base_datetime=base_datetime,
+                coin_ticker_name="KRW-" + coin_name
+            )
+            time.sleep(0.2)
 
-    upbit_order_book_recorder.insert_order_book(order_book_info)
+        upbit_order_book_recorder.insert_order_book(order_book_info)
 
-    elapsed_time = time.time() - current_time
+        elapsed_time = time.time() - current_time
 
-    logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
+        logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
+    except Exception as ex:
+        msg_str = "upbit_order_book_recorder.py - ERROR! \n"
+        msg_str += ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
+        SLACK.send_message("me", msg_str)
