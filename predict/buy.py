@@ -204,7 +204,7 @@ def main():
                     coin_name, cnn_prob, lstm_prob
                 ))
 
-            if cnn_prob > 0.0 and lstm_prob > 0.0:
+            if cnn_prob > 0.0 or lstm_prob > 0.0:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
