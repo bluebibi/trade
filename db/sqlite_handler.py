@@ -122,7 +122,7 @@ create_buy_sell_table = """
                 CREATE TABLE IF NOT EXISTS BUY_SELL (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, 
                     coin_ticker_name TEXT,
-                    buy_datetime DATETIME
+                    buy_datetime DATETIME,
                     lstm_prob FLOAT, 
                     ask_price_0 FLOAT,
                     buy_krw INT, 
