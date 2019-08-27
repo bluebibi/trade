@@ -51,10 +51,7 @@ def get_model_status():
         lstm_file_name = lstm_file.split("/")[-1].split("_")
         coin_name = lstm_file_name[0]
 
-        time_diff = elapsed_time_str(
-            dt.datetime.fromtimestamp(os.stat(lstm_file).st_mtime).strftime(fmt.replace("T", " ")),
-            now_str
-        )
+        time_diff = dt.datetime.fromtimestamp(os.stat(lstm_file).st_mtime).strftime(fmt.replace("T", " "))
 
         lstm_models[coin_name] = {
             "saved_epoch": int(lstm_file_name[1]),
