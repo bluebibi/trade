@@ -196,49 +196,55 @@ def main():
                         TRANSACTION_FEE_RATE
                     )
 
-                    with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
-                        cursor = conn.cursor()
-                        cursor.execute(select_buy_prohibited_coins_sql, (
-                            coin_ticker_name,
-                            buy_try_coin_info[coin_ticker_name]['right_time']
-                        ))
+                    buy_base_price = buy_try_coin_info[coin_ticker_name]['ask_price_0']
 
-                        rows = cursor.fetchall()
+                    prompt_rising_rate = (buy_price - buy_base_price) / buy_base_price
 
-                        is_insert = False
-                        min_buy_base_rise = sys.maxsize
-                        if rows:
-                            for row in rows:
-                                if float(row[0]) < min_buy_base_rise:
-                                    min_buy_base_rise = float(row[0])
-
-                            logger.info("LAST CHECK: coin_ticker_name:{0}, min_buy_base_price:{1}, buy_price:{2}".format(
+                    if prompt_rising_rate < 0.001:
+                        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(select_buy_prohibited_coins_sql, (
                                 coin_ticker_name,
-                                min_buy_base_rise,
-                                buy_price
+                                buy_try_coin_info[coin_ticker_name]['right_time']
                             ))
 
-                            if buy_price < min_buy_base_rise:
+                            rows = cursor.fetchall()
+
+                            is_insert = False
+                            min_buy_base_rise = sys.maxsize
+                            if rows:
+                                for row in rows:
+                                    if float(row[0]) < min_buy_base_rise:
+                                        min_buy_base_rise = float(row[0])
+
+                                logger.info("LAST CHECK: prompt_rising_rate: {0}, coin_ticker_name:{1}, min_buy_base_price:{2}, buy_price:{3}".format(
+                                    prompt_rising_rate,
+                                    coin_ticker_name,
+                                    min_buy_base_rise,
+                                    buy_price
+                                ))
+
+                                if buy_price < min_buy_base_rise:
+                                    is_insert = True
+                            else:
                                 is_insert = True
-                        else:
-                            is_insert = True
 
-                        if is_insert:
-                            msg_str = insert_buy_coin_info(
-                                coin_ticker_name=coin_ticker_name,
-                                buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
-                                lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
-                                ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
-                                buy_krw=invest_krw,
-                                buy_fee=buy_fee,
-                                buy_price=buy_price,
-                                buy_coin_volume=buy_coin_volume,
-                                total_krw=current_total_krw - invest_krw,
-                                status=CoinStatus.bought.value
-                            )
+                            if is_insert:
+                                msg_str = insert_buy_coin_info(
+                                    coin_ticker_name=coin_ticker_name,
+                                    buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
+                                    lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
+                                    ask_price_0=buy_base_price,
+                                    buy_krw=invest_krw,
+                                    buy_fee=buy_fee,
+                                    buy_price=buy_price,
+                                    buy_coin_volume=buy_coin_volume,
+                                    total_krw=current_total_krw - invest_krw,
+                                    status=CoinStatus.bought.value
+                                )
 
-                            if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
-                            logger.info("{0}".format(msg_str))
+                                if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+                                logger.info("{0}".format(msg_str))
 
 
 if __name__ == "__main__":
