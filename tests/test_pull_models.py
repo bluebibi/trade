@@ -6,7 +6,7 @@ class TestPullModels(unittest.TestCase):
         pass
 
     def test_check_remote_file(self):
-        output = check_remote_file("CNN", "TT")
+        output = check_remote_file("TT")
         print(output)
 
     def tearDown(self):

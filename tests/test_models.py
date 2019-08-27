@@ -20,7 +20,7 @@ class TestModels(unittest.TestCase):
         print()
 
     def test_cnn_model(self):
-        x = self.upbit_data.get_dataset_for_buy(model_type="CNN")
+        x = self.upbit_data.get_dataset_for_buy()
         model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
         model.eval()
         out = model.forward(x)

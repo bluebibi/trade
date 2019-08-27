@@ -12,7 +12,6 @@ from common.global_variables import *
 import matplotlib.pyplot as plt
 
 from predict.model_rnn import LSTM
-from predict.model_cnn import CNN
 from predict.early_stopping import EarlyStopping
 import numpy as np
 import os
@@ -34,12 +33,6 @@ else:
 def mkdir_models(source):
     if not os.path.exists(PROJECT_HOME + "{0}".format(source)):
         os.makedirs(PROJECT_HOME + "{0}".format(source))
-
-    if not os.path.exists(PROJECT_HOME + "{0}CNN".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}CNN".format(source))
-
-    if not os.path.exists(PROJECT_HOME + "{0}CNN/graphs".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}CNN/graphs".format(source))
 
     if not os.path.exists(PROJECT_HOME + "{0}LSTM".format(source)):
         os.makedirs(PROJECT_HOME + "{0}LSTM".format(source))
@@ -296,7 +289,6 @@ def main(coin_names, model_source):
     logger.info(heading_msg)
 
     high_quality_models_lstm = []
-    high_quality_models_cnn = []
 
     for i, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
@@ -318,7 +310,6 @@ def main(coin_names, model_source):
             logger.info(t_msg)
 
         if one_rate_valid > ONE_RATE_VALID_THRESHOLD and valid_size > VALID_SIZE_THRESHOLD:
-            #LSTM First
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
 
             is_high_quality_lstm = make_model(
@@ -329,25 +320,8 @@ def main(coin_names, model_source):
 
             if is_high_quality_lstm:
                 high_quality_models_lstm.append(coin_name)
-
-            #CNN Second
-            model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
-
-            x_train_normalized_original = x_train_normalized_original.unsqueeze(dim=1)
-            x_valid_normalized_original = x_valid_normalized_original.unsqueeze(dim=1)
-
-            is_high_quality_cnn = make_model(
-                model, "CNN", coin_name,
-                x_train_normalized_original, y_up_train_original,
-                x_valid_normalized_original, y_up_valid_original,
-                valid_size, one_rate_valid
-            )
-
-            if is_high_quality_cnn:
-                high_quality_models_cnn.append(coin_name)
         else:
-            logger.info("--> {0}: Model construction cancelled since 'one_rate_valid' or 'valid_size' is too low."
-                        "va.\n".format(
+            logger.info("--> {0}: Model construction cancelled since 'one_rate_valid' or 'valid_size' is too low.\n".format(
                 coin_name
             ))
 
@@ -356,12 +330,11 @@ def main(coin_names, model_source):
 
     logger.info("####################################################################")
     logger.info("Coin Name with High Quality LSTM Model: {0}".format(high_quality_models_lstm))
-    logger.info("Coin Name with High Quality CNN Model: {0}".format(high_quality_models_cnn))
     logger.info("Elapsed Time: {0}".format(elapsed_time_str))
     logger.info("####################################################################\n")
 
-    slack_msg = "HIGH QUALITY LSTM MODELS:{0}, HIGH QUALITY CNN MODELS: {1} - ELAPSED_TIME:{2} @ {3}".format(
-        high_quality_models_lstm, high_quality_models_cnn, elapsed_time_str, SOURCE
+    slack_msg = "HIGH QUALITY LSTM MODELS:{0} - ELAPSED_TIME:{1} @ {2}".format(
+        high_quality_models_lstm, elapsed_time_str, SOURCE
     )
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", slack_msg)
 

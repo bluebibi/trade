@@ -45,26 +45,6 @@ def render_template(**kwargs):
 def get_model_status():
     coin_names = upbit.get_all_coin_names()
 
-    cnn_model_files = glob.glob(PROJECT_HOME + '{0}CNN/*.pt'.format(model_source))
-    cnn_models = {}
-    for cnn_file in cnn_model_files:
-        cnn_file_name = cnn_file.split("/")[-1].split("_")
-        coin_name = cnn_file_name[0]
-
-        time_diff = elapsed_time_str(
-            dt.datetime.fromtimestamp(os.stat(cnn_file).st_mtime).strftime(fmt.replace("T", " ")),
-            now_str
-        )
-
-        cnn_models[coin_name] = {
-            "saved_epoch": int(cnn_file_name[1]),
-            "valid_loss_min": float(cnn_file_name[2]),
-            "valid_accuracy": float(cnn_file_name[3]),
-            "valid_data_size": int(cnn_file_name[4]),
-            "valid_one_data_rate": float(cnn_file_name[5].replace(".pt", "")),
-            "last_modified": time_diff
-        }
-
     lstm_model_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
     lstm_models = {}
     for lstm_file in lstm_model_files:
@@ -85,23 +65,10 @@ def get_model_status():
             "last_modified": time_diff
         }
 
-    txt = "<tr><th>코인 이름</th><th>CNN 모델 정보</th><th>모델 구성</th><th>LSTM 모델 정보</th><th>모델 구성</th></tr>"
+    txt = "<tr><th>코인 이름</th><th>LSTM 모델 정보</th><th>모델 구성</th></tr>"
     num_both_models = 0
     for coin_name in coin_names:
         txt += "<tr>"
-
-        if coin_name in cnn_models:
-            cnn_info = "{0} : {1} : {2} : {3} : {4}".format(
-                cnn_models[coin_name]["saved_epoch"],
-                cnn_models[coin_name]["valid_loss_min"],
-                cnn_models[coin_name]["valid_accuracy"],
-                cnn_models[coin_name]["valid_data_size"],
-                cnn_models[coin_name]["valid_one_data_rate"]
-            )
-            cnn_model_last_modified = cnn_models[coin_name]["last_modified"]
-        else:
-            cnn_info = "-"
-            cnn_model_last_modified = "-"
 
         if coin_name in lstm_models:
             lstm_info = "{0} : {1} : {2} : {3} : {4}".format(
@@ -116,14 +83,12 @@ def get_model_status():
             lstm_info = "-"
             lstm_model_last_modified = "-"
 
-        if coin_name in cnn_models and coin_name in lstm_models:
+        if coin_name in lstm_models:
             coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
             num_both_models += 1
 
-        txt += "<td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td>".format(
+        txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
             coin_name,
-            cnn_info,
-            cnn_model_last_modified,
             lstm_info,
             lstm_model_last_modified
         )
@@ -155,7 +120,7 @@ def buy_sell_tables():
 
         conn.commit()
 
-    txt = "<tr><th>매수 기준 날짜/시각</th><th>구매 코인</th><th>모델 확신도<br/>(CNN | LSTM)</th><th>구매 기준 가격</th><th>구매 가격</th>"
+    txt = "<tr><th>매수 기준 날짜/시각</th><th>구매 코인</th><th>LSTM 모델 확신도</th><th>구매 기준 가격</th><th>구매 가격</th>"
     txt += "<th>현재 가격</th><th>투자 금액</th><th>현재 원화</th><th>경과 시간</th><th>등락 비율</th><th>상태</th></tr>"
     total_gain = 0.0
     num = 0
@@ -165,7 +130,7 @@ def buy_sell_tables():
     num_loss = 0
 
     for row in rows:
-        coin_status = coin_status_to_hangul(row[16])
+        coin_status = coin_status_to_hangul(row[15])
 
         if ":00:00" in row[2]:
             buy_datetime = row[2].replace(":00:00", ":00")
@@ -173,36 +138,35 @@ def buy_sell_tables():
             buy_datetime = row[2].replace(":00", "")
 
         num += 1
-        if row[16] == CoinStatus.success_sold.value:
+        if row[15] == CoinStatus.success_sold.value:
             num_success += 1
             coin_status = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_status)
-        elif row[16] == CoinStatus.gain_sold.value:
+        elif row[15] == CoinStatus.gain_sold.value:
             num_gain += 1
             coin_status = "<span style='color:#FF8868'><strong>{0}</strong></span>".format(coin_status)
-        elif row[16] == CoinStatus.loss_sold.value:
+        elif row[15] == CoinStatus.loss_sold.value:
             num_loss += 1
             coin_status = "<span style='color:#92B3B7'>{0}</span>".format(coin_status)
-        elif row[16] == CoinStatus.trailed.value:
+        elif row[15] == CoinStatus.trailed.value:
             num_trail_bought += 1
-        elif row[16] == CoinStatus.bought.value:
+        elif row[15] == CoinStatus.bought.value:
             num_trail_bought += 1
 
-        total_gain += float(row[13] - row[6])
+        total_gain += float(row[12] - row[5])
         txt += "<tr>"
         txt += "<td>{0}</td><td>{1}</td><td>{2} | {3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{" \
                "8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
             buy_datetime,
             "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}'>{0}</a>".format(row[1]), #coin_ticker_name - 구매
             # 코인
-            convert_unit_2(row[3]), #cnn_prob
-            convert_unit_2(row[4]), #lstm_prob
-            locale.format_string("%.2f", row[5], grouping=True), #buy_base_price - 구매 기준 가격
-            locale.format_string("%.2f", row[8], grouping=True), #buy_price - 구매 가격
-            locale.format_string("%.2f", row[11], grouping=True),  # trail_price - 현재 금액
-            locale.format_string("%.2f", row[6], grouping=True), #buy_krw - 투자 금액
-            locale.format_string("%.2f", row[13], grouping=True), #sell_krw - 현재 원화
-            elapsed_time_str(row[2], row[10]), #경과 시간
-            convert_unit_2(row[14] * 100), #trail_rate - 등락 비율
+            convert_unit_2(row[3]), #lstm_prob
+            locale.format_string("%.2f", row[4], grouping=True), #buy_base_price - 구매 기준 가격
+            locale.format_string("%.2f", row[7], grouping=True), #buy_price - 구매 가격
+            locale.format_string("%.2f", row[10], grouping=True),  # trail_price - 현재 금액
+            locale.format_string("%.2f", row[5], grouping=True), #buy_krw - 투자 금액
+            locale.format_string("%.2f", row[12], grouping=True), #sell_krw - 현재 원화
+            elapsed_time_str(row[2], row[9]), #경과 시간
+            convert_unit_2(row[13] * 100), #trail_rate - 등락 비율
             coin_status # 상태
         )
         txt += "</tr>"

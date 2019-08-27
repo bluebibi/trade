@@ -122,8 +122,7 @@ create_buy_sell_table = """
                 CREATE TABLE IF NOT EXISTS BUY_SELL (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, 
                     coin_ticker_name TEXT,
-                    buy_datetime DATETIME,
-                    cnn_prob FLOAT,
+                    buy_datetime DATETIME
                     lstm_prob FLOAT, 
                     ask_price_0 FLOAT,
                     buy_krw INT, 
@@ -168,8 +167,7 @@ select_total_krw = """
 insert_buy_try_coin_info = """
     INSERT INTO BUY_SELL (
         coin_ticker_name, 
-        buy_datetime, 
-        cnn_prob, 
+        buy_datetime,
         lstm_prob, 
         buy_base_price, 
         buy_krw, 
@@ -261,8 +259,8 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     sql_handler = SqliteHandler()
-    #sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
-    sql_handler.create_order_book_table(upbit.get_all_coin_names())
+    sql_handler.create_buy_sell_table(upbit.get_all_coin_names())
+    #sql_handler.create_order_book_table(upbit.get_all_coin_names())
 
     # sql_handler.drop_buy_sell_tables()
     # sql_handler.drop_order_book_tables(upbit.get_all_coin_names())

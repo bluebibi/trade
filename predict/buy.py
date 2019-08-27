@@ -6,7 +6,6 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from predict.model_cnn import CNN
 from predict.model_rnn import LSTM
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from pytz import timezone
@@ -42,19 +41,8 @@ def get_coin_ticker_names_by_bought_or_trailed_status():
 
 
 def get_good_quality_models_for_buy():
-    cnn_models = {}
-    cnn_files = glob.glob(PROJECT_HOME + '{0}CNN/*.pt'.format(model_source))
-
     lstm_models = {}
     lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
-
-    for f in cnn_files:
-        if os.path.isfile(f):
-            coin_name = f.split(PROJECT_HOME + '{0}CNN/'.format(model_source))[1].split("_")[0]
-            model = CNN(input_size=INPUT_SIZE, input_height=WINDOW_SIZE).to(DEVICE)
-            model.load_state_dict(torch.load(f, map_location=DEVICE))
-            model.eval()
-            cnn_models[coin_name] = model
 
     for f in lstm_files:
         if os.path.isfile(f):
@@ -64,7 +52,7 @@ def get_good_quality_models_for_buy():
             model.eval()
             lstm_models[coin_name] = model
 
-    return cnn_models, lstm_models
+    return lstm_models
 
 
 def get_db_right_time_coin_names():
@@ -89,9 +77,9 @@ def get_db_right_time_coin_names():
     return coin_right_time_info
 
 
-def evaluate_coin_by_models(model, coin_name, model_type):
+def evaluate_coin_by_models(model, coin_name):
     upbit_data = UpbitOrderBookBasedData(coin_name)
-    x = upbit_data.get_dataset_for_buy(model_type=model_type)
+    x = upbit_data.get_dataset_for_buy()
 
     out = model.forward(x)
     out = torch.sigmoid(out)
@@ -107,13 +95,13 @@ def evaluate_coin_by_models(model, coin_name, model_type):
         return -1
 
 
-def insert_buy_coin_info(coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, ask_price_0, buy_krw, buy_fee,
+def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, ask_price_0, buy_krw, buy_fee,
                          buy_price, buy_coin_volume, total_krw, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         cursor.execute(insert_buy_try_coin_info, (
-            coin_ticker_name, buy_datetime, cnn_prob, lstm_prob, ask_price_0, buy_krw, buy_fee, buy_price,
+            coin_ticker_name, buy_datetime, lstm_prob, ask_price_0, buy_krw, buy_fee, buy_price,
             buy_coin_volume, total_krw, status
         ))
         conn.commit()
@@ -145,25 +133,22 @@ def get_total_krw():
 
 
 def main():
-    good_cnn_models, good_lstm_models = get_good_quality_models_for_buy()
+    good_lstm_models = get_good_quality_models_for_buy()
 
     right_time_coin_info = get_db_right_time_coin_names()
 
     already_coin_ticker_names = get_coin_ticker_names_by_bought_or_trailed_status()
 
-    target_coin_names = (set(good_cnn_models) & set(good_lstm_models) & set(right_time_coin_info)) - set(
-        already_coin_ticker_names)
+    target_coin_names = (set(good_lstm_models) & set(right_time_coin_info)) - set(already_coin_ticker_names)
 
-    logger.info("*** CNN: {0}, LSTM: {1}, Right Time Coins: {2}, Already Coins: {3}, Target Coins: {4} ***".format(
-        len(good_cnn_models.keys()),
+    logger.info("*** LSTM: {0}, Right Time Coins: {1}, Already Coins: {2}, Target Coins: {3} ***".format(
         len(good_lstm_models.keys()),
         len(right_time_coin_info.keys()),
         len(already_coin_ticker_names),
         target_coin_names
     ))
 
-    # logger.info("*** CNN: {0}, LSTM: {1}, Right Time Coins: {2}, Already Coins: {3}, Target Coins: {4} ***".format(
-    #     set(good_cnn_models.keys()),
+    # logger.info("*** LSTM: {0}, Right Time Coins: {1}, Already Coins: {2}, Target Coins: {3} ***".format(
     #     set(good_lstm_models.keys()),
     #     set(right_time_coin_info.keys()),
     #     set(already_coin_ticker_names),
@@ -175,41 +160,23 @@ def main():
         buy_try_coin_ticker_names = []
 
         for coin_name in target_coin_names:
-            cnn_prob = evaluate_coin_by_models(
-                model=good_cnn_models[coin_name],
-                coin_name=coin_name,
-                model_type="CNN"
-            )
-
             lstm_prob = evaluate_coin_by_models(
                 model=good_lstm_models[coin_name],
-                coin_name=coin_name,
-                model_type="LSTM"
+                coin_name=coin_name
             )
 
-            if cnn_prob > 0.0 and lstm_prob > 0.0:
-                logger.info("{0:5} --> [[[CNN Probability:{1:.4f}]]], [[[LSTM Probability:{2:.4f}]]]".format(
-                    coin_name, cnn_prob, lstm_prob
-                ))
-            elif cnn_prob > 0.0:
-                logger.info("{0:5} --> [[[CNN Probability:{1:.4f}]]], LSTM Probability:{2:.4f}".format(
-                    coin_name, cnn_prob, lstm_prob
-                ))
-            elif lstm_prob > 0.0:
-                logger.info("{0:5} --> CNN Probability:{1:.4f}, [[[LSTM Probability:{2:.4f}]]]".format(
-                    coin_name, cnn_prob, lstm_prob
-                ))
+            msg_str = "{0:5} --> LSTM Probability:{1:.4f} ".format(coin_name, lstm_prob)
+            if lstm_prob > 0.0:
+                msg_str += "OK!!!"
             else:
-                logger.info("{0:5} --> CNN Probability:{1:.4f}, LSTM Probability:{2:.4f}".format(
-                    coin_name, cnn_prob, lstm_prob
-                ))
+                msg_str += " - "
+            logger.info(msg_str)
 
-            if cnn_prob > 0.0 or lstm_prob > 0.0:
+            if lstm_prob > 0.0:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
                     "right_time": right_time_coin_info[coin_name][0],
-                    "cnn_prob": cnn_prob,
                     "lstm_prob": lstm_prob
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
@@ -257,7 +224,6 @@ def main():
                             msg_str = insert_buy_coin_info(
                                 coin_ticker_name=coin_ticker_name,
                                 buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
-                                cnn_prob=buy_try_coin_info[coin_ticker_name]['cnn_prob'],
                                 lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
                                 ask_price_0=buy_try_coin_info[coin_ticker_name]['ask_price_0'],
                                 buy_krw=invest_krw,

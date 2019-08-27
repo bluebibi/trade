@@ -24,7 +24,7 @@ class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
 
-    def get_dataset_for_buy(self, model_type):
+    def get_dataset_for_buy(self, model_type="LSTM"):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin_recent_window.format(self.coin_name, WINDOW_SIZE),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -189,8 +189,6 @@ def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")
 
     #upbit_orderbook_based_data.get_data_imbalance_processed()
-
-    #upbit_orderbook_based_data.get_dataset_for_buy("CNN")
 
     x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
     x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_dataset()
