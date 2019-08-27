@@ -124,7 +124,7 @@ create_buy_sell_table = """
                     coin_ticker_name TEXT,
                     buy_datetime DATETIME,
                     lstm_prob FLOAT, 
-                    ask_price_0 FLOAT,
+                    buy_base_price FLOAT,
                     buy_krw INT, 
                     buy_fee INT, 
                     buy_price FLOAT, 
