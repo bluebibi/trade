@@ -176,7 +176,7 @@ insert_buy_try_coin_info = """
         buy_coin_volume, 
         total_krw, 
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """

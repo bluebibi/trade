@@ -101,8 +101,11 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, ask_price_0,
         cursor = conn.cursor()
 
         cursor.execute(insert_buy_try_coin_info, (
-            coin_ticker_name, buy_datetime, lstm_prob, ask_price_0, buy_krw, buy_fee, buy_price,
-            buy_coin_volume, total_krw, status
+            coin_ticker_name, buy_datetime,
+            lstm_prob, ask_price_0,
+            buy_krw, buy_fee,
+            buy_price, buy_coin_volume,
+            total_krw, status
         ))
         conn.commit()
 
