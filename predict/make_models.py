@@ -164,7 +164,7 @@ def make_model(
     valid_accuracy_list = []
 
     early_stopping = EarlyStopping(
-        model_type=model_type, coin_name=coin_name, patience=patience, verbose=VERBOSE, logger=logger
+        coin_name=coin_name, patience=patience, verbose=VERBOSE, logger=logger
     )
 
     early_stopped = False
