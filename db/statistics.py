@@ -151,8 +151,7 @@ def buy_sell_tables():
 
         total_gain += float(row[12] - row[5])
         txt += "<tr>"
-        txt += "<td>{0}</td><td>{1}</td><td>{2} | {3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{" \
-               "8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
+        txt += "<td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{8}</td><td>{9}%</td><td>{10}</td>".format(
             buy_datetime,
             "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}'>{0}</a>".format(row[1]), #coin_ticker_name - 구매
             # 코인
