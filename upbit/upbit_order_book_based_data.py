@@ -67,21 +67,25 @@ class UpbitOrderBookBasedData:
 
         # Imbalanced Preprocessing - Start
         if one_rate > 0.01:
-
             x_normalized = x_normalized.cpu()
             y_up = y_up.cpu()
 
-            x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
-                x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
-                y_up
-            )
-            x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1],
-                                                           x_normalized.shape[2])).to(DEVICE)
-            y_up = torch.from_numpy(y_up_samp).to(DEVICE)
-
-            total_size = len(x_samp)
+            try:
+                x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
+                    x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
+                    y_up
+                )
+                x_normalized = torch.from_numpy(
+                    x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
+                ).to(DEVICE)
+                y_up = torch.from_numpy(y_up_samp).to(DEVICE)
+            except ValueError:
+                logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
+                x_normalized = x_normalized.to(DEVICE)
+                y_up = y_up.to(DEVICE)
         # Imbalanced Preprocessing - End
 
+        total_size = len(x_normalized)
         indices = list(range(total_size))
         np.random.shuffle(indices)
 
