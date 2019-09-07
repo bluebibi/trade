@@ -347,8 +347,10 @@ if __name__ == "__main__":
 
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-    if SELF_MODELS_MODE:
-        main(coin_names=upbit.get_all_coin_names(), model_source=SELF_MODEL_SOURCE)
-    else:
-        main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
+    while True:
+        if SELF_MODELS_MODE:
+            main(coin_names=upbit.get_all_coin_names(), model_source=SELF_MODEL_SOURCE)
+        else:
+            main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
+
     #main(coin_names=["OMG"])
