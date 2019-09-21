@@ -80,20 +80,17 @@ def get_db_right_time_coin_names():
 def evaluate_coin_by_models(model, coin_name):
     upbit_data = UpbitOrderBookBasedData(coin_name)
     x = upbit_data.get_dataset_for_buy()
-    logger.info(x)
-    if x:
-        out = model.forward(x)
-        out = torch.sigmoid(out)
-        t = torch.tensor(0.5).to(DEVICE)
-        output_index = (out > t).float() * 1
 
-        prob = out.item()
-        index = int(output_index.item())
+    out = model.forward(x)
+    out = torch.sigmoid(out)
+    t = torch.tensor(0.5).to(DEVICE)
+    output_index = (out > t).float() * 1
 
-        if index and prob > 0.9:
-            return prob
-        else:
-            return -1
+    prob = out.item()
+    index = int(output_index.item())
+
+    if index and prob > 0.9:
+        return prob
     else:
         return -1
 
