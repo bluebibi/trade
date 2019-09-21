@@ -63,7 +63,7 @@ def get_model_status():
         }
 
     txt = "<tr><th>코인 이름</th><th>LSTM 모델 정보</th><th>모델 구성</th></tr>"
-    num_both_models = 0
+    num_lstm_models = 0
     for coin_name in coin_names:
         txt += "<tr>"
 
@@ -82,14 +82,17 @@ def get_model_status():
 
         if coin_name in lstm_models:
             coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
-            num_both_models += 1
+            num_lstm_models += 1
 
         txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
             coin_name,
             lstm_info,
             lstm_model_last_modified
         )
-    return txt, num_both_models
+
+    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
+    num_gb_models = len(gb_model_files)
+    return txt, num_lstm_models, num_gb_models
 
 
 def get_KRW_BTC_info():
@@ -179,7 +182,7 @@ def main():
 
     last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
 
-    model_status, num_both_models = get_model_status()
+    model_status, num_lstm_models, num_gb_models = get_model_status()
 
     html_data = render_template(
         buy_sell_text=buy_sell_text,
@@ -192,7 +195,8 @@ def main():
         last_krw_btc_datetime=last_krw_btc_datetime,
         num_krw_btc_records=num_krw_btc_records,
         model_status=model_status,
-        num_both_models=num_both_models
+        num_lstm_models=num_lstm_models,
+        num_gb_models=num_lstm_models
     )
 
     msg = MIMEText(html_data, _subtype="html", _charset="utf-8")
