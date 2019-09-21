@@ -82,9 +82,11 @@ def evaluate_coin_by_gb_model(coin_name):
     upbit_data = UpbitOrderBookBasedData(coin_name)
     x = upbit_data.get_dataset_for_buy(model_type="GB")
     model = load_gb_model(coin_name=coin_name)
-
-    y_prediction = model.predict_proba(x)
-    return y_prediction[0][1]
+    if model:
+        y_prediction = model.predict_proba(x)
+        return y_prediction[0][1]
+    else:
+        return -1
 
 
 def evaluate_coin_by_models(model, coin_name):

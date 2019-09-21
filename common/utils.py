@@ -107,8 +107,12 @@ def save_gb_model(coin_name, model):
 
 
 def load_gb_model(coin_name):
-    file_name = "{0}GB/{1}.pkl".format(model_source, coin_name)
-    with open(file_name, 'rb') as f:
-        model = pickle.load(f)
-    return model
+    files = glob.glob(PROJECT_HOME + '{0}GB/{1}.pkl'.format(model_source, coin_name))
+    if len(files) > 0:
+        file_name = "{0}GB/{1}.pkl".format(model_source, coin_name)
+        with open(file_name, 'rb') as f:
+            model = pickle.load(f)
+        return model
+    else:
+        return None
 
