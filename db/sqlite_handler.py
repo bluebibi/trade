@@ -124,6 +124,7 @@ create_buy_sell_table = """
                     coin_ticker_name TEXT,
                     buy_datetime DATETIME,
                     lstm_prob FLOAT, 
+                    gb_prob FLOAT,
                     buy_base_price FLOAT,
                     buy_krw INT, 
                     buy_fee INT, 
@@ -168,7 +169,8 @@ insert_buy_try_coin_info = """
     INSERT INTO BUY_SELL (
         coin_ticker_name, 
         buy_datetime,
-        lstm_prob, 
+        lstm_prob,
+        gb_prob,
         buy_base_price, 
         buy_krw, 
         buy_fee, 
@@ -176,7 +178,7 @@ insert_buy_try_coin_info = """
         buy_coin_volume, 
         total_krw, 
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """

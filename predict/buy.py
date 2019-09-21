@@ -12,6 +12,7 @@ from pytz import timezone
 from common.utils import *
 from common.logger import get_logger
 from db.sqlite_handler import *
+from common.utils import load_gb_model
 
 logger = get_logger("buy")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
@@ -77,6 +78,15 @@ def get_db_right_time_coin_names():
     return coin_right_time_info
 
 
+def evaluate_coin_by_gb_model(coin_name):
+    upbit_data = UpbitOrderBookBasedData(coin_name)
+    x = upbit_data.get_dataset_for_buy(model_type="GB")
+    model = load_gb_model(coin_name=coin_name)
+
+    y_prediction = model.predict_proba(x)
+    return y_prediction[0][1]
+
+
 def evaluate_coin_by_models(model, coin_name):
     upbit_data = UpbitOrderBookBasedData(coin_name)
     x = upbit_data.get_dataset_for_buy()
@@ -95,22 +105,24 @@ def evaluate_coin_by_models(model, coin_name):
         return -1
 
 
-def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, ask_price_0, buy_krw, buy_fee,
+def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, ask_price_0, buy_krw, buy_fee,
                          buy_price, buy_coin_volume, total_krw, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         cursor.execute(insert_buy_try_coin_info, (
             coin_ticker_name, buy_datetime,
-            lstm_prob, ask_price_0,
+            lstm_prob, gb_prob, ask_price_0,
             buy_krw, buy_fee,
             buy_price, buy_coin_volume,
             total_krw, status
         ))
         conn.commit()
 
-    msg_str = "*** BUY [{0}, ask_price_0: {1}, buy_price: {2}, buy_krw: {3}, buy_coin_volume: {4}] @ {5}".format(
+    msg_str = "*** BUY [{0}, lstm_prob: {1}, gb_prob: {2}, ask_price_0: {3}, buy_price: {4}, buy_krw: {5}, buy_coin_volume: {6}] @ {7}".format(
         coin_ticker_name,
+        locale.format_string("%.2f", float(lstm_prob), grouping=True),
+        locale.format_string("%.2f", float(gb_prob), grouping=True),
         locale.format_string("%.2f", float(ask_price_0), grouping=True),
         locale.format_string("%.2f", float(buy_price), grouping=True),
         locale.format_string("%d", float(buy_krw), grouping=True),
@@ -168,19 +180,24 @@ def main():
                 coin_name=coin_name
             )
 
-            msg_str = "{0:5} --> LSTM Probability:{1:.4f} ".format(coin_name, lstm_prob)
-            if lstm_prob > 0.0:
+            gb_prob = evaluate_coin_by_gb_model(
+                coin_name=coin_name
+            )
+
+            msg_str = "{0:5} --> LSTM Probability:{1:.4f}, GB Probability:{2:.4f}".format(coin_name, lstm_prob, gb_prob)
+            if lstm_prob > 0.0 and gb_prob > 0.9:
                 msg_str += "OK!!!"
             else:
                 msg_str += " - "
             logger.info(msg_str)
 
-            if lstm_prob > 0.0:
+            if lstm_prob > 0.0 and gb_prob > 0.9:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
                     "right_time": right_time_coin_info[coin_name][0],
-                    "lstm_prob": lstm_prob
+                    "lstm_prob": lstm_prob,
+                    "gb_prob": gb_prob
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
 
@@ -234,6 +251,7 @@ def main():
                                     coin_ticker_name=coin_ticker_name,
                                     buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
                                     lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
+                                    gb_prob=buy_try_coin_info[coin_ticker_name]['gb_prob'],
                                     ask_price_0=buy_base_price,
                                     buy_krw=invest_krw,
                                     buy_fee=buy_fee,
