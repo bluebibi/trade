@@ -38,23 +38,11 @@ class UpbitOrderBookBasedData:
         data_normalized = min_max_scaler.fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
 
-        if data.size(0) > WINDOW_SIZE + FUTURE_TARGET_SIZE:
-            _, x_normalized, _, _, _, _ = self.build_timeseries(
-                data=data,
-                data_normalized=data_normalized,
-                window_size=WINDOW_SIZE,
-                future_target_size=FUTURE_TARGET_SIZE,
-                up_rate=UP_RATE
-            )
-
-            if model_type == "LSTM":
-                return x_normalized[-1].unsqueeze(dim=0)
-            else:
-                total_size = x_normalized.size(0)
-                x_normalized = x_normalized.view(total_size, -1)
-                return x_normalized[-1].unsqueeze(dim=0)
+        if model_type == "LSTM":
+            return data_normalized.unsqueeze(dim=0)
         else:
-            return None
+            data_normalized = data_normalized.flatten()
+            return data_normalized.unsqueeze(dim=0)
 
     def get_dataset(self, split=True):
         df = pd.read_sql_query(

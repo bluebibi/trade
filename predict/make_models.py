@@ -230,8 +230,8 @@ def make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_si
         coin_name=coin_name,
         X=X,
         y=y,
-        inner_cv=StratifiedKFold(n_splits=3, shuffle=True),
-        outer_cv=StratifiedKFold(n_splits=3, shuffle=True),
+        inner_cv=StratifiedKFold(n_splits=4, shuffle=True),
+        outer_cv=StratifiedKFold(n_splits=4, shuffle=True),
         Classifier=GradientBoostingClassifier,
         parameter_grid=ParameterGrid(param_grid)
     )

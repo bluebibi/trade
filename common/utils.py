@@ -11,8 +11,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CoinStatus, fmt
-from common.global_variables import SSH_SCP_TARGET_PEM_FILE_PATH, SSH_SCP_TARGET_ID, REMOTE_TARGET_HOST, REMOTE_TARGET, \
-    IS_PUSH_AFTER_MAKE_MODELS, SELF_MODELS_MODE, SELF_MODEL_SOURCE, LOCAL_MODEL_SOURCE
+from common.global_variables import SELF_MODELS_MODE, SELF_MODEL_SOURCE, LOCAL_MODEL_SOURCE
 
 if SELF_MODELS_MODE:
     model_source = SELF_MODEL_SOURCE
