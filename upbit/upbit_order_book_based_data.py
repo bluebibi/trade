@@ -32,7 +32,6 @@ class UpbitOrderBookBasedData:
 
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
-        data = torch.from_numpy(df.values).to(DEVICE)
 
         min_max_scaler = MinMaxScaler()
         data_normalized = min_max_scaler.fit_transform(df.values)
