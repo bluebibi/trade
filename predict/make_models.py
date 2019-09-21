@@ -18,6 +18,7 @@ import os
 from common.logger import get_logger
 from upbit.upbit_api import Upbit
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
+from common.utils import save_gb_model
 
 logger = get_logger("make_models")
 
@@ -40,10 +41,11 @@ def mkdir_models(source):
     if not os.path.exists(PROJECT_HOME + "{0}LSTM/graphs".format(source)):
         os.makedirs(PROJECT_HOME + "{0}LSTM/graphs".format(source))
 
-    # files = glob.glob('./{0}/*'.format(filename))
-    # for f in files:
-    #     if os.path.isfile(f):
-    #         os.remove(f)
+    if not os.path.exists(PROJECT_HOME + "{0}GB".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}GB".format(source))
+
+    if not os.path.exists(PROJECT_HOME + "{0}GB/graphs".format(source)):
+        os.makedirs(PROJECT_HOME + "{0}GB/graphs".format(source))
 
 
 def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
@@ -234,11 +236,10 @@ def make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_si
         parameter_grid=ParameterGrid(param_grid)
     )
 
-    print(best_model)
-
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
     logger.info("==> {0}: GradientBoostingClassifier - make_sklearn_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str))
+    return best_model
 
 
 def make_model(
@@ -397,10 +398,26 @@ def main(coin_names, model_source):
     for i, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
+        # GradientBoosting
+        x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
+        if VERBOSE:
+            logger.info("[[[GradientBoosting]]]")
+            logger.info("x_normalized_original: {0}, y_up_original: {1}, one_rate: {2}, total_size: {3}".format(
+                x_normalized_original.size(),
+                y_up_original.size(),
+                one_rate,
+                total_size
+            ))
+            best_model = make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+            save_gb_model(coin_name, best_model)
+
+
+        # LSTM
         x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
-        x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_order_book_data.get_dataset()
+        x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_order_book_data.get_dataset(split=True)
 
         if VERBOSE:
+            logger.info("[[[LSTM]]]")
             t_msg = "{0:>2}-[{1:>5}] Train Size:{2:>3d}/{3:>3}[{4:.4f}], Valid Size:{5:>3d}/{6:>3}[{7:.4f}]".format(
                 i,
                 coin_name,

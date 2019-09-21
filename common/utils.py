@@ -1,8 +1,23 @@
 import math
 import datetime as dt
+import pickle
+import sys, os
+import glob
+import subprocess
+import torch
 
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CoinStatus, fmt
+from common.global_variables import SSH_SCP_TARGET_PEM_FILE_PATH, SSH_SCP_TARGET_ID, REMOTE_TARGET_HOST, REMOTE_TARGET, \
+    IS_PUSH_AFTER_MAKE_MODELS, SELF_MODELS_MODE, SELF_MODEL_SOURCE, LOCAL_MODEL_SOURCE
+
+if SELF_MODELS_MODE:
+    model_source = SELF_MODEL_SOURCE
+else:
+    model_source = LOCAL_MODEL_SOURCE
 
 
 def convert_unit_2(unit):
@@ -80,3 +95,13 @@ def get_invest_krw_live(upbit, coin_ticker_name):
     total_ask_size = info[0]['total_ask_size']
     total_bid_size = info[0]['total_bid_size']
     return get_invest_krw(current_price, total_ask_size, total_bid_size)
+
+
+def save_gb_model(coin_name, model):
+    files = glob.glob(PROJECT_HOME + '{0}GB/{1}.pkl'.format(model_source, coin_name))
+    for f in files:
+        os.remove(f)
+
+    file_name = "{0}GB/{1}.pkl".format(model_source, coin_name)
+    with open(file_name, 'wb') as f:
+        pickle.dump(model, f)
