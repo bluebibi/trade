@@ -196,7 +196,7 @@ def main():
         num_krw_btc_records=num_krw_btc_records,
         model_status=model_status,
         num_lstm_models=num_lstm_models,
-        num_gb_models=num_lstm_models
+        num_gb_models=num_gb_models
     )
 
     msg = MIMEText(html_data, _subtype="html", _charset="utf-8")
