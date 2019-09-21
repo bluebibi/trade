@@ -137,6 +137,110 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import ParameterGrid
+from sklearn.ensemble import GradientBoostingClassifier
+
+
+def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):
+    outer_score_list = []
+    best_param_list = []
+    model_list = []
+
+    num_outer_split = 1
+    for training_samples_idx, test_samples_idx in outer_cv.split(X, y):
+        logger.info("COIN_NAME: {0} - [Outer Split: #{0}]".format(coin_name, num_outer_split))
+        best_score = -np.inf
+
+        for parameters in parameter_grid:
+            # print("Parameters: {0}".format(parameters))
+            cv_scores = []
+            num_inner_split = 1
+            for inner_train_idx, inner_test_idx in inner_cv.split(X[training_samples_idx], y[training_samples_idx]):
+                clf = Classifier(**parameters)
+                clf.fit(X[inner_train_idx], y[inner_train_idx])
+                score = clf.score(X[inner_test_idx], y[inner_test_idx])
+
+                cv_scores.append(score)
+                #                 print("Inner Split: #{0}, Score: #{1}".format(
+                #                     num_inner_split,
+                #                     score
+                #                 ))
+                num_inner_split += 1
+
+            mean_score = np.mean(cv_scores)
+            if mean_score > best_score:
+                best_score = mean_score
+                best_params = parameters
+                # print("Mean Score:{0}, Best Score:{1}".format(mean_score, best_score))
+
+        logger.info("COIN_NAME: {0} - Outer Split: #{1}, Best Score: {2}, Best Parameter: #{3}".format(
+            coin_name,
+            num_outer_split,
+            best_score,
+            best_params
+        ))
+
+        clf = Classifier(**best_params)
+        clf.fit(X[training_samples_idx], y[training_samples_idx])
+
+        best_param_list.append(best_params)
+        outer_score_list.append(clf.score(X[test_samples_idx], y[test_samples_idx]))
+        model_list.append(clf)
+
+        num_outer_split += 1
+
+    best_score = -np.inf
+    best_model = None
+    for idx, score in enumerate(outer_score_list):
+        if score > best_score:
+            best_score = score
+            best_model = model_list[idx]
+
+    return best_score, best_model
+
+
+def make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+    # param_grid = {
+    #     'learning_rate': [0.01, 0.05, 0.1],
+    #     'max_depth': np.linspace(1, 8, 4, endpoint=True),
+    #     'n_estimators': [32, 64, 100, 200],
+    #     'max_features': list(range(int(x_normalized_original.shape[1] / 2), x_normalized_original.shape[1], 2)),
+    #     'min_samples_leaf': np.linspace(0.1, 0.5, 5, endpoint=True),
+    #     'min_samples_split': np.linspace(0.1, 1.0, 5, endpoint=True)
+    # }
+    param_grid = {
+        'learning_rate': [0.01, 0.05, 0.1],
+        'max_depth': np.linspace(1, 8, 4, endpoint=True),
+        'n_estimators': [32, 64, 128],
+        'max_features': list(range(int(x_normalized_original.shape[1] / 2), x_normalized_original.shape[1], 2)),
+    }
+
+    coin_model_start_time = time.time()
+
+    X = x_normalized_original.numpy().reshape(total_size, -1)
+    y = y_up_original.numpy()
+
+    #     print("X.shape: {0}".format(X.shape))
+    #     print("y.shape: {0}".format(y.shape))
+
+    best_model = get_best_model_by_nested_cv(
+        coin_name=coin_name,
+        X=X,
+        y=y,
+        inner_cv=StratifiedKFold(n_splits=3, shuffle=True),
+        outer_cv=StratifiedKFold(n_splits=3, shuffle=True),
+        Classifier=GradientBoostingClassifier,
+        parameter_grid=ParameterGrid(param_grid)
+    )
+
+    print(best_model)
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+    logger.info("==> {0}: GradientBoostingClassifier - make_sklearn_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str))
+
+
 def make_model(
         model, model_type, coin_name,
         x_train_normalized_original, y_up_train_original,

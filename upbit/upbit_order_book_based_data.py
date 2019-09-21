@@ -31,19 +31,29 @@ class UpbitOrderBookBasedData:
         )
 
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
-
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
+        data = torch.from_numpy(df.values).to(DEVICE)
 
         min_max_scaler = MinMaxScaler()
-        x_normalized = min_max_scaler.fit_transform(df.values)
-        x_normalized = torch.from_numpy(x_normalized).float().to(DEVICE)
+        data_normalized = min_max_scaler.fit_transform(df.values)
+        data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
 
-        if model_type == "CNN":
-            return x_normalized.unsqueeze(dim=0).unsqueeze(dim=0)
+        _, x_normalized, _, _, _, _ = self.build_timeseries(
+            data=data,
+            data_normalized=data_normalized,
+            window_size=WINDOW_SIZE,
+            future_target_size=FUTURE_TARGET_SIZE,
+            up_rate=UP_RATE
+        )
+
+        if model_type == "LSTM":
+            return x_normalized[-1].unsqueeze(dim=0)
         else:
-            return x_normalized.unsqueeze(dim=0)
+            total_size = x_normalized.size(0)
+            x_normalized = x_normalized.view(total_size, -1)
+            return x_normalized[-1].unsqueeze(dim=0)
 
-    def get_dataset(self):
+    def get_dataset(self, split=True):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin.format(self.coin_name),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -86,26 +96,31 @@ class UpbitOrderBookBasedData:
         # Imbalanced Preprocessing - End
 
         total_size = len(x_normalized)
-        indices = list(range(total_size))
-        np.random.shuffle(indices)
 
-        train_indices = list(set(indices[:int(total_size * 0.8)]))
-        validation_indices = list(set(range(total_size)) - set(train_indices))
+        if split:
+            indices = list(range(total_size))
+            np.random.shuffle(indices)
 
-        x_train_normalized = x_normalized[train_indices]
-        x_valid_normalized = x_normalized[validation_indices]
+            train_indices = list(set(indices[:int(total_size * 0.8)]))
+            validation_indices = list(set(range(total_size)) - set(train_indices))
 
-        y_up_train = y_up[train_indices]
-        y_up_valid = y_up[validation_indices]
+            x_train_normalized = x_normalized[train_indices]
+            x_valid_normalized = x_normalized[validation_indices]
 
-        one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
-        one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
+            y_up_train = y_up[train_indices]
+            y_up_valid = y_up[validation_indices]
 
-        train_size = x_train_normalized.size(0)
-        valid_size = x_valid_normalized.size(0)
+            one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
+            one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
 
-        return x_train_normalized, y_up_train, one_rate_train, train_size,\
-               x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+            train_size = x_train_normalized.size(0)
+            valid_size = x_valid_normalized.size(0)
+
+            return x_train_normalized, y_up_train, one_rate_train, train_size,\
+                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+        else:
+            one_rate = y_up.sum().float() / y_up.size(0)
+            return x_normalized, y_up, one_rate, total_size
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):
