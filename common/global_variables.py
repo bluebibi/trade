@@ -84,11 +84,13 @@ VERBOSE = True
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SLACK = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
+#EVALUATION
 MIN_VALID_LOSS_THRESHOLD = float(config['EVALUATION']['min_valid_loss_threshold'])
 LAST_VALID_ACCURACY_THRESHOLD = float(config['EVALUATION']['last_valid_accuracy_threshold'])
 LAST_SAVE_EPOCH_THRESHOLD = int(config['EVALUATION']['last_save_epoch_threshold'])
 ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'])
 VALID_SIZE_THRESHOLD = int(config['EVALUATION']['valid_size_threshold'])
+GRADIENT_BOOSTING_BUY_PROB_THRESHOLD = float(config['EVALUATION']['gradient_boosting_buy_prob_threshold'])
 
 #SELL
 buy_control_constant=float(config['BUY_SELL']['buy_control_constant'])
