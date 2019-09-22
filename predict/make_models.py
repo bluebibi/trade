@@ -442,8 +442,10 @@ def main(coin_names, model_source):
             if is_high_quality_lstm:
                 high_quality_models_lstm.append(coin_name)
         else:
-            logger.info("--> {0}: Model construction cancelled since 'one_rate_valid' or 'valid_size' is too low.\n".format(
-                coin_name
+            logger.info("--> {0}: Model construction cancelled since 'one_rate_valid:{1}' or 'valid_size:{2}' is too low.\n".format(
+                coin_name,
+                one_rate_valid,
+                valid_size
             ))
 
     elapsed_time = time.time() - start_time
