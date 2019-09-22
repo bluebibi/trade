@@ -1,14 +1,16 @@
 import glob
 import locale
-
 import sys, os
+from pytz import timezone
+import warnings
+warnings.filterwarnings("ignore")
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
 from predict.model_rnn import LSTM
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
-from pytz import timezone
 from common.utils import *
 from common.logger import get_logger
 from db.sqlite_handler import *
@@ -157,7 +159,7 @@ def main():
 
     already_coin_ticker_names = get_coin_ticker_names_by_bought_or_trailed_status()
 
-    target_coin_names = (set(good_lstm_models) & set(right_time_coin_info)) - set(already_coin_ticker_names)
+    target_coin_names = (set(good_lstm_models) & set(right_time_coin_info)) - set(already_coin_ticker_names) - set(BANNED_BUY_COIN_LIST)
 
     logger.info("*** LSTM: {0}, Right Time Coins: {1}, Already Coins: {2}, Target Coins: {3} ***".format(
         len(good_lstm_models.keys()),
@@ -189,7 +191,7 @@ def main():
 
             msg_str = "{0:5} --> LSTM Probability:{1:7.4f}, GB Probability:{2:7.4f}".format(coin_name, lstm_prob, gb_prob)
             if lstm_prob > 0.0 and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
-                msg_str += "OK!!!"
+                msg_str += " OK!!!"
             else:
                 msg_str += " - "
             logger.info(msg_str)
@@ -266,6 +268,8 @@ def main():
 
                                 if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
                                 logger.info("{0}".format(msg_str))
+                    else:
+                        logger.info("coin ticker name: {0} - prompt price {1} rising is large".format(coin_ticker_name, prompt_rising_rate))
 
 
 if __name__ == "__main__":

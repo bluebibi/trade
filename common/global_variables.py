@@ -1,5 +1,6 @@
 from enum import Enum
 import configparser
+import ast
 import torch
 
 import sys, os
@@ -93,7 +94,8 @@ VALID_SIZE_THRESHOLD = int(config['EVALUATION']['valid_size_threshold'])
 GRADIENT_BOOSTING_BUY_PROB_THRESHOLD = float(config['EVALUATION']['gradient_boosting_buy_prob_threshold'])
 
 #SELL
-buy_control_constant=float(config['BUY_SELL']['buy_control_constant'])
+BUY_CONTROL_CONSTANT = float(config['BUY_SELL']['buy_control_constant'])
+BANNED_BUY_COIN_LIST = ast.literal_eval(config['BUY_SELL']['banned_buy_coin_list'])
 SELL_RATE = float(config['BUY_SELL']['sell_rate'])
 TRANSACTION_FEE_RATE = float(config['BUY_SELL']['transaction_fee_rate'])
 SELL_PERIOD = int(config['BUY_SELL']['sell_period'])
