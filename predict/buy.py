@@ -82,6 +82,7 @@ def evaluate_coin_by_gb_model(coin_name):
     upbit_data = UpbitOrderBookBasedData(coin_name)
     x = upbit_data.get_dataset_for_buy(model_type="GB")
     model = load_gb_model(coin_name=coin_name)
+    print(model)
     if model:
         y_prediction = model.predict_proba(x)
         return y_prediction[0][1]
@@ -186,14 +187,14 @@ def main():
                 coin_name=coin_name
             )
 
-            msg_str = "{0:5} --> LSTM Probability:{1:.4f}, GB Probability:{2:.4f}".format(coin_name, lstm_prob, gb_prob)
-            if lstm_prob > 0.0 and gb_prob > 0.9:
+            msg_str = "{0:5} --> LSTM Probability:{1:7.4f}, GB Probability:{2:7.4f}".format(coin_name, lstm_prob, gb_prob)
+            if lstm_prob > 0.0 and gb_prob > 0.7:
                 msg_str += "OK!!!"
             else:
                 msg_str += " - "
             logger.info(msg_str)
 
-            if lstm_prob > 0.0 and gb_prob > 0.9:
+            if lstm_prob > 0.0 and gb_prob > 0.7:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
