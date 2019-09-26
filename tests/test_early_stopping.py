@@ -7,7 +7,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 os.chdir(PROJECT_HOME)
 
-from predict.early_stopping import EarlyStopping
+from temp.early_stopping_old import EarlyStopping
 
 
 class TestEarlyStopping(unittest.TestCase):

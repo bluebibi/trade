@@ -1,12 +1,11 @@
 # https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb
 import glob
 import time
-import torch.nn as nn
 
 import sys, os
 
 from skorch import NeuralNetClassifier
-from skorch.callbacks import EpochScoring
+from skorch.callbacks import EpochScoring, EarlyStopping
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
@@ -16,12 +15,11 @@ from common.global_variables import *
 import matplotlib.pyplot as plt
 
 from predict.model_rnn import LSTM
-from predict.early_stopping import EarlyStopping
 import numpy as np
 import os
 from common.logger import get_logger
 from upbit.upbit_api import Upbit
-from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
+from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import save_gb_model, save_lstm_model
 
 import torch.nn.modules.loss

@@ -20,7 +20,7 @@ else:
     model_source = LOCAL_MODEL_SOURCE
 
 
-class EarlyStopping:
+class EarlyStoppingOld:
     """Early stops the training if validation loss doesn't improve after a given patience."""
     def __init__(self, coin_name, patience=7, verbose=False, logger=None):
         """
