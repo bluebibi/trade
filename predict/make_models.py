@@ -23,6 +23,8 @@ from upbit.upbit_api import Upbit
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData, get_data_loader
 from common.utils import save_gb_model
 
+import torch.nn.modules.loss
+
 logger = get_logger("make_models")
 
 if os.getcwd().endswith("predict"):
@@ -244,11 +246,8 @@ def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_siz
     logger.info("==> {0}: GradientBoostingClassifier - make_gboost_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str))
     return best_model
 
-def make_lstm_model(
-        model, model_type, coin_name,
-        x_train_normalized_original, y_up_train_original,
-        x_valid_normalized_original, y_up_valid_original,
-        valid_size, one_rate_valid):
+
+def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
     lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
     net = NeuralNetClassifier(
         lstm_model,
@@ -257,6 +256,12 @@ def make_lstm_model(
         # Shuffle training data on each epoch
         iterator_train__shuffle=True,
     )
+
+    X = x_normalized_original
+    y = y_up_original
+
+    net.fit(X, y)
+
 
 def make_model(
         model, model_type, coin_name,
@@ -424,8 +429,13 @@ def main(coin_names, model_source):
                 one_rate,
                 total_size
             ))
-            best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            save_gb_model(coin_name, best_model)
+
+        best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+        save_gb_model(coin_name, best_model)
+
+
+        # LSTM-SKorch
+        best_model = make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
 
 
         # LSTM

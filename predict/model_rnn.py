@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
+from skorch import NeuralNetClassifier
+from skorch.tests.conftest import F
 from torch.nn import init
 from common.global_variables import *
+from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 
 class LSTM(nn.Module):
@@ -27,18 +30,45 @@ class LSTM(nn.Module):
             nn.Dropout2d(0.25),
             nn.Linear(128, 32),
             nn.LeakyReLU(),
-            nn.Linear(32, 1)
+            nn.Linear(32, 2),
+            nn.LeakyReLU()
         )
 
     def forward(self, x):
-        hidden, cell = self.init_hidden(x)
+        out, _ = self.lstm(input=x)
+        out = self.fc_layer(out)
+        out = out[:, -1, :]
+        out = F.softmax(out, dim=-1)
 
-        out, _ = self.lstm(input=x, hx=(hidden, cell))
-        out = self.fc_layer(out[:, -1, :])
+        print(out)
+        return out
 
-        return out.squeeze(dim=1)
+    # def init_hidden(self, x):
+    #     hidden = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
+    #     cell = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
+    #     return hidden, cell
 
-    def init_hidden(self, x):
-        hidden = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-        cell = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-        return hidden, cell
+
+if __name__ == "__main__":
+    upbit_order_book_data = UpbitOrderBookBasedData("ADA")
+    x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
+    lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
+
+    net = NeuralNetClassifier(
+        lstm_model,
+        max_epochs=10,
+        lr=0.1,
+        # Shuffle training data on each epoch
+        iterator_train__shuffle=True,
+    )
+
+    X = x_normalized_original
+    y = y_up_original.type(torch.LongTensor)
+    print(y)
+
+    print(type(X), type(y))
+    print(X.shape, y.shape)
+    #    print(X.size(), y.size())
+    #    print(X.dim(), y.dim())
+
+    net.fit(X=X, y=y)
