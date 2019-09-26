@@ -254,13 +254,12 @@ def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_siz
 def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
     lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
     auc = EpochScoring(scoring='roc_auc', lower_is_better=False)
-    early_stopping = EarlyStopping(patience=7)
+    early_stopping = EarlyStopping(patience=15)
 
     param_grid = {
         'module': [lstm_model],
         'max_epochs': [500],
         'lr': [0.01, 0.05, 0.1],
-        'iterator_train__shuffle': [True],
         'module__bias': [True, False],
         'module__dropout': [0.0, 0.25, 0.5],
         'optimizer': [torch.optim.Adam],
