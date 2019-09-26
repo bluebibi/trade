@@ -106,6 +106,16 @@ def save_gb_model(coin_name, model):
         pickle.dump(model, f)
 
 
+def save_lstm_model(coin_name, model):
+    files = glob.glob(PROJECT_HOME + '{0}LSTM/{1}.pkl'.format(model_source, coin_name))
+    for f in files:
+        os.remove(f)
+
+    file_name = "{0}LSTM/{1}.pkl".format(model_source, coin_name)
+    with open(file_name, 'wb') as f:
+        pickle.dump(model, f)
+
+
 def load_gb_model(coin_name):
     files = glob.glob(PROJECT_HOME + '{0}GB/{1}.pkl'.format(model_source, coin_name))
     if len(files) > 0:
@@ -116,3 +126,13 @@ def load_gb_model(coin_name):
     else:
         return None
 
+
+def load_lstm_model(coin_name):
+    files = glob.glob(PROJECT_HOME + '{0}LSTM/{1}.pkl'.format(model_source, coin_name))
+    if len(files) > 0:
+        file_name = "{0}LSTM/{1}.pkl".format(model_source, coin_name)
+        with open(file_name, 'rb') as f:
+            model = pickle.load(f)
+        return model[1]
+    else:
+        return None

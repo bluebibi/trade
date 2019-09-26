@@ -92,6 +92,7 @@ LAST_SAVE_EPOCH_THRESHOLD = int(config['EVALUATION']['last_save_epoch_threshold'
 ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'])
 VALID_SIZE_THRESHOLD = int(config['EVALUATION']['valid_size_threshold'])
 GRADIENT_BOOSTING_BUY_PROB_THRESHOLD = float(config['EVALUATION']['gradient_boosting_buy_prob_threshold'])
+LSTM_BUY_PROB_THRESHOLD = float(config['EVALUATION']['lstm_buy_prob_threshold'])
 
 #SELL
 BUY_CONTROL_CONSTANT = float(config['BUY_SELL']['buy_control_constant'])

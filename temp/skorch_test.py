@@ -14,6 +14,7 @@ print(type(X), type(y))
 X = X.astype(np.float32)
 y = y.astype(np.int64)
 
+
 class MyModule(nn.Module):
     def __init__(self, num_units=10, nonlin=F.relu):
         super(MyModule, self).__init__()

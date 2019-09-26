@@ -80,7 +80,9 @@ def get_db_right_time_coin_names():
     return coin_right_time_info
 
 
-def evaluate_coin_by_gb_model(coin_name, x):
+def evaluate_coin_by_gb_model(coin_name):
+    upbit_data = UpbitOrderBookBasedData(coin_name)
+    x = upbit_data.get_dataset_for_buy(model_type="GB")
     model = load_gb_model(coin_name=coin_name)
 
     if model:
@@ -90,12 +92,20 @@ def evaluate_coin_by_gb_model(coin_name, x):
         return -1
 
 
-def evaluate_coin_by_lstm_model(coin_name, x):
-    model = load_lstm_model(coin_name=coin_name)
+def evaluate_coin_by_models(model, coin_name):
+    upbit_data = UpbitOrderBookBasedData(coin_name)
+    x = upbit_data.get_dataset_for_buy()
 
-    if model:
-        y_prediction = model.predict_proba(x)
-        return y_prediction[0][1]
+    out = model.forward(x)
+    out = torch.sigmoid(out)
+    t = torch.tensor(0.5).to(DEVICE)
+    output_index = (out > t).float() * 1
+
+    prob = out.item()
+    index = int(output_index.item())
+
+    if index and prob > 0.9:
+        return prob
     else:
         return -1
 
@@ -170,27 +180,23 @@ def main():
         buy_try_coin_ticker_names = []
 
         for coin_name in target_coin_names:
-            upbit_data = UpbitOrderBookBasedData(coin_name)
-            x = upbit_data.get_dataset_for_buy(model_type="GB")
-
-            lstm_prob = evaluate_coin_by_lstm_model(
-                coin_name=coin_name,
-                x=x
+            lstm_prob = evaluate_coin_by_models(
+                model=good_lstm_models[coin_name],
+                coin_name=coin_name
             )
 
             gb_prob = evaluate_coin_by_gb_model(
-                coin_name=coin_name,
-                x=x
+                coin_name=coin_name
             )
 
             msg_str = "{0:5} --> LSTM Probability:{1:7.4f}, GB Probability:{2:7.4f}".format(coin_name, lstm_prob, gb_prob)
-            if lstm_prob > LSTM_BUY_PROB_THRESHOLD and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
+            if lstm_prob > 0.0 and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
                 msg_str += " OK!!!"
             else:
                 msg_str += " - "
             logger.info(msg_str)
 
-            if lstm_prob > LSTM_BUY_PROB_THRESHOLD and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
+            if lstm_prob > 0.0 and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
                 # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
