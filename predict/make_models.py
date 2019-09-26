@@ -4,6 +4,9 @@ import time
 import torch.nn as nn
 
 import sys, os
+
+from skorch import NeuralNetClassifier
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
@@ -202,7 +205,7 @@ def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier,
     return best_score, best_model
 
 
-def make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
     # param_grid = {
     #     'learning_rate': [0.01, 0.05, 0.1],
     #     'max_depth': np.linspace(1, 8, 4, endpoint=True),
@@ -238,9 +241,22 @@ def make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_si
 
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
-    logger.info("==> {0}: GradientBoostingClassifier - make_sklearn_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str))
+    logger.info("==> {0}: GradientBoostingClassifier - make_gboost_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str))
     return best_model
 
+def make_lstm_model(
+        model, model_type, coin_name,
+        x_train_normalized_original, y_up_train_original,
+        x_valid_normalized_original, y_up_valid_original,
+        valid_size, one_rate_valid):
+    lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
+    net = NeuralNetClassifier(
+        lstm_model,
+        max_epochs=10,
+        lr=0.1,
+        # Shuffle training data on each epoch
+        iterator_train__shuffle=True,
+    )
 
 def make_model(
         model, model_type, coin_name,
@@ -408,7 +424,7 @@ def main(coin_names, model_source):
                 one_rate,
                 total_size
             ))
-            best_model = make_sklearn_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+            best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
             save_gb_model(coin_name, best_model)
 
 
