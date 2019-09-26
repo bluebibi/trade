@@ -24,26 +24,26 @@ class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
 
-    def get_dataset_for_buy(self, model_type):
+    def get_dataset_for_buy(self, model_type="LSTM"):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin_recent_window.format(self.coin_name, WINDOW_SIZE),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
         )
 
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
-
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
         min_max_scaler = MinMaxScaler()
-        x_normalized = min_max_scaler.fit_transform(df.values)
-        x_normalized = torch.from_numpy(x_normalized).float().to(DEVICE)
+        data_normalized = min_max_scaler.fit_transform(df.values)
+        data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
 
-        if model_type == "CNN":
-            return x_normalized.unsqueeze(dim=0).unsqueeze(dim=0)
+        if model_type == "LSTM":
+            return data_normalized.unsqueeze(dim=0)
         else:
-            return x_normalized.unsqueeze(dim=0)
+            data_normalized = data_normalized.flatten()
+            return data_normalized.unsqueeze(dim=0)
 
-    def get_dataset(self):
+    def get_dataset(self, split=True):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin.format(self.coin_name),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -67,41 +67,50 @@ class UpbitOrderBookBasedData:
 
         # Imbalanced Preprocessing - Start
         if one_rate > 0.01:
-
             x_normalized = x_normalized.cpu()
             y_up = y_up.cpu()
 
-            x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
-                x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
-                y_up
-            )
-            x_normalized = torch.from_numpy(x_samp.reshape(x_samp.shape[0], x_normalized.shape[1],
-                                                           x_normalized.shape[2])).to(DEVICE)
-            y_up = torch.from_numpy(y_up_samp).to(DEVICE)
-
-            total_size = len(x_samp)
+            try:
+                x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
+                    x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
+                    y_up
+                )
+                x_normalized = torch.from_numpy(
+                    x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
+                ).to(DEVICE)
+                y_up = torch.from_numpy(y_up_samp).to(DEVICE)
+            except ValueError:
+                logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
+                x_normalized = x_normalized.to(DEVICE)
+                y_up = y_up.to(DEVICE)
         # Imbalanced Preprocessing - End
 
-        indices = list(range(total_size))
-        np.random.shuffle(indices)
+        total_size = len(x_normalized)
 
-        train_indices = list(set(indices[:int(total_size * 0.8)]))
-        validation_indices = list(set(range(total_size)) - set(train_indices))
+        if split:
+            indices = list(range(total_size))
+            np.random.shuffle(indices)
 
-        x_train_normalized = x_normalized[train_indices]
-        x_valid_normalized = x_normalized[validation_indices]
+            train_indices = list(set(indices[:int(total_size * 0.8)]))
+            validation_indices = list(set(range(total_size)) - set(train_indices))
 
-        y_up_train = y_up[train_indices]
-        y_up_valid = y_up[validation_indices]
+            x_train_normalized = x_normalized[train_indices]
+            x_valid_normalized = x_normalized[validation_indices]
 
-        one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
-        one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
+            y_up_train = y_up[train_indices]
+            y_up_valid = y_up[validation_indices]
 
-        train_size = x_train_normalized.size(0)
-        valid_size = x_valid_normalized.size(0)
+            one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
+            one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
 
-        return x_train_normalized, y_up_train, one_rate_train, train_size,\
-               x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+            train_size = x_train_normalized.size(0)
+            valid_size = x_valid_normalized.size(0)
+
+            return x_train_normalized, y_up_train, one_rate_train, train_size,\
+                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+        else:
+            one_rate = y_up.sum().float() / y_up.size(0)
+            return x_normalized, y_up, one_rate, total_size
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):
@@ -189,8 +198,6 @@ def main():
     upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")
 
     #upbit_orderbook_based_data.get_data_imbalance_processed()
-
-    #upbit_orderbook_based_data.get_dataset_for_buy("CNN")
 
     x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
     x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_dataset()

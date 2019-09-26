@@ -38,8 +38,8 @@ class Seller:
             buy_trail_coin_info[coin_ticker_name] = {
                 "buy_datetime_str": row[2],
                 "buy_datetime": buy_datetime,
-                "cnn_prob": float(row[3]),
-                "lstm_prob": float(row[4]),
+                "lstm_prob": float(row[3]),
+                "gb_prob": float(row[4]),
                 "buy_base_price": float(row[5]),
                 "buy_krw": int(row[6]),
                 "buy_fee": int(row[7]),

@@ -1,5 +1,6 @@
 from enum import Enum
 import configparser
+import ast
 import torch
 
 import sys, os
@@ -84,14 +85,17 @@ VERBOSE = True
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SLACK = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
+#EVALUATION
 MIN_VALID_LOSS_THRESHOLD = float(config['EVALUATION']['min_valid_loss_threshold'])
 LAST_VALID_ACCURACY_THRESHOLD = float(config['EVALUATION']['last_valid_accuracy_threshold'])
 LAST_SAVE_EPOCH_THRESHOLD = int(config['EVALUATION']['last_save_epoch_threshold'])
 ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'])
 VALID_SIZE_THRESHOLD = int(config['EVALUATION']['valid_size_threshold'])
+GRADIENT_BOOSTING_BUY_PROB_THRESHOLD = float(config['EVALUATION']['gradient_boosting_buy_prob_threshold'])
 
 #SELL
-buy_control_constant=float(config['BUY_SELL']['buy_control_constant'])
+BUY_CONTROL_CONSTANT = float(config['BUY_SELL']['buy_control_constant'])
+BANNED_BUY_COIN_LIST = ast.literal_eval(config['BUY_SELL']['banned_buy_coin_list'])
 SELL_RATE = float(config['BUY_SELL']['sell_rate'])
 TRANSACTION_FEE_RATE = float(config['BUY_SELL']['transaction_fee_rate'])
 SELL_PERIOD = int(config['BUY_SELL']['sell_period'])

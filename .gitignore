@@ -121,4 +121,5 @@ scripts/upbit_record_mac.sh
 *.log.*
 *.swp
 *.db.old
+*.pkl
 /db/upbit_order_book_info.db-journal

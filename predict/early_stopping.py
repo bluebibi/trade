@@ -22,7 +22,7 @@ else:
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, model_type, coin_name, patience=7, verbose=False, logger=None):
+    def __init__(self, coin_name, patience=7, verbose=False, logger=None):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
@@ -30,7 +30,6 @@ class EarlyStopping:
             verbose (bool): If True, prints a message for each validation loss improvement.
                             Default: False
         """
-        self.model_type = model_type
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -82,23 +81,22 @@ class EarlyStopping:
         self.last_valid_accuracy = valid_accuracy
 
     def save_last_model(self):
-        files = glob.glob(PROJECT_HOME + '{0}{1}/{2}*'.format(model_source, self.model_type, self.coin_name))
+        files = glob.glob(PROJECT_HOME + '{0}LSTM/{1}*'.format(model_source, self.coin_name))
         for f in files:
             os.remove(f)
 
-        file_name = "{0}{1}/{2}".format(model_source, self.model_type, self.last_filename)
+        file_name = "{0}LSTM/{1}".format(model_source, self.last_filename)
         torch.save(self.last_state_dict, file_name)
 
         if IS_PUSH_AFTER_MAKE_MODELS:
             self.push_models(file_name)
 
     def push_models(self, file_name):
-        cmd = "ssh -i {0} {1}@{2} 'ls {3}{4}/{5}_*'".format(
+        cmd = "ssh -i {0} {1}@{2} 'ls {3}LSTM/{4}_*'".format(
             SSH_SCP_TARGET_PEM_FILE_PATH,
             SSH_SCP_TARGET_ID,
             REMOTE_TARGET_HOST,
             REMOTE_TARGET,
-            self.model_type,
             self.coin_name
         )
 
@@ -116,13 +114,12 @@ class EarlyStopping:
             self.logger.info(cmd)
             subprocess.getoutput(cmd)
 
-        cmd = "scp -i {0} {1} {2}@{3}:{4}{5}/".format(
+        cmd = "scp -i {0} {1} {2}@{3}:{4}LSTM/".format(
             SSH_SCP_TARGET_PEM_FILE_PATH,
             file_name,
             SSH_SCP_TARGET_ID,
             REMOTE_TARGET_HOST,
-            REMOTE_TARGET,
-            self.model_type
+            REMOTE_TARGET
         )
         self.logger.info(cmd)
         subprocess.getoutput(cmd)
