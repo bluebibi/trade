@@ -57,7 +57,7 @@ def get_model_status():
             "last_modified": time_diff
         }
 
-    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pt'.format(model_source))
+    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
     gb_models = {}
     for gb_file in gb_model_files:
         gb_file_name = gb_file.split("/")[-1].split("_")
