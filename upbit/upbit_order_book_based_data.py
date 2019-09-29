@@ -43,11 +43,17 @@ class UpbitOrderBookBasedData:
             data_normalized = data_normalized.flatten()
             return data_normalized.unsqueeze(dim=0)
 
-    def get_dataset(self, split=True):
-        df = pd.read_sql_query(
-            select_all_from_order_book_for_one_coin.format(self.coin_name),
-            sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-        )
+    def get_dataset(self, limit=False, split=True):
+        if limit:
+            df = pd.read_sql_query(
+                select_all_from_order_book_for_one_coin_limit.format(self.coin_name, limit),
+                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
+            )
+        else:
+            df = pd.read_sql_query(
+                select_all_from_order_book_for_one_coin.format(self.coin_name),
+                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
+            )
 
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 

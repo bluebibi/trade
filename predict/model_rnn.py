@@ -68,7 +68,7 @@ if __name__ == "__main__":
         'module__dropout': [0.0, 0.25, 0.5]
     }
 
-    gs = GridSearchCV(net, param_grid, refit=True, cv=4, scoring='accuracy')
+    gs = GridSearchCV(net, param_grid, refit=True, cv=4, scoring='precision_macro')
 
     X = x_normalized_original.numpy()
     y = y_up_original.numpy().astype(np.int64)

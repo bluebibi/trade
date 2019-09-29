@@ -113,6 +113,11 @@ select_all_from_order_book_for_one_coin = order_book_for_one_coin + """
     ORDER BY collect_timestamp ASC, base_datetime ASC;
 """
 
+select_all_from_order_book_for_one_coin_limit = order_book_for_one_coin + """
+    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
+    ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT {1};
+"""
+
 select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
     FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
     ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
@@ -125,6 +130,7 @@ create_buy_sell_table = """
                     buy_datetime DATETIME,
                     lstm_prob FLOAT, 
                     gb_prob FLOAT,
+                    xgboost_prob FLOAT,
                     buy_base_price FLOAT,
                     buy_krw INT, 
                     buy_fee INT, 
@@ -171,6 +177,7 @@ insert_buy_try_coin_info = """
         buy_datetime,
         lstm_prob,
         gb_prob,
+        xgboost_prob,
         buy_base_price, 
         buy_krw, 
         buy_fee, 
@@ -178,7 +185,7 @@ insert_buy_try_coin_info = """
         buy_coin_volume, 
         total_krw, 
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """
