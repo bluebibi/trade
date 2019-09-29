@@ -60,7 +60,7 @@ def get_model_status():
     gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
     gb_models = {}
     for gb_file in gb_model_files:
-        gb_file_name = gb_file.split("/")[-1].split("_")
+        gb_file_name = gb_file.split("/")[-1].split(".pkl")
         coin_name = gb_file_name[0]
 
         time_diff = dt.datetime.fromtimestamp(os.stat(gb_file).st_mtime).strftime(fmt.replace("T", " "))
@@ -80,7 +80,6 @@ def get_model_status():
             num_xgboost_models += 1
         else:
             xgboost_model_last_modified = "-"
-
 
         if coin_name in gb_models:
             gb_model_last_modified = gb_models[coin_name]["last_modified"]
