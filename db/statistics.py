@@ -45,54 +45,56 @@ def render_template(**kwargs):
 def get_model_status():
     coin_names = upbit.get_all_coin_names()
 
-    lstm_model_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
-    lstm_models = {}
-    for lstm_file in lstm_model_files:
-        lstm_file_name = lstm_file.split("/")[-1].split("_")
-        coin_name = lstm_file_name[0]
+    xgboost_model_files = glob.glob(PROJECT_HOME + '{0}XGBOOST/*.pkl'.format(model_source))
+    xgboost_models = {}
+    for xgboost_file in xgboost_model_files:
+        xgboost_file_name = xgboost_file.split("/")[-1].split(".pkl")
+        coin_name = xgboost_file_name[0]
 
-        time_diff = dt.datetime.fromtimestamp(os.stat(lstm_file).st_mtime).strftime(fmt.replace("T", " "))
+        time_diff = dt.datetime.fromtimestamp(os.stat(xgboost_file).st_mtime).strftime(fmt.replace("T", " "))
 
-        lstm_models[coin_name] = {
-            "saved_epoch": int(lstm_file_name[1]),
-            "valid_loss_min": float(lstm_file_name[2]),
-            "valid_accuracy": float(lstm_file_name[3]),
-            "valid_data_size": int(lstm_file_name[4]),
-            "valid_one_data_rate": float(lstm_file_name[5].replace(".pt", "")),
+        xgboost_models[coin_name] = {
             "last_modified": time_diff
         }
 
-    txt = "<tr><th>코인 이름</th><th>LSTM 모델 정보</th><th>모델 구성</th></tr>"
-    num_lstm_models = 0
+    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pt'.format(model_source))
+    gb_models = {}
+    for gb_file in gb_model_files:
+        gb_file_name = gb_file.split("/")[-1].split("_")
+        coin_name = gb_file_name[0]
+
+        time_diff = dt.datetime.fromtimestamp(os.stat(gb_file).st_mtime).strftime(fmt.replace("T", " "))
+
+        gb_models[coin_name] = {
+            "last_modified": time_diff
+        }
+
+    txt = "<tr><th>코인 이름</th><th>XGBOOST 모델 정보</th><th>GB 모델 정보</th></tr>"
+    num_xgboost_models = 0
+    num_gb_models = 0
     for coin_name in coin_names:
         txt += "<tr>"
 
-        if coin_name in lstm_models:
-            lstm_info = "{0} : {1} : {2} : {3} : {4}".format(
-                lstm_models[coin_name]["saved_epoch"],
-                lstm_models[coin_name]["valid_loss_min"],
-                lstm_models[coin_name]["valid_accuracy"],
-                lstm_models[coin_name]["valid_data_size"],
-                lstm_models[coin_name]["valid_one_data_rate"]
-            )
-            lstm_model_last_modified = lstm_models[coin_name]["last_modified"]
+        if coin_name in xgboost_models:
+            xgboost_model_last_modified = xgboost_models[coin_name]["last_modified"]
+            num_xgboost_models += 1
         else:
-            lstm_info = "-"
-            lstm_model_last_modified = "-"
+            xgboost_model_last_modified = "-"
 
-        if coin_name in lstm_models:
-            coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
-            num_lstm_models += 1
+
+        if coin_name in gb_models:
+            gb_model_last_modified = gb_models[coin_name]["last_modified"]
+            num_gb_models += 1
+        else:
+            gb_model_last_modified = "-"
 
         txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
             coin_name,
-            lstm_info,
-            lstm_model_last_modified
+            xgboost_model_last_modified,
+            gb_model_last_modified
         )
 
-    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
-    num_gb_models = len(gb_model_files)
-    return txt, num_lstm_models, num_gb_models
+    return txt, num_xgboost_models, num_gb_models
 
 
 def get_KRW_BTC_info():
@@ -120,7 +122,7 @@ def buy_sell_tables():
 
         conn.commit()
 
-    txt = "<tr><th>매수 기준 날짜/시각</th><th>구매 코인</th><th>모델 확신도(LSTM:GB)</th><th>구매 기준 가격</th><th>구매 가격</th>"
+    txt = "<tr><th>매수 기준 날짜/시각</th><th>구매 코인</th><th>모델 확신도(GB:XGBOOST)</th><th>구매 기준 가격</th><th>구매 가격</th>"
     txt += "<th>현재 가격</th><th>투자 금액</th><th>현재 원화</th><th>경과 시간</th><th>등락 비율</th><th>상태</th></tr>"
     total_gain = 0.0
     num = 0
@@ -130,7 +132,7 @@ def buy_sell_tables():
     num_loss = 0
 
     for row in rows:
-        coin_status = coin_status_to_hangul(row[16])
+        coin_status = coin_status_to_hangul(row[17])
 
         if ":00:00" in row[2]:
             buy_datetime = row[2].replace(":00:00", ":00")
@@ -138,34 +140,35 @@ def buy_sell_tables():
             buy_datetime = row[2].replace(":00", "")
 
         num += 1
-        if row[16] == CoinStatus.success_sold.value:
+        if row[17] == CoinStatus.success_sold.value:
             num_success += 1
             coin_status = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_status)
-        elif row[16] == CoinStatus.gain_sold.value:
+        elif row[17] == CoinStatus.gain_sold.value:
             num_gain += 1
             coin_status = "<span style='color:#FF8868'><strong>{0}</strong></span>".format(coin_status)
-        elif row[16] == CoinStatus.loss_sold.value:
+        elif row[17] == CoinStatus.loss_sold.value:
             num_loss += 1
             coin_status = "<span style='color:#92B3B7'>{0}</span>".format(coin_status)
-        elif row[16] == CoinStatus.trailed.value:
+        elif row[17] == CoinStatus.trailed.value:
             num_trail_bought += 1
-        elif row[16] == CoinStatus.bought.value:
+        elif row[17] == CoinStatus.bought.value:
             num_trail_bought += 1
 
-        total_gain += float(row[13] - row[6])
+        total_gain += float(row[14] - row[7])
         txt += "<tr>"
         txt += "<td>{0}</td><td>{1}</td><td>{2}:{3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td><td>{8}</td><td>{9}</td><td>{10}%</td><td>{11}</td>".format(
             buy_datetime,
             "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}'>{0}</a>".format(row[1]), #coin_ticker_name - 구매 코인
-            convert_unit_2(row[3]), #lstm_prob
+            # convert_unit_2(row[3]), #xgboost_prob
             convert_unit_2(row[4]),  # gb_prob
-            locale.format_string("%.2f", row[5], grouping=True), #buy_base_price - 구매 기준 가격
-            locale.format_string("%.2f", row[8], grouping=True), #buy_price - 구매 가격
-            locale.format_string("%.2f", row[11], grouping=True),  # trail_price - 현재 금액
-            locale.format_string("%.2f", row[6], grouping=True), #buy_krw - 투자 금액
-            locale.format_string("%.2f", row[13], grouping=True), #sell_krw - 현재 원화
-            elapsed_time_str(row[2], row[10]), #경과 시간
-            convert_unit_2(row[14] * 100), #trail_rate - 등락 비율
+            convert_unit_2(row[5]),  # xgboost_prob
+            locale.format_string("%.2f", row[6], grouping=True), #buy_base_price - 구매 기준 가격
+            locale.format_string("%.2f", row[9], grouping=True), #buy_price - 구매 가격
+            locale.format_string("%.2f", row[12], grouping=True),  # trail_price - 현재 금액
+            locale.format_string("%.2f", row[7], grouping=True), #buy_krw - 투자 금액
+            locale.format_string("%.2f", row[14], grouping=True), #sell_krw - 현재 원화
+            elapsed_time_str(row[2], row[11]), #경과 시간
+            convert_unit_2(row[15] * 100), #trail_rate - 등락 비율
             coin_status # 상태
         )
         txt += "</tr>"
@@ -182,7 +185,7 @@ def main():
 
     last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
 
-    model_status, num_lstm_models, num_gb_models = get_model_status()
+    model_status, num_xgboost_models, num_gb_models = get_model_status()
 
     html_data = render_template(
         buy_sell_text=buy_sell_text,
@@ -195,7 +198,7 @@ def main():
         last_krw_btc_datetime=last_krw_btc_datetime,
         num_krw_btc_records=num_krw_btc_records,
         model_status=model_status,
-        num_lstm_models=num_lstm_models,
+        num_xgboost_models=num_xgboost_models,
         num_gb_models=num_gb_models
     )
 
