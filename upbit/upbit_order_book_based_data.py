@@ -89,34 +89,36 @@ class UpbitOrderBookBasedData:
                 logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
                 x_normalized = x_normalized.to(DEVICE)
                 y_up = y_up.to(DEVICE)
-        # Imbalanced Preprocessing - End
+            # Imbalanced Preprocessing - End
 
-        total_size = len(x_normalized)
+            total_size = len(x_normalized)
 
-        if split:
-            indices = list(range(total_size))
-            np.random.shuffle(indices)
+            if split:
+                indices = list(range(total_size))
+                np.random.shuffle(indices)
 
-            train_indices = list(set(indices[:int(total_size * 0.8)]))
-            validation_indices = list(set(range(total_size)) - set(train_indices))
+                train_indices = list(set(indices[:int(total_size * 0.8)]))
+                validation_indices = list(set(range(total_size)) - set(train_indices))
 
-            x_train_normalized = x_normalized[train_indices]
-            x_valid_normalized = x_normalized[validation_indices]
+                x_train_normalized = x_normalized[train_indices]
+                x_valid_normalized = x_normalized[validation_indices]
 
-            y_up_train = y_up[train_indices]
-            y_up_valid = y_up[validation_indices]
+                y_up_train = y_up[train_indices]
+                y_up_valid = y_up[validation_indices]
 
-            one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
-            one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
+                one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
+                one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
 
-            train_size = x_train_normalized.size(0)
-            valid_size = x_valid_normalized.size(0)
+                train_size = x_train_normalized.size(0)
+                valid_size = x_valid_normalized.size(0)
 
-            return x_train_normalized, y_up_train, one_rate_train, train_size,\
-                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+                return x_train_normalized, y_up_train, one_rate_train, train_size,\
+                       x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+            else:
+                one_rate = y_up.sum().float() / y_up.size(0)
+                return x_normalized, y_up, one_rate, total_size
         else:
-            one_rate = y_up.sum().float() / y_up.size(0)
-            return x_normalized, y_up, one_rate, total_size
+            return x_normalized, y_up, -1, -1
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):
