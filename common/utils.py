@@ -112,6 +112,6 @@ def load_model(coin_name, model_type="GB"):
         file_name = "{0}{1}/{2}.pkl".format(model_source, model_type, coin_name)
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
-        return model[1]
+        return model
     else:
         return None
