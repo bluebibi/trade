@@ -88,6 +88,9 @@ def get_model_status():
         else:
             gb_model_last_modified = "-"
 
+        if xgboost_model_last_modified != "-" and gb_model_last_modified != "-":
+            coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
+
         txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
             coin_name,
             xgboost_model_last_modified,
