@@ -40,12 +40,13 @@ class Seller:
                 "buy_datetime": buy_datetime,
                 "lstm_prob": float(row[3]),
                 "gb_prob": float(row[4]),
-                "buy_base_price": float(row[5]),
-                "buy_krw": int(row[6]),
-                "buy_fee": int(row[7]),
-                "buy_price": float(row[8]),
-                "buy_coin_volume": float(row[9]),
-                "total_krw": int(row[15]),
+                "xgboost_prob": float(row[5]),
+                "buy_base_price": float(row[6]),
+                "buy_krw": int(row[7]),
+                "buy_fee": int(row[8]),
+                "buy_price": float(row[9]),
+                "buy_coin_volume": float(row[10]),
+                "total_krw": int(row[16]),
             }
         return buy_trail_coin_info
 
