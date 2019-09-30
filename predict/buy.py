@@ -179,8 +179,8 @@ def main():
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
                     "right_time": right_time_coin_info[coin_name][0],
                     "lstm_prob": 0.0,
-                    "gb_prob": gb_prob,
-                    "xgboost_prob": xgboost_prob
+                    "gb_prob": float(gb_prob),
+                    "xgboost_prob": float(xgboost_prob)
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
 
