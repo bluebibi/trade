@@ -1,8 +1,9 @@
+import pickle
+
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-from torch.utils.data import Dataset
 
 import sys, os
 idx = os.getcwd().index("trade")
@@ -19,13 +20,9 @@ from upbit.upbit_api import Upbit
 logger = get_logger("upbit_order_book_based_data")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-min_max_scaler_dict = dict()
-
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
-        if coin_name not in min_max_scaler_dict:
-            min_max_scaler_dict[coin_name] = MinMaxScaler()
 
     def get_dataset_for_buy(self, model_type="LSTM"):
         df = pd.read_sql_query(
@@ -36,16 +33,23 @@ class UpbitOrderBookBasedData:
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
-        data_normalized = min_max_scaler_dict[self.coin_name].transform(df.values)
-        data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
+        if os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name)):
+            with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'rb') as f:
+                min_max_scaler = pickle.load(f)
 
-        if model_type == "LSTM":
-            return data_normalized.unsqueeze(dim=0)
+            data_normalized = min_max_scaler.transform(df.values)
+            data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
+
+            if model_type == "LSTM":
+                return data_normalized.unsqueeze(dim=0)
+            else:
+                data_normalized = data_normalized.flatten()
+                return data_normalized.unsqueeze(dim=0)
         else:
-            data_normalized = data_normalized.flatten()
-            return data_normalized.unsqueeze(dim=0)
+            return None
 
-    def get_dataset(self, limit=False, split=True):
+
+    def _get_dataset(self, limit=False):
         if limit:
             df = pd.read_sql_query(
                 select_all_from_order_book_for_one_coin_limit.format(self.coin_name, limit),
@@ -61,8 +65,12 @@ class UpbitOrderBookBasedData:
 
         data = torch.from_numpy(df.values).to(DEVICE)
 
-        data_normalized = min_max_scaler_dict[self.coin_name].fit_transform(df.values)
+        min_max_scaler = MinMaxScaler()
+        data_normalized = min_max_scaler.fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
+
+        with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'wb') as f:
+            pickle.dump(min_max_scaler, f)
 
         x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(
             data=data,
@@ -71,6 +79,18 @@ class UpbitOrderBookBasedData:
             future_target_size=FUTURE_TARGET_SIZE,
             up_rate=UP_RATE
         )
+
+        return x, x_normalized, y, y_up, one_rate, total_size
+
+    def get_rl_dataset(self):
+        x, x_normalized, _, _, _, total_size = self._get_dataset(limit=False)
+
+        indices = list(range(total_size))
+        train_indices = list(set(indices[:int(total_size * 0.8)]))
+        test_indices = list(set(range(total_size)) - set(train_indices))
+
+    def get_dataset(self, limit=False, split=True):
+        x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset(limit=limit)
 
         # Imbalanced Preprocessing - Start
         if one_rate > 0.01:

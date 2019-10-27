@@ -38,6 +38,11 @@ else:
     model_source = LOCAL_MODEL_SOURCE
 
 
+def mkdir_scalers():
+    if not os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers")):
+        os.makedirs(os.path.join(PROJECT_HOME, "predict", "scalers"))
+
+
 def mkdir_models(source):
     if not os.path.exists(PROJECT_HOME + "{0}".format(source)):
         os.makedirs(PROJECT_HOME + "{0}".format(source))
@@ -410,6 +415,7 @@ def main(coin_names, model_source):
 if __name__ == "__main__":
     mkdir_models(LOCAL_MODEL_SOURCE)
     mkdir_models(SELF_MODEL_SOURCE)
+    mkdir_scalers()
 
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
