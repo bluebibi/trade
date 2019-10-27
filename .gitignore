@@ -121,7 +121,9 @@ scripts/upbit_record_mac.sh
 *.log.*
 *.swp
 *.db.old
+*.db.new
 *.pkl
 /db/upbit_order_book_info.db-journal
 /predict/web/.elasticbeanstalk/
 *.zip
+/predict/scalers/

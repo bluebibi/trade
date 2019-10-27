@@ -82,7 +82,7 @@ def get_db_right_time_coin_names():
 def evaluate_coin_by_model(coin_name, x, model_type="GB"):
     model = load_model(coin_name=coin_name, model_type=model_type)
 
-    if model and x:
+    if model and x is not None:
         y_prediction = model.predict_proba(x)
         return y_prediction[0][1]
     else:

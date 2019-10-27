@@ -34,17 +34,20 @@ class UpbitOrderBookBasedData:
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
         if os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name)):
-            with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'rb') as f:
-                min_max_scaler = pickle.load(f)
+            try:
+                with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'rb') as f:
+                    min_max_scaler = pickle.load(f)
 
-            data_normalized = min_max_scaler.transform(df.values)
-            data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
+                data_normalized = min_max_scaler.transform(df.values)
+                data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
 
-            if model_type == "LSTM":
-                return data_normalized.unsqueeze(dim=0)
-            else:
-                data_normalized = data_normalized.flatten()
-                return data_normalized.unsqueeze(dim=0)
+                if model_type == "LSTM":
+                    return data_normalized.unsqueeze(dim=0)
+                else:
+                    data_normalized = data_normalized.flatten()
+                    return data_normalized.unsqueeze(dim=0)
+            except Exception:
+                return None
         else:
             return None
 
@@ -87,7 +90,13 @@ class UpbitOrderBookBasedData:
 
         indices = list(range(total_size))
         train_indices = list(set(indices[:int(total_size * 0.8)]))
-        test_indices = list(set(range(total_size)) - set(train_indices))
+        valid_indices = list(set(range(total_size)) - set(train_indices))
+        x_train_normalized = x_normalized[train_indices]
+        x_valid_normalized = x_normalized[valid_indices]
+        train_size = x_train_normalized.size(0)
+        valid_size = x_valid_normalized.size(0)
+
+        return x_train_normalized, train_size, x_valid_normalized, valid_size
 
     def get_dataset(self, limit=False, split=True):
         x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset(limit=limit)

@@ -124,3 +124,6 @@ LOCAL_MODEL_SOURCE = config['PUSH_MODELS']['local_model_source']
 
 #SELF_MODELS
 SELF_MODEL_SOURCE = config['SELF_MODELS']['self_model_source']
+
+#RL
+MAX_TRADING_SESSION = config['RL']['max_trading_session']
