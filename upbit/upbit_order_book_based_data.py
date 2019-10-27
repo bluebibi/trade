@@ -19,10 +19,13 @@ from upbit.upbit_api import Upbit
 logger = get_logger("upbit_order_book_based_data")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
+min_max_scaler_dict = dict()
 
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
+        if coin_name not in min_max_scaler_dict:
+            min_max_scaler_dict[coin_name] = MinMaxScaler()
 
     def get_dataset_for_buy(self, model_type="LSTM"):
         df = pd.read_sql_query(
@@ -33,8 +36,7 @@ class UpbitOrderBookBasedData:
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
-        min_max_scaler = MinMaxScaler()
-        data_normalized = min_max_scaler.fit_transform(df.values)
+        data_normalized = min_max_scaler_dict[self.coin_name].transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
 
         if model_type == "LSTM":
@@ -59,8 +61,7 @@ class UpbitOrderBookBasedData:
 
         data = torch.from_numpy(df.values).to(DEVICE)
 
-        min_max_scaler = MinMaxScaler()
-        data_normalized = min_max_scaler.fit_transform(df.values)
+        data_normalized = min_max_scaler_dict[self.coin_name].fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
 
         x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(

@@ -57,6 +57,10 @@ CLIENT_ID_UPBIT = config['UPBIT']['access_key']
 CLIENT_SECRET_UPBIT = config['UPBIT']['secret_key']
 FEE_UPBIT = 0.0005
 
+# BINANCE
+API_KEY_BINANCE = config['BINANCE']['api_key']
+SECRET_KEY_BINANCE = config['BINANCE']['secret_key']
+
 #TELEGRAM
 TELEGRAM_API_ID = config['TELEGRAM']['api_id']
 TELEGRAM_API_HASH = config['TELEGRAM']['api_hash']
