@@ -59,6 +59,7 @@ class UpbitOrderBookBasedData:
                 sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
             )
         else:
+            #print(select_all_from_order_book_for_one_coin.format(self.coin_name))
             df = pd.read_sql_query(
                 select_all_from_order_book_for_one_coin.format(self.coin_name),
                 sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
@@ -96,7 +97,7 @@ class UpbitOrderBookBasedData:
         train_size = x_train_normalized.size(0)
         valid_size = x_valid_normalized.size(0)
 
-        return x_train_normalized, train_size, x_valid_normalized, valid_size
+        return x, x_train_normalized, train_size, x_valid_normalized, valid_size
 
     def get_dataset(self, limit=False, split=True):
         x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset(limit=limit)

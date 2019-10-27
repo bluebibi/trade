@@ -55,7 +55,6 @@ SELF_MODELS_MODE = config.getboolean('USER', 'self_models_mode')
 # UPBIT
 CLIENT_ID_UPBIT = config['UPBIT']['access_key']
 CLIENT_SECRET_UPBIT = config['UPBIT']['secret_key']
-FEE_UPBIT = 0.0005
 
 # BINANCE
 API_KEY_BINANCE = config['BINANCE']['api_key']
