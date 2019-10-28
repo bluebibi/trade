@@ -35,7 +35,10 @@ class Seller:
         for row in rows:
             coin_ticker_name = row[1]
             buy_datetime = dt.datetime.strptime(row[2], fmt.replace("T", " "))
-            trail_datetime = dt.datetime.strptime(row[11], fmt.replace("T", " "))
+            if row[11]:
+                trail_datetime = dt.datetime.strptime(row[11], fmt.replace("T", " "))
+            else:
+                trail_datetime = None
 
             coin_trail_info[coin_ticker_name] = {
                 "buy_datetime_str": row[2],
@@ -48,7 +51,7 @@ class Seller:
                 "buy_fee": int(row[8]),
                 "buy_price": float(row[9]),
                 "buy_coin_volume": float(row[10]),
-                "trail_datetime_str": float(row[11]),
+                "trail_datetime_str": row[11],
                 "trail_datetime": trail_datetime,
                 "trail_price": float(row[12]),
                 "sell_fee": int(row[13]),
