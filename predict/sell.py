@@ -25,7 +25,8 @@ class Seller:
         with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                select_all_bought_or_trailed_coin_names_sql, (CoinStatus.bought.value, CoinStatus.trailed.value)
+                select_all_bought_or_trailed_coin_names_sql,
+                (CoinStatus.bought.value, CoinStatus.trailed.value, CoinStatus.up_trailed.value)
             )
 
             coin_trail_info = {}

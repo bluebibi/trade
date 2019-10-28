@@ -151,7 +151,7 @@ create_buy_sell_table = """
 
 ### sell.py
 select_all_bought_or_trailed_coin_names_sql = """
-    SELECT * FROM BUY_SELL WHERE status=? or status=?;
+    SELECT * FROM BUY_SELL WHERE status=? or status=? or status=?;
 """
 
 update_trail_coin_info_sql = """
