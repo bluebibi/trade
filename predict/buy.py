@@ -253,7 +253,12 @@ def main():
                                 if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
                                 logger.info("{0}".format(msg_str))
                     else:
-                        logger.info("coin ticker name: {0} - prompt price {1} rising is large".format(coin_ticker_name, prompt_rising_rate))
+                        logger.info("coin ticker name: {0} - prompt price {1} rising is large. [buy_price: {2}, buy_base_price(ask_price_0): {3}]".format(
+                            coin_ticker_name,
+                            prompt_rising_rate,
+                            buy_price,
+                            buy_base_price
+                        ))
 
 
 if __name__ == "__main__":
