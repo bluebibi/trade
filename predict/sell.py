@@ -101,6 +101,9 @@ class Seller:
                     coin_trail_info[coin_ticker_name],
                     new_trail_price
                 )
+            elif trail_rate < -DOWN_FORCE_SELL_RATE:
+                trail_up_count = 0
+                coin_status = CoinStatus.loss_sold.value
             else:
                 trail_up_count = 0
                 if time_diff_minutes > FUTURE_TARGET_SIZE * 10:
