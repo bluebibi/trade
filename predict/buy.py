@@ -90,7 +90,7 @@ def evaluate_coin_by_model(coin_name, x, model_type="GB"):
 
 
 def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgboost_prob, ask_price_0, buy_krw, buy_fee,
-                         buy_price, buy_coin_volume, total_krw, trail_up_count, status):
+                         buy_price, buy_coin_volume, trail_datetime, trail_price, trail_rate, total_krw, trail_up_count, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
@@ -99,7 +99,7 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgb
             lstm_prob, gb_prob, xgboost_prob, ask_price_0,
             buy_krw, buy_fee,
             buy_price, buy_coin_volume,
-            total_krw, trail_up_count, status
+            trail_datetime, trail_price, trail_rate, total_krw, trail_up_count, status
         ))
         conn.commit()
 
@@ -234,6 +234,14 @@ def main():
                                 is_insert = True
 
                             if is_insert:
+                                _, new_trail_price, sell_fee, sell_krw = upbit.get_expected_sell_coin_price_for_volume(
+                                    coin_ticker_name,
+                                    buy_coin_volume,
+                                    TRANSACTION_FEE_RATE
+                                )
+
+                                trail_rate = (sell_krw - invest_krw) / invest_krw
+
                                 msg_str = insert_buy_coin_info(
                                     coin_ticker_name=coin_ticker_name,
                                     buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
@@ -245,6 +253,9 @@ def main():
                                     buy_fee=buy_fee,
                                     buy_price=buy_price,
                                     buy_coin_volume=buy_coin_volume,
+                                    trail_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
+                                    trail_price=new_trail_price,
+                                    trail_rate=trail_rate,
                                     total_krw=current_total_krw - invest_krw,
                                     trail_up_count=0,
                                     status=CoinStatus.bought.value

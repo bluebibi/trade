@@ -182,12 +182,15 @@ insert_buy_try_coin_info = """
         buy_base_price, 
         buy_krw, 
         buy_fee, 
+        trail_datetime,
         buy_price, 
-        buy_coin_volume, 
+        buy_coin_volume,
+        trail_price, 
+        trail_rate, 
         total_krw, 
         trail_up_count,
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """

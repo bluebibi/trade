@@ -54,8 +54,6 @@ class Seller:
                 "trail_datetime_str": row[11],
                 "trail_datetime": trail_datetime,
                 "trail_price": float(row[12]),
-                "sell_fee": int(row[13]),
-                "sell_krw": int(row[14]),
                 "trail_rate": float(row[15]),
                 "total_krw": int(row[16]),
                 "trail_up_count": int(row[17]),
