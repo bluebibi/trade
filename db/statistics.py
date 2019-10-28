@@ -134,7 +134,7 @@ def buy_sell_tables():
     num_loss = 0
 
     for row in rows:
-        coin_status = coin_status_to_hangul(row[17])
+        coin_status = coin_status_to_hangul(row[18])
 
         if ":00:00" in row[2]:
             buy_datetime = row[2].replace(":00:00", ":00")
@@ -142,18 +142,18 @@ def buy_sell_tables():
             buy_datetime = row[2].replace(":00", "")
 
         num += 1
-        if row[17] == CoinStatus.success_sold.value:
+        if row[18] == CoinStatus.success_sold.value:
             num_success += 1
             coin_status = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_status)
-        elif row[17] == CoinStatus.gain_sold.value:
+        elif row[18] == CoinStatus.gain_sold.value:
             num_gain += 1
             coin_status = "<span style='color:#FF8868'><strong>{0}</strong></span>".format(coin_status)
-        elif row[17] == CoinStatus.loss_sold.value:
+        elif row[18] == CoinStatus.loss_sold.value:
             num_loss += 1
             coin_status = "<span style='color:#92B3B7'>{0}</span>".format(coin_status)
-        elif row[17] == CoinStatus.trailed.value:
+        elif row[18] == CoinStatus.trailed.value:
             num_trail_bought += 1
-        elif row[17] == CoinStatus.bought.value:
+        elif row[18] == CoinStatus.bought.value:
             num_trail_bought += 1
 
         total_gain += float(row[14] - row[7])
