@@ -137,11 +137,12 @@ create_buy_sell_table = """
                     buy_price FLOAT, 
                     buy_coin_volume FLOAT, 
                     trail_datetime DATETIME, 
-                    trail_price FLOAT, 
+                    trail_price FLOAT,
                     sell_fee INT, 
                     sell_krw INT, 
                     trail_rate FLOAT, 
                     total_krw INT, 
+                    trail_up_count INT,                    
                     status TINYINT
                 )"""
 
@@ -154,7 +155,7 @@ select_all_bought_or_trailed_coin_names_sql = """
 """
 
 update_trail_coin_info_sql = """
-    UPDATE BUY_SELL SET trail_datetime=?, trail_price=?, sell_fee=?, sell_krw=?, trail_rate=?, total_krw=?, status=? 
+    UPDATE BUY_SELL SET trail_datetime=?, trail_price=?, sell_fee=?, sell_krw=?, trail_rate=?, total_krw=?, trail_up_count=?, status=? 
     WHERE coin_ticker_name=? and buy_datetime=?;
 """
 
@@ -184,8 +185,9 @@ insert_buy_try_coin_info = """
         buy_price, 
         buy_coin_volume, 
         total_krw, 
+        trail_up_count,
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """

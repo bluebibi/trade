@@ -18,7 +18,7 @@ class CoinStatus(Enum):
     success_sold = 2
     gain_sold = 3
     loss_sold = 4
-
+    up_trailed = 5
 
 class Period(Enum):
     daily = 0
@@ -102,6 +102,7 @@ BANNED_BUY_COIN_LIST = ast.literal_eval(config['BUY_SELL']['banned_buy_coin_list
 SELL_RATE = float(config['BUY_SELL']['sell_rate'])
 TRANSACTION_FEE_RATE = float(config['BUY_SELL']['transaction_fee_rate'])
 SELL_PERIOD = int(config['BUY_SELL']['sell_period'])
+UP_TRAIL_COUNT_BOUND = int(config['BUY_SELL']['up_trail_count_bound'])
 
 #PULL_MODELS
 REMOTE_SOURCE_HOST = config['PULL_MODELS']['remote_source_host']

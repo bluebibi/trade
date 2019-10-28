@@ -90,7 +90,7 @@ def evaluate_coin_by_model(coin_name, x, model_type="GB"):
 
 
 def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgboost_prob, ask_price_0, buy_krw, buy_fee,
-                         buy_price, buy_coin_volume, total_krw, status):
+                         buy_price, buy_coin_volume, total_krw, trail_up_count, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
@@ -99,7 +99,7 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgb
             lstm_prob, gb_prob, xgboost_prob, ask_price_0,
             buy_krw, buy_fee,
             buy_price, buy_coin_volume,
-            total_krw, status
+            total_krw, trail_up_count, status
         ))
         conn.commit()
 
@@ -246,6 +246,7 @@ def main():
                                     buy_price=buy_price,
                                     buy_coin_volume=buy_coin_volume,
                                     total_krw=current_total_krw - invest_krw,
+                                    trail_up_count=0,
                                     status=CoinStatus.bought.value
                                 )
 
