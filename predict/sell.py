@@ -101,7 +101,8 @@ class Seller:
                 trail_up_count, coin_status = self.sell_action_for_up_trail(
                     coin_ticker_name,
                     coin_trail_info[coin_ticker_name],
-                    new_trail_price
+                    new_trail_price,
+                    trail_rate
                 )
             elif trail_rate < -DOWN_FORCE_SELL_RATE:
                 trail_up_count = 0
@@ -139,7 +140,7 @@ class Seller:
                 )
         return msg_str
 
-    def sell_action_for_up_trail(self, coin_ticker_name, one_coin_trail_info, new_trail_price):
+    def sell_action_for_up_trail(self, coin_ticker_name, one_coin_trail_info, new_trail_price, trail_rate):
         coin_status = one_coin_trail_info["status"]
         trail_price = one_coin_trail_info["trail_price"]
         trail_up_count = one_coin_trail_info["trail_up_count"]
@@ -148,16 +149,16 @@ class Seller:
         if coin_status == CoinStatus.trailed.value:
             trail_up_count = 1
             new_coin_status = CoinStatus.up_trailed.value
-            logger.info("{0}: trailed --> up_trailed, trail_price: {1:.2f}, trail_up_count: {2}/{3}".format(
-                coin_ticker_name, trail_price, trail_up_count, UP_TRAIL_COUNT_BOUND
+            logger.info("{0}: trailed --> up_trailed, trail_price: {1:.2f}, trail_rate: {2:.2f}, trail_up_count: {3}/{4}".format(
+                coin_ticker_name, trail_price, trail_rate, trail_up_count, UP_TRAIL_COUNT_BOUND
             ))
         # 현재 가격이 지속적으로 SELL_RATE 보다 올라와 있을 때
         elif coin_status == CoinStatus.up_trailed.value:
             # 현재 가격이 직전 trail_price 보다 올랐을 때
             if trail_price <= new_trail_price:
                 new_coin_status = CoinStatus.up_trailed.value
-                logger.info("{0}: up_trailed --> up_trailed, trail_price: {1:.2f}, trail_up_count: {2}/{3}".format(
-                    coin_ticker_name, trail_price, trail_up_count, UP_TRAIL_COUNT_BOUND
+                logger.info("{0}: up_trailed --> up_trailed, trail_price: {1:.2f}, trail_rate: {2:.2f}, trail_up_count: {3}/{4}".format(
+                    coin_ticker_name, trail_price, trail_rate, trail_up_count, UP_TRAIL_COUNT_BOUND
                 ))
             # 현재 가격이 직전 trail_price 보다 내렸을 때
             else:
@@ -165,16 +166,16 @@ class Seller:
                 # 업데이트된 trail_up_count가 BOUND에 도달 --> 전액 판매
                 if trail_up_count >= UP_TRAIL_COUNT_BOUND:
                     new_coin_status = CoinStatus.success_sold.value
-                    logger.info("{0}: The all coin is sold now with the price {1} since the trail_up_count {2} reaches "
-                                "UP_TRAIL_COUNT_BOUND {3}".format(
-                        coin_ticker_name, new_trail_price, trail_up_count, UP_TRAIL_COUNT_BOUND
+                    logger.info("{0}: The coin is sold now with the price {1} and the trail_rate {2} since the trail_up_count {3} reaches "
+                                "UP_TRAIL_COUNT_BOUND {4}".format(
+                        coin_ticker_name, new_trail_price, trail_rate, trail_up_count, UP_TRAIL_COUNT_BOUND
                     ))
                 # 업데이트된 trail_up_count가 BOUND보다 작음 --> 다음 기회까지 관망
                 else:
                     new_coin_status = CoinStatus.up_trailed.value
-                    logger.info("{0}: Price is slightly down from {1} to {2}, but the trail_up_count {3} is lower than "
-                                "UP_TRAIL_COUNT_BOUND {4}".format(
-                        coin_ticker_name, trail_price, new_trail_price, trail_up_count, UP_TRAIL_COUNT_BOUND
+                    logger.info("{0}: Price is slightly down from {1} to {2} and the trail rate is now {3}, but the trail_up_count {4} is lower than "
+                                "UP_TRAIL_COUNT_BOUND {5}".format(
+                        coin_ticker_name, trail_price, new_trail_price, trail_rate, trail_up_count, UP_TRAIL_COUNT_BOUND
                     ))
         else:
             raise ValueError("sell_action_for_up_trail - coin_status: {0}".format(coin_status))
