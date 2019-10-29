@@ -50,7 +50,8 @@ def coin_status_to_hangul(status):
         status = "이득"
     elif status == CoinStatus.loss_sold.value:
         status = "손실"
-
+    elif status == CoinStatus.up_trailed.value:
+        status = "이득추적"
     return status
 
 
