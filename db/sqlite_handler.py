@@ -113,6 +113,11 @@ select_all_from_order_book_for_one_coin = order_book_for_one_coin + """
     ORDER BY collect_timestamp ASC, base_datetime ASC;
 """
 
+select_all_from_order_book_for_one_coin_limit = order_book_for_one_coin + """
+    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
+    ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT {1};
+"""
+
 select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
     FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
     ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
@@ -125,17 +130,19 @@ create_buy_sell_table = """
                     buy_datetime DATETIME,
                     lstm_prob FLOAT, 
                     gb_prob FLOAT,
+                    xgboost_prob FLOAT,
                     buy_base_price FLOAT,
                     buy_krw INT, 
                     buy_fee INT, 
                     buy_price FLOAT, 
                     buy_coin_volume FLOAT, 
                     trail_datetime DATETIME, 
-                    trail_price FLOAT, 
+                    trail_price FLOAT,
                     sell_fee INT, 
                     sell_krw INT, 
                     trail_rate FLOAT, 
                     total_krw INT, 
+                    trail_up_count INT,                    
                     status TINYINT
                 )"""
 
@@ -144,11 +151,11 @@ create_buy_sell_table = """
 
 ### sell.py
 select_all_bought_or_trailed_coin_names_sql = """
-    SELECT * FROM BUY_SELL WHERE status=? or status=?;
+    SELECT * FROM BUY_SELL WHERE status=? or status=? or status=?;
 """
 
 update_trail_coin_info_sql = """
-    UPDATE BUY_SELL SET trail_datetime=?, trail_price=?, sell_fee=?, sell_krw=?, trail_rate=?, total_krw=?, status=? 
+    UPDATE BUY_SELL SET trail_datetime=?, trail_price=?, sell_fee=?, sell_krw=?, trail_rate=?, total_krw=?, trail_up_count=?, status=? 
     WHERE coin_ticker_name=? and buy_datetime=?;
 """
 
@@ -171,14 +178,19 @@ insert_buy_try_coin_info = """
         buy_datetime,
         lstm_prob,
         gb_prob,
+        xgboost_prob,
         buy_base_price, 
         buy_krw, 
         buy_fee, 
         buy_price, 
-        buy_coin_volume, 
+        buy_coin_volume,
+        trail_datetime,        
+        trail_price, 
+        trail_rate, 
         total_krw, 
+        trail_up_count,
         status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 select_buy_prohibited_coins_sql = """

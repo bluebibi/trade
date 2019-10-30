@@ -250,6 +250,47 @@ def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_siz
 
 def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
     lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
+    auc = EpochScoring(scoring='roc_auc', lower_is_better=False)
+    early_stopping = EarlyStopping(patience=15)
+
+    param_grid = {
+        'module': [lstm_model],
+        'max_epochs': [500],
+        'lr': [0.01, 0.05, 0.1],
+        'module__bias': [True, False],
+        'module__dropout': [0.0, 0.25, 0.5],
+        'optimizer': [torch.optim.Adam],
+        'device': [DEVICE],
+        'callbacks': [[auc, early_stopping]]
+    }
+
+    coin_model_start_time = time.time()
+
+    X = x_normalized_original
+    y = y_up_original.type(torch.LongTensor)
+
+    best_model = get_best_model_by_nested_cv(
+        coin_name=coin_name,
+        X=X,
+        y=y,
+        inner_cv=StratifiedKFold(n_splits=4, shuffle=True),
+        outer_cv=StratifiedKFold(n_splits=4, shuffle=True),
+        Classifier=NeuralNetClassifier,
+        parameter_grid=ParameterGrid(param_grid)
+    )
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+
+    msg_str = "{0}: LSTMClassifier - make_lstm_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str)
+    logger.info(msg_str)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+
+    return best_model
+
+
+def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+    lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
 
     param_grid = {
         'module': [lstm_model],

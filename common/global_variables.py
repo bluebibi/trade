@@ -18,7 +18,7 @@ class CoinStatus(Enum):
     success_sold = 2
     gain_sold = 3
     loss_sold = 4
-
+    up_trailed = 5
 
 class Period(Enum):
     daily = 0
@@ -55,7 +55,10 @@ SELF_MODELS_MODE = config.getboolean('USER', 'self_models_mode')
 # UPBIT
 CLIENT_ID_UPBIT = config['UPBIT']['access_key']
 CLIENT_SECRET_UPBIT = config['UPBIT']['secret_key']
-FEE_UPBIT = 0.0005
+
+# BINANCE
+API_KEY_BINANCE = config['BINANCE']['api_key']
+SECRET_KEY_BINANCE = config['BINANCE']['secret_key']
 
 #TELEGRAM
 TELEGRAM_API_ID = config['TELEGRAM']['api_id']
@@ -91,15 +94,16 @@ LAST_VALID_ACCURACY_THRESHOLD = float(config['EVALUATION']['last_valid_accuracy_
 LAST_SAVE_EPOCH_THRESHOLD = int(config['EVALUATION']['last_save_epoch_threshold'])
 ONE_RATE_VALID_THRESHOLD = float(config['EVALUATION']['one_rate_valid_threshold'])
 VALID_SIZE_THRESHOLD = int(config['EVALUATION']['valid_size_threshold'])
-GRADIENT_BOOSTING_BUY_PROB_THRESHOLD = float(config['EVALUATION']['gradient_boosting_buy_prob_threshold'])
-LSTM_BUY_PROB_THRESHOLD = float(config['EVALUATION']['lstm_buy_prob_threshold'])
+BUY_PROB_THRESHOLD = float(config['EVALUATION']['buy_prob_threshold'])
 
 #SELL
 BUY_CONTROL_CONSTANT = float(config['BUY_SELL']['buy_control_constant'])
 BANNED_BUY_COIN_LIST = ast.literal_eval(config['BUY_SELL']['banned_buy_coin_list'])
 SELL_RATE = float(config['BUY_SELL']['sell_rate'])
+DOWN_FORCE_SELL_RATE = float(config['BUY_SELL']['down_force_sell_rate'])
 TRANSACTION_FEE_RATE = float(config['BUY_SELL']['transaction_fee_rate'])
 SELL_PERIOD = int(config['BUY_SELL']['sell_period'])
+UP_TRAIL_COUNT_BOUND = int(config['BUY_SELL']['up_trail_count_bound'])
 
 #PULL_MODELS
 REMOTE_SOURCE_HOST = config['PULL_MODELS']['remote_source_host']
@@ -121,3 +125,6 @@ LOCAL_MODEL_SOURCE = config['PUSH_MODELS']['local_model_source']
 
 #SELF_MODELS
 SELF_MODEL_SOURCE = config['SELF_MODELS']['self_model_source']
+
+#RL
+MAX_TRADING_SESSION = config['RL']['max_trading_session']

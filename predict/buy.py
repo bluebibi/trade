@@ -14,7 +14,6 @@ from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import *
 from common.logger import get_logger
 from db.sqlite_handler import *
-from common.utils import load_gb_model
 
 logger = get_logger("buy")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
@@ -80,44 +79,35 @@ def get_db_right_time_coin_names():
     return coin_right_time_info
 
 
-def evaluate_coin_by_gb_model(coin_name, x):
-    model = load_gb_model(coin_name=coin_name)
+def evaluate_coin_by_model(coin_name, x, model_type="GB"):
+    model = load_model(coin_name=coin_name, model_type=model_type)
 
-    if model:
+    if model and x is not None:
         y_prediction = model.predict_proba(x)
         return y_prediction[0][1]
     else:
         return -1
 
 
-def evaluate_coin_by_lstm_model(coin_name, x):
-    model = load_lstm_model(coin_name=coin_name)
-
-    if model:
-        y_prediction = model.predict_proba(x)
-        return y_prediction[0][1]
-    else:
-        return -1
-
-
-def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, ask_price_0, buy_krw, buy_fee,
-                         buy_price, buy_coin_volume, total_krw, status):
+def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgboost_prob, ask_price_0, buy_krw, buy_fee,
+                         buy_price, buy_coin_volume, trail_datetime, trail_price, trail_rate, total_krw, trail_up_count, status):
     with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
         cursor = conn.cursor()
 
         cursor.execute(insert_buy_try_coin_info, (
             coin_ticker_name, buy_datetime,
-            lstm_prob, gb_prob, ask_price_0,
+            lstm_prob, gb_prob, xgboost_prob, ask_price_0,
             buy_krw, buy_fee,
             buy_price, buy_coin_volume,
-            total_krw, status
+            trail_datetime, trail_price, trail_rate, total_krw, trail_up_count, status
         ))
         conn.commit()
 
-    msg_str = "*** BUY [{0}, lstm_prob: {1}, gb_prob: {2}, ask_price_0: {3}, buy_price: {4}, buy_krw: {5}, buy_coin_volume: {6}] @ {7}".format(
+    msg_str = "*** BUY [{0}, lstm_prob: {1}, gb_prob: {2}, xgboost_prob: {3}, ask_price_0: {4}, buy_price: {5}, buy_krw: {6}, buy_coin_volume: {7}] @ {8}".format(
         coin_ticker_name,
         locale.format_string("%.2f", float(lstm_prob), grouping=True),
         locale.format_string("%.2f", float(gb_prob), grouping=True),
+        locale.format_string("%.2f", float(xgboost_prob), grouping=True),
         locale.format_string("%.2f", float(ask_price_0), grouping=True),
         locale.format_string("%.2f", float(buy_price), grouping=True),
         locale.format_string("%d", float(buy_krw), grouping=True),
@@ -143,27 +133,17 @@ def get_total_krw():
 
 
 def main():
-    good_lstm_models = get_good_quality_models_for_buy()
-
     right_time_coin_info = get_db_right_time_coin_names()
-
     already_coin_ticker_names = get_coin_ticker_names_by_bought_or_trailed_status()
 
-    target_coin_names = (set(good_lstm_models) & set(right_time_coin_info)) - set(already_coin_ticker_names) - set(BANNED_BUY_COIN_LIST)
+    target_coin_names = set(right_time_coin_info) - set(already_coin_ticker_names) - set(BANNED_BUY_COIN_LIST)
 
-    logger.info("*** LSTM: {0}, Right Time Coins: {1}, Already Coins: {2}, Target Coins: {3} ***".format(
-        len(good_lstm_models.keys()),
+    logger.info("*** Right Time Coins: {0}, Already Coins: {1}, Banned Coins: {2}, Target Coins: {3} ***".format(
         len(right_time_coin_info.keys()),
         len(already_coin_ticker_names),
+        len(BANNED_BUY_COIN_LIST),
         target_coin_names
     ))
-
-    # logger.info("*** LSTM: {0}, Right Time Coins: {1}, Already Coins: {2}, Target Coins: {3} ***".format(
-    #     set(good_lstm_models.keys()),
-    #     set(right_time_coin_info.keys()),
-    #     set(already_coin_ticker_names),
-    #     target_coin_names
-    # ))
 
     if len(target_coin_names) > 0:
         buy_try_coin_info = {}
@@ -173,32 +153,40 @@ def main():
             upbit_data = UpbitOrderBookBasedData(coin_name)
             x = upbit_data.get_dataset_for_buy(model_type="GB")
 
-            lstm_prob = evaluate_coin_by_lstm_model(
+            # lstm_prob = evaluate_coin_by_model(
+            #     coin_name=coin_name,
+            #     x=x,
+            #     model_type="LSTM"
+            # )
+
+            gb_prob = evaluate_coin_by_model(
                 coin_name=coin_name,
-                x=x
+                x=x,
+                model_type="GB"
             )
 
-            gb_prob = evaluate_coin_by_gb_model(
+            xgboost_prob = evaluate_coin_by_model(
                 coin_name=coin_name,
-                x=x
+                x=x,
+                model_type="XGBOOST"
             )
 
-            msg_str = "{0:5} --> LSTM Probability:{1:7.4f}, GB Probability:{2:7.4f}".format(coin_name, lstm_prob, gb_prob)
-            if lstm_prob > LSTM_BUY_PROB_THRESHOLD and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
+            msg_str = "{0:5} --> XGBOOST Probability:{1:7.4f}, GB Probability:{2:7.4f}".format(coin_name, xgboost_prob, gb_prob)
+            if xgboost_prob > BUY_PROB_THRESHOLD and gb_prob > BUY_PROB_THRESHOLD:
                 msg_str += " OK!!!"
-            else:
-                msg_str += " - "
-            logger.info(msg_str)
 
-            if lstm_prob > LSTM_BUY_PROB_THRESHOLD and gb_prob > GRADIENT_BOOSTING_BUY_PROB_THRESHOLD:
-                # coin_name --> right_time, prob
                 buy_try_coin_info["KRW-" + coin_name] = {
                     "ask_price_0": float(right_time_coin_info[coin_name][1]),
                     "right_time": right_time_coin_info[coin_name][0],
-                    "lstm_prob": lstm_prob,
-                    "gb_prob": gb_prob
+                    "lstm_prob": 0.0,
+                    "gb_prob": float(gb_prob),
+                    "xgboost_prob": float(xgboost_prob)
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
+
+            else:
+                msg_str += " - "
+            logger.info(msg_str)
 
         if buy_try_coin_ticker_names:
             for coin_ticker_name in buy_try_coin_ticker_names:
@@ -246,24 +234,42 @@ def main():
                                 is_insert = True
 
                             if is_insert:
+                                _, new_trail_price, sell_fee, sell_krw = upbit.get_expected_sell_coin_price_for_volume(
+                                    coin_ticker_name,
+                                    buy_coin_volume,
+                                    TRANSACTION_FEE_RATE
+                                )
+
+                                trail_rate = (sell_krw - invest_krw) / invest_krw
+
                                 msg_str = insert_buy_coin_info(
                                     coin_ticker_name=coin_ticker_name,
                                     buy_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
                                     lstm_prob=buy_try_coin_info[coin_ticker_name]['lstm_prob'],
                                     gb_prob=buy_try_coin_info[coin_ticker_name]['gb_prob'],
+                                    xgboost_prob=buy_try_coin_info[coin_ticker_name]['xgboost_prob'],
                                     ask_price_0=buy_base_price,
                                     buy_krw=invest_krw,
                                     buy_fee=buy_fee,
                                     buy_price=buy_price,
                                     buy_coin_volume=buy_coin_volume,
+                                    trail_datetime=buy_try_coin_info[coin_ticker_name]['right_time'],
+                                    trail_price=new_trail_price,
+                                    trail_rate=trail_rate,
                                     total_krw=current_total_krw - invest_krw,
+                                    trail_up_count=0,
                                     status=CoinStatus.bought.value
                                 )
 
                                 if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
                                 logger.info("{0}".format(msg_str))
                     else:
-                        logger.info("coin ticker name: {0} - prompt price {1} rising is large".format(coin_ticker_name, prompt_rising_rate))
+                        logger.info("coin ticker name: {0} - prompt price {1} rising is large. [buy_price: {2}, buy_base_price(ask_price_0): {3}]".format(
+                            coin_ticker_name,
+                            prompt_rising_rate,
+                            buy_price,
+                            buy_base_price
+                        ))
 
 
 if __name__ == "__main__":

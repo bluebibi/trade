@@ -1,8 +1,9 @@
+import pickle
+
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-from torch.utils.data import Dataset
 
 import sys, os
 idx = os.getcwd().index("trade")
@@ -19,7 +20,6 @@ from upbit.upbit_api import Upbit
 logger = get_logger("upbit_order_book_based_data")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
@@ -33,21 +33,37 @@ class UpbitOrderBookBasedData:
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
-        min_max_scaler = MinMaxScaler()
-        data_normalized = min_max_scaler.fit_transform(df.values)
-        data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
+        if os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name)):
+            try:
+                with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'rb') as f:
+                    min_max_scaler = pickle.load(f)
 
-        if model_type == "LSTM":
-            return data_normalized.unsqueeze(dim=0)
+                data_normalized = min_max_scaler.transform(df.values)
+                data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
+
+                if model_type == "LSTM":
+                    return data_normalized.unsqueeze(dim=0)
+                else:
+                    data_normalized = data_normalized.flatten()
+                    return data_normalized.unsqueeze(dim=0)
+            except Exception:
+                return None
         else:
-            data_normalized = data_normalized.flatten()
-            return data_normalized.unsqueeze(dim=0)
+            return None
 
-    def get_dataset(self, split=True):
-        df = pd.read_sql_query(
-            select_all_from_order_book_for_one_coin.format(self.coin_name),
-            sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-        )
+
+    def _get_dataset(self, limit=False):
+        if limit:
+            df = pd.read_sql_query(
+                select_all_from_order_book_for_one_coin_limit.format(self.coin_name, limit),
+                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
+            )
+        else:
+            #print(select_all_from_order_book_for_one_coin.format(self.coin_name))
+            df = pd.read_sql_query(
+                select_all_from_order_book_for_one_coin.format(self.coin_name),
+                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
+            )
 
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
@@ -57,6 +73,9 @@ class UpbitOrderBookBasedData:
         data_normalized = min_max_scaler.fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
 
+        with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'wb') as f:
+            pickle.dump(min_max_scaler, f)
+
         x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(
             data=data,
             data_normalized=data_normalized,
@@ -64,6 +83,24 @@ class UpbitOrderBookBasedData:
             future_target_size=FUTURE_TARGET_SIZE,
             up_rate=UP_RATE
         )
+
+        return x, x_normalized, y, y_up, one_rate, total_size
+
+    def get_rl_dataset(self):
+        x, x_normalized, _, _, _, total_size = self._get_dataset(limit=False)
+
+        indices = list(range(total_size))
+        train_indices = list(set(indices[:int(total_size * 0.8)]))
+        valid_indices = list(set(range(total_size)) - set(train_indices))
+        x_train_normalized = x_normalized[train_indices]
+        x_valid_normalized = x_normalized[valid_indices]
+        train_size = x_train_normalized.size(0)
+        valid_size = x_valid_normalized.size(0)
+
+        return x, x_train_normalized, train_size, x_valid_normalized, valid_size
+
+    def get_dataset(self, limit=False, split=True):
+        x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset(limit=limit)
 
         # Imbalanced Preprocessing - Start
         if one_rate > 0.01:
@@ -83,34 +120,36 @@ class UpbitOrderBookBasedData:
                 logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
                 x_normalized = x_normalized.to(DEVICE)
                 y_up = y_up.to(DEVICE)
-        # Imbalanced Preprocessing - End
+            # Imbalanced Preprocessing - End
 
-        total_size = len(x_normalized)
+            total_size = len(x_normalized)
 
-        if split:
-            indices = list(range(total_size))
-            np.random.shuffle(indices)
+            if split:
+                indices = list(range(total_size))
+                np.random.shuffle(indices)
 
-            train_indices = list(set(indices[:int(total_size * 0.8)]))
-            validation_indices = list(set(range(total_size)) - set(train_indices))
+                train_indices = list(set(indices[:int(total_size * 0.8)]))
+                validation_indices = list(set(range(total_size)) - set(train_indices))
 
-            x_train_normalized = x_normalized[train_indices]
-            x_valid_normalized = x_normalized[validation_indices]
+                x_train_normalized = x_normalized[train_indices]
+                x_valid_normalized = x_normalized[validation_indices]
 
-            y_up_train = y_up[train_indices]
-            y_up_valid = y_up[validation_indices]
+                y_up_train = y_up[train_indices]
+                y_up_valid = y_up[validation_indices]
 
-            one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
-            one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
+                one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
+                one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
 
-            train_size = x_train_normalized.size(0)
-            valid_size = x_valid_normalized.size(0)
+                train_size = x_train_normalized.size(0)
+                valid_size = x_valid_normalized.size(0)
 
-            return x_train_normalized, y_up_train, one_rate_train, train_size,\
-                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+                return x_train_normalized, y_up_train, one_rate_train, train_size,\
+                       x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+            else:
+                one_rate = y_up.sum().float() / y_up.size(0)
+                return x_normalized, y_up, one_rate, total_size
         else:
-            one_rate = y_up.sum().float() / y_up.size(0)
-            return x_normalized, y_up, one_rate, total_size
+            return x_normalized, y_up, -1, -1
 
     @staticmethod
     def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):

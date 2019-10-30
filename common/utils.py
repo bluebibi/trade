@@ -50,7 +50,8 @@ def coin_status_to_hangul(status):
         status = "이득"
     elif status == CoinStatus.loss_sold.value:
         status = "손실"
-
+    elif status == CoinStatus.up_trailed.value:
+        status = "이득추적"
     return status
 
 
@@ -96,43 +97,22 @@ def get_invest_krw_live(upbit, coin_ticker_name):
     return get_invest_krw(current_price, total_ask_size, total_bid_size)
 
 
-def save_gb_model(coin_name, model):
-    files = glob.glob(PROJECT_HOME + '{0}GB/{1}.pkl'.format(model_source, coin_name))
+def save_model(coin_name, model, model_type="GB"):
+    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(model_source, model_type, coin_name))
     for f in files:
         os.remove(f)
 
-    file_name = "{0}GB/{1}.pkl".format(model_source, coin_name)
+    file_name = "{0}{1}/{2}.pkl".format(model_source, model_type, coin_name)
     with open(file_name, 'wb') as f:
         pickle.dump(model, f)
 
 
-def save_lstm_model(coin_name, model):
-    files = glob.glob(PROJECT_HOME + '{0}LSTM/{1}.pkl'.format(model_source, coin_name))
-    for f in files:
-        os.remove(f)
-
-    file_name = "{0}LSTM/{1}.pkl".format(model_source, coin_name)
-    with open(file_name, 'wb') as f:
-        pickle.dump(model, f)
-
-
-def load_gb_model(coin_name):
-    files = glob.glob(PROJECT_HOME + '{0}GB/{1}.pkl'.format(model_source, coin_name))
+def load_model(coin_name, model_type="GB"):
+    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(model_source, model_type, coin_name))
     if len(files) > 0:
-        file_name = "{0}GB/{1}.pkl".format(model_source, coin_name)
+        file_name = "{0}{1}/{2}.pkl".format(model_source, model_type, coin_name)
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
-        return model[1]
-    else:
-        return None
-
-
-def load_lstm_model(coin_name):
-    files = glob.glob(PROJECT_HOME + '{0}LSTM/{1}.pkl'.format(model_source, coin_name))
-    if len(files) > 0:
-        file_name = "{0}LSTM/{1}.pkl".format(model_source, coin_name)
-        with open(file_name, 'rb') as f:
-            model = pickle.load(f)
-        return model[1]
+        return model
     else:
         return None

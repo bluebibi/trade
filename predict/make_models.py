@@ -1,9 +1,12 @@
 # https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb
+# https://www.kaggle.com/stuarthallows/using-xgboost-with-scikit-learn
 import glob
 import time
 
 import sys, os
+import xgboost as xgb
 
+from sklearn.metrics import classification_report, precision_score
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring, EarlyStopping
 
@@ -20,7 +23,7 @@ import os
 from common.logger import get_logger
 from upbit.upbit_api import Upbit
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
-from common.utils import save_gb_model, save_lstm_model
+from common.utils import save_model
 
 import torch.nn.modules.loss
 
@@ -35,21 +38,23 @@ else:
     model_source = LOCAL_MODEL_SOURCE
 
 
+def mkdir_scalers():
+    if not os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers")):
+        os.makedirs(os.path.join(PROJECT_HOME, "predict", "scalers"))
+
+
 def mkdir_models(source):
     if not os.path.exists(PROJECT_HOME + "{0}".format(source)):
         os.makedirs(PROJECT_HOME + "{0}".format(source))
 
-    if not os.path.exists(PROJECT_HOME + "{0}LSTM".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}LSTM".format(source))
+    model_type_list = ['LSTM', 'GB', 'XGBOOST']
 
-    if not os.path.exists(PROJECT_HOME + "{0}LSTM/graphs".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}LSTM/graphs".format(source))
+    for model_type in model_type_list:
+        if not os.path.exists(PROJECT_HOME + "{0}{1}".format(source, model_type)):
+            os.makedirs(PROJECT_HOME + "{0}{1}".format(source, model_type))
 
-    if not os.path.exists(PROJECT_HOME + "{0}GB".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}GB".format(source))
-
-    if not os.path.exists(PROJECT_HOME + "{0}GB/graphs".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}GB/graphs".format(source))
+        if not os.path.exists(PROJECT_HOME + "{0}{1}/graphs".format(source, model_type)):
+            os.makedirs(PROJECT_HOME + "{0}{1}/graphs".format(source, model_type))
 
 
 def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
@@ -143,103 +148,104 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.model_selection import ParameterGrid
 from sklearn.ensemble import GradientBoostingClassifier
 
 
-def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):
-    outer_score_list = []
-    best_param_list = []
-    model_list = []
-
-    num_outer_split = 1
-    for training_samples_idx, test_samples_idx in outer_cv.split(X, y):
-        logger.info("COIN_NAME: {0} - [Outer Split: #{0}]".format(coin_name, num_outer_split))
-        best_score = -np.inf
-
-        for parameters in parameter_grid:
-            # print("Parameters: {0}".format(parameters))
-            cv_scores = []
-            num_inner_split = 1
-            for inner_train_idx, inner_test_idx in inner_cv.split(X[training_samples_idx], y[training_samples_idx]):
-                clf = Classifier(**parameters)
-                clf.fit(X[inner_train_idx], y[inner_train_idx])
-                score = clf.score(X[inner_test_idx], y[inner_test_idx])
-
-                cv_scores.append(score)
-                #                 print("Inner Split: #{0}, Score: #{1}".format(
-                #                     num_inner_split,
-                #                     score
-                #                 ))
-                num_inner_split += 1
-
-            mean_score = np.mean(cv_scores)
-            if mean_score > best_score:
-                best_score = mean_score
-                best_params = parameters
-                # print("Mean Score:{0}, Best Score:{1}".format(mean_score, best_score))
-
-        logger.info("COIN_NAME: {0} - Outer Split: #{1}, Best Score: {2}, Best Parameter: #{3}".format(
-            coin_name,
-            num_outer_split,
-            best_score,
-            best_params
-        ))
-
-        clf = Classifier(**best_params)
-        clf.fit(X[training_samples_idx], y[training_samples_idx])
-
-        best_param_list.append(best_params)
-        outer_score_list.append(clf.score(X[test_samples_idx], y[test_samples_idx]))
-        model_list.append(clf)
-
-        num_outer_split += 1
-
-    best_score = -np.inf
-    best_model = None
-    for idx, score in enumerate(outer_score_list):
-        if score > best_score:
-            best_score = score
-            best_model = model_list[idx]
-
-    return best_model
+# def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):
+#     outer_score_list = []
+#     best_param_list = []
+#     model_list = []
+#
+#     num_outer_split = 1
+#     for training_samples_idx, test_samples_idx in outer_cv.split(X, y):
+#         logger.info("COIN_NAME: {0} - [Outer Split: #{0}]".format(coin_name, num_outer_split))
+#         best_score = -np.inf
+#
+#         for parameters in parameter_grid:
+#             # print("Parameters: {0}".format(parameters))
+#             cv_scores = []
+#             num_inner_split = 1
+#             for inner_train_idx, inner_test_idx in inner_cv.split(X[training_samples_idx], y[training_samples_idx]):
+#                 clf = Classifier(**parameters)
+#                 print(X[inner_train_idx])
+#                 print(y[inner_train_idx])
+#
+#                 clf.fit(X[inner_train_idx], y[inner_train_idx])
+#                 score = clf.score(X[inner_test_idx], y[inner_test_idx])
+#
+#                 y_true, y_pred = y[inner_test_idx], clf.predict(X[inner_test_idx])
+#                 print(y_true)
+#                 print(y_pred)
+#                 print(precision_score(y_true, y_pred))
+#
+#                 cv_scores.append(score)
+#                 #                 print("Inner Split: #{0}, Score: #{1}".format(
+#                 #                     num_inner_split,
+#                 #                     score
+#                 #                 ))
+#                 num_inner_split += 1
+#
+#             mean_score = np.mean(cv_scores)
+#             if mean_score > best_score:
+#                 best_score = mean_score
+#                 best_params = parameters
+#                 # print("Mean Score:{0}, Best Score:{1}".format(mean_score, best_score))
+#
+#         logger.info("COIN_NAME: {0} - Outer Split: #{1}, Best Score: {2}, Best Parameter: #{3}".format(
+#             coin_name,
+#             num_outer_split,
+#             best_score,
+#             best_params
+#         ))
+#
+#         clf = Classifier(**best_params)
+#         clf.fit(X[training_samples_idx], y[training_samples_idx])
+#
+#         best_param_list.append(best_params)
+#         outer_score_list.append(clf.score(X[test_samples_idx], y[test_samples_idx]))
+#         model_list.append(clf)
+#
+#         num_outer_split += 1
+#
+#     best_score = -np.inf
+#     best_model = None
+#     for idx, score in enumerate(outer_score_list):
+#         if score > best_score:
+#             best_score = score
+#             best_model = model_list[idx]
+#
+#     return best_model
 
 
 def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
-    # param_grid = {
-    #     'learning_rate': [0.01, 0.05, 0.1],
-    #     'max_depth': np.linspace(1, 8, 4, endpoint=True),
-    #     'n_estimators': [32, 64, 100, 200],
-    #     'max_features': list(range(int(x_normalized_original.shape[1] / 2), x_normalized_original.shape[1], 2)),
-    #     'min_samples_leaf': np.linspace(0.1, 0.5, 5, endpoint=True),
-    #     'min_samples_split': np.linspace(0.1, 1.0, 5, endpoint=True)
-    # }
+    coin_model_start_time = time.time()
+
+    X = x_normalized_original.numpy().reshape(total_size, -1)
+    y = y_up_original.numpy()
+
     param_grid = {
-        'max_epochs': [100],
         'learning_rate': [0.01, 0.05, 0.1],
         'max_depth': np.linspace(1, 8, 4, endpoint=True),
         'n_estimators': [32, 64, 128],
         'max_features': list(range(int(x_normalized_original.shape[1] / 2), x_normalized_original.shape[1], 2)),
     }
 
-    coin_model_start_time = time.time()
+    gb_model = GradientBoostingClassifier()
 
-    X = x_normalized_original.view(total_size, -1)
-    y = y_up_original
-
-    #     print("X.shape: {0}".format(X.shape))
-    #     print("y.shape: {0}".format(y.shape))
-
-    best_model = get_best_model_by_nested_cv(
-        coin_name=coin_name,
-        X=X,
-        y=y,
-        inner_cv=StratifiedKFold(n_splits=4, shuffle=True),
-        outer_cv=StratifiedKFold(n_splits=4, shuffle=True),
-        Classifier=GradientBoostingClassifier,
-        parameter_grid=ParameterGrid(param_grid)
+    clf = GridSearchCV(
+        gb_model,
+        param_grid,
+        cv=StratifiedKFold(n_splits=4, shuffle=True),
+        scoring='accuracy',
+        refit=True,
+        verbose=True
     )
+
+    clf.fit(X, y)
+
+    logger.info(clf.best_estimator_)
 
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
@@ -248,19 +254,20 @@ def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_siz
     logger.info(msg_str)
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
 
-    return best_model
+    return clf.best_estimator_
 
 
 def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+    coin_model_start_time = time.time()
+
     lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
     auc = EpochScoring(scoring='roc_auc', lower_is_better=False)
-    early_stopping = EarlyStopping(patience=7)
+    early_stopping = EarlyStopping(patience=15)
 
     param_grid = {
         'module': [lstm_model],
         'max_epochs': [500],
         'lr': [0.01, 0.05, 0.1],
-        'iterator_train__shuffle': [True],
         'module__bias': [True, False],
         'module__dropout': [0.0, 0.25, 0.5],
         'optimizer': [torch.optim.Adam],
@@ -268,20 +275,31 @@ def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size,
         'callbacks': [[auc, early_stopping]]
     }
 
-    coin_model_start_time = time.time()
+    X = x_normalized_original.numpy()
+    y = y_up_original.numpy().astype(np.int64)
 
-    X = x_normalized_original
-    y = y_up_original.type(torch.LongTensor)
-
-    best_model = get_best_model_by_nested_cv(
-        coin_name=coin_name,
-        X=X,
-        y=y,
-        inner_cv=StratifiedKFold(n_splits=4, shuffle=True),
-        outer_cv=StratifiedKFold(n_splits=4, shuffle=True),
-        Classifier=NeuralNetClassifier,
-        parameter_grid=ParameterGrid(param_grid)
+    lstm_model = LSTM(input_size=INPUT_SIZE, bias=True, dropout=0.5).to(DEVICE)
+    net = NeuralNetClassifier(
+        lstm_model,
+        max_epochs=10,
+        # Shuffle training data on each epoch
+        iterator_train__shuffle=True,
+        optimizer=torch.optim.Adam,
+        device=DEVICE
     )
+
+    clf = GridSearchCV(
+        net,
+        param_grid,
+        cv=StratifiedKFold(n_splits=4, shuffle=True),
+        scoring='roc_auc',
+        refit=True,
+        verbose=True
+    )
+
+    clf.fit(X, y)
+
+    logger.info(clf.best_estimator_)
 
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
@@ -290,7 +308,46 @@ def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size,
     logger.info(msg_str)
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
 
-    return best_model
+    return clf.best_estimator_
+
+
+def make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+    coin_model_start_time = time.time()
+
+    X = x_normalized_original.numpy().reshape(total_size, -1)
+    y = y_up_original.numpy()
+
+    param_grid = {
+        'objective': ['binary:logistic'],
+        'max_depth': [4, 6, 8],
+        'min_child_weight': [9, 11],
+        'subsample': [0.8, 0.9],
+        'colsample_bytree': [0.7],
+        'n_estimators': [50, 100, 200]
+    }
+    xgb_model = xgb.XGBClassifier()
+
+    clf = GridSearchCV(
+        xgb_model,
+        param_grid,
+        cv=StratifiedKFold(n_splits=4, shuffle=True),
+        scoring='accuracy',
+        refit=True,
+        verbose=True
+    )
+
+    clf.fit(X, y)
+
+    logger.info(clf.best_estimator_)
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+
+    msg_str = "{0}: XGBoostClassifier - make_xgboost_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str)
+    logger.info(msg_str)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+
+    return clf.best_estimator_
 
 
 def main(coin_names, model_source):
@@ -312,23 +369,35 @@ def main(coin_names, model_source):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
         x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
+
         if VERBOSE:
-            logger.info("x_normalized_original: {0}, y_up_original: {1}, one_rate: {2}, total_size: {3}".format(
+            logger.info("{0}: x_normalized_original: {1}, y_up_original: {2}, one_rate: {3}, total_size: {4}".format(
+                coin_name,
                 x_normalized_original.size(),
                 y_up_original.size(),
                 one_rate,
                 total_size
             ))
 
-        if VERBOSE:
-            logger.info("[[[LSTM]]]")
-        best_model = make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-        save_lstm_model(coin_name, best_model)
+        if one_rate == -1 or total_size == -1:
+            if VERBOSE:
+                logger.info("{0}: 'One rate' is too low, so that the model construction is skipped".format(coin_name))
+            continue
+        else:
+            # if VERBOSE:
+            #     logger.info("[[[LSTM]]]")
+            # best_model = make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+            # save_model(coin_name, best_model, model_type="LSTM")
 
-        if VERBOSE:
-            logger.info("[[[Gradient Boosting]]]")
-        best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-        save_gb_model(coin_name, best_model)
+            if VERBOSE:
+                logger.info("[[[XGBoost]]]")
+            best_model = make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+            save_model(coin_name, best_model, model_type="XGBOOST")
+
+            if VERBOSE:
+                logger.info("[[[Gradient Boosting]]]")
+            best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
+            save_model(coin_name, best_model, model_type="GB")
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -346,6 +415,7 @@ def main(coin_names, model_source):
 if __name__ == "__main__":
     mkdir_models(LOCAL_MODEL_SOURCE)
     mkdir_models(SELF_MODEL_SOURCE)
+    mkdir_scalers()
 
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
