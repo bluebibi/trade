@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %} 2019 한국기술교육대학교 능력개발교육원 4차 산업혁명 핵심기술 확산 워크숍 {% endblock %}
+
+{% block body %}
+<section id="bt_section5db14aa408689" class="boldSection inherit wBackground cover sub-title"
+         style="background-image:url('/static/wp-content/uploads/2018/09/venue-top-img.jpg');height: 250px; padding-top: 112px;">
+    <div class="port">
+        <div class="boldCell">
+            <div class="boldCellInner">
+                <div class="boldRow snz-wrapper">
+                    <div class="boldRowInner">
+                        <div class="rowItem col-md-12 col-ms-12  btTextCenter inherit" data-width="12">
+                            <div class="rowItemContent">
+                                <header class="header btClear small">
+                                    <div class="btSuperTitle">REGISTRATION CHECK</div>
+                                </header>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="bt_section5db14aa4088f8" class="boldSection gutter inherit" style="padding-top: 86px;">
+    <div class="port">
+        <div class="boldCell">
+            <div class="boldCellInner">
+                <div class="boldRow ">
+                    <div class="boldRowInner">
+                        <div class="rowItem col-md-3 col-sm-3 col-xs-1 btTextLeft inherit" style="margin-bottom: 56px;"
+                             data-width="12"></div>
+                        <div class="rowItem col-md-6 col-sm-6 col-xs-10 btTextLeft inherit" style="margin-bottom: 56px;"
+                             data-width="12">
+                            <div class="rowItemContent">
+                                <div class="text-center">
+                                    <h3 class="text-center">로그인 (일반 등록 확인용)</h3>
+                                </div>
+                                {% for message in get_flashed_messages() %}
+                                <div class="alert alert-warning">
+                                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                    {{ message }}
+                                </div>
+                                {% endfor %}
+                                <form action="" method="POST">
+                                    {{ form.hidden_tag() }}
+                                    <table>
+                                        {% for field in form.display %}
+                                        <tr>
+                                            <td>{{ form[field].label }}</td>
+                                            <td>
+                                                {{ form[field]() }}
+                                                {% if form[field].errors %}
+                                                {% for e in form[field].errors %}
+                                                <p class="help-block">{{ e }}</p>
+                                                {% endfor %}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </table>
+                                    <p>
+                                        <input type=submit value="Publish">
+                                </form>
+                                <div class="text-center">
+                                    <h5 class="text-center">* 직업훈련 교강사 및 직업계고 교원분들의 등록 확인은 <a href="">이곳</a>을 클릭하세요.</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rowItem col-md-3 col-sm-3 col-xs-1 btTextLeft inherit" style="margin-bottom: 56px;"
+                             data-width="12"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<br/>
+<br/>
+<br/>
+{% endblock %}

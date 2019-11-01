@@ -20,6 +20,7 @@ class CoinStatus(Enum):
     loss_sold = 4
     up_trailed = 5
 
+
 class Period(Enum):
     daily = 0
     half_daily = 1
@@ -35,8 +36,8 @@ class BuyType(Enum):
 # GENERAL
 fmt = "%Y-%m-%dT%H:%M:%S"
 
-sqlite3_buy_sell_db_filename = os.path.join(PROJECT_HOME, 'db/upbit_buy_sell.db')
-sqlite3_order_book_db_filename = os.path.join(PROJECT_HOME, 'db/upbit_order_book_info.db')
+sqlite3_buy_sell_db_filename = os.path.join(PROJECT_HOME, 'web/db/upbit_buy_sell.db')
+sqlite3_order_book_db_filename = os.path.join(PROJECT_HOME, 'web/db/upbit_order_book_info.db')
 
 config = configparser.ConfigParser()
 read_ok = config.read(os.getcwd()[:idx] + "trade/common/config.ini")

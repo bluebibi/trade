@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %} Auto Trade {% endblock %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-warning card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">content_copy</i>
+                    </div>
+                    <p class="card-category">총 매수</p>
+                    <h3 class="card-title">{{ num }}
+                        <small></small>
+                    </h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons text-danger">warning</i>
+                        <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-success card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">store</i>
+                    </div>
+                    <p class="card-category">현재 추적</p>
+                    <h3 class="card-title">{{ num_trail_bought }}</h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">date_range</i> <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">총 성공 매도</p>
+                    <h3 class="card-title">{{ num_total_success }}</h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">성공 매도</p>
+                    <h3 class="card-title">{{ num_success }}</h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">이득 매도</p>
+                    <h3 class="card-title">{{ num_gain }}</h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">손실 매도</p>
+                    <h3 class="card-title">{{ num_loss }}</h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <table class="table table-condesed" border="1" cellpadding="0" cellspacing="0" class="buy_sell_text">
+                <thead>
+                <tr>
+                    <th>매수 기준 날짜/시각</th>
+                    <th>구매 코인</th>
+                    <th>GB 모델 확신도</th>
+                    <th>XGBOOST 모델 확신도</th>
+                    <th>구매 기준 가격</th>
+                    <th>구매 가격</th>
+                    <th>현재 가격</th>
+                    <th>투자 금액</th>
+                    <th>현재 원화</th>
+                    <th>경과 시간</th>
+                    <th>등락 비율</th>
+                    <th>상태</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for trade in trades %}
+                    <tr>
+                        <td>{{ trade.buy_datetime }}</td>
+                        <td>
+                            <a href='https://upbit.com/exchange?code=CRIX.UPBIT.{{ trade.coin_ticker_name }}'
+                               target="_blank">{{ trade.coin_ticker_name }}
+                            </a>
+                        </td>
+                        <td>{{ trade.gb_prob }}</td>
+                        <td>{{ trade.xgboost_prob }}</td>
+                        <td>{{ trade.buy_base_price }}</td>
+                        <td>{{ trade.buy_price }}</td>
+                        <td>{{ trade.trail_price }}</td>
+                        <td>{{ trade.buy_krw }}</td>
+                        <td>{{ trade.sell_krw }}</td>
+                        <td>{{ trade.elapsed_timer }}</td>
+                        <td>{{ trade.trail_rate }}</td>
+                        <td>{{ trade.coin_status | safe}}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -64,6 +64,13 @@ def elapsed_time_str(from_datetime, to_datetime):
     return "{:0>2d}:{:0>2d}".format(time_diff_hours, time_diff_minutes)
 
 
+def elapsed_time(from_datetime, to_datetime):
+    time_diff = to_datetime - from_datetime
+    time_diff_hours = int(time_diff.seconds / 3600)
+    time_diff_minutes = int((time_diff.seconds - time_diff_hours * 3600) / 60)
+    return "{:0>2d}:{:0>2d}".format(time_diff_hours, time_diff_minutes)
+
+
 def convert_to_daily_timestamp(datetime_str):
     time_str_hour = datetime_str.split(" ")[1].split(":")[0]
     time_str_minute = datetime_str.split(" ")[1].split(":")[1]
