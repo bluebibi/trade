@@ -1,6 +1,6 @@
 import functools
 from flask_login import current_user, LoginManager
-from db.database import User
+from web.db.database import User
 
 
 login_manager = LoginManager()

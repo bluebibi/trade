@@ -129,3 +129,6 @@ SELF_MODEL_SOURCE = config['SELF_MODELS']['self_model_source']
 
 #RL
 MAX_TRADING_SESSION = config['RL']['max_trading_session']
+
+#WEB
+WEB_DEBUG = config['WEB']['web_debug']

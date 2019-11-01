@@ -1,13 +1,17 @@
 import locale
-import os
+import sys, os
 from flask import Flask, render_template, redirect
 
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
+
+from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, elapsed_time, coin_status_to_hangul
-from db.database import db, User, get_class, BuySell
-from login_manager import login_manager
+from web.db.database import db, User, get_class, BuySell
+from web.login_manager import login_manager
 import logging
-from view.subpage import subpage_blueprint
+from web.view.subpage import subpage_blueprint
 
 from upbit.upbit_api import Upbit
 import warnings
@@ -23,8 +27,8 @@ logging.basicConfig(
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 def create_application():
-    application.debug = True
-    application.config['DEBUG'] = True
+    application.debug = WEB_DEBUG
+    application.config['DEBUG'] = WEB_DEBUG
     #application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
     application.config['SQLALCHEMY_BINDS'] = {
         'user':                     'sqlite:///db/user.db',
