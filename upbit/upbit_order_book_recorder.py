@@ -107,6 +107,9 @@ class UpbitOrderBookRecorder:
             else:
                 missing_base_datetime_str_lst.append(base_datetime_str)
 
+        if len(missing_base_datetime_str_lst) <= 1:
+            return
+        
         base_datetime_str = missing_base_datetime_str_lst[-1]
         q = self.db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str)
         order_book = q.first()
