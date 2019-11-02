@@ -131,11 +131,7 @@
                 {% for trade in trades %}
                     <tr>
                         <td data-field="trade.buy_datetime">{{ trade.buy_datetime }}</td>
-                        <td>
-                            <a href='https://upbit.com/exchange?code=CRIX.UPBIT.{{ trade.coin_ticker_name }}'
-                               target="_blank">{{ trade.coin_ticker_name | safe}}
-                            </a>
-                        </td>
+                        <td data-field="trade.coin_ticker_name">{{ trade.coin_ticker_name | safe}}</td>
                         <td data-field="trade.gb_prob">{{ trade.gb_prob }}</td>
                         <td data-field="trade.xgboost_prob">{{ trade.xgboost_prob }}</td>
                         <td data-field="trade.buy_base_price">{{ trade.buy_base_price }}</td>
