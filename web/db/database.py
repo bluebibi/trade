@@ -18,13 +18,13 @@ class CoinStatus(Enum):
     up_trailed = 5
 
 
-def get_class(coin_name):
+def get_order_book_class(coin_name):
    class OrderBook(db.Model):
         __bind_key__ = 'upbit_order_book_info'
         __tablename__ = "KRW_{0}_ORDER_BOOK".format(coin_name)
 
         id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-        base_datetime = db.Column(db.DateTime)
+        base_datetime = db.Column(db.String(32))
         daily_base_timestamp = db.Column(db.Integer)
         collect_timestamp = db.Column(db.Integer)
 

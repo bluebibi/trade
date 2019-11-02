@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, elapsed_time, coin_status_to_hangul
-from web.db.database import db, User, get_class, BuySell
+from web.db.database import db, User, get_order_book_class, BuySell
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
@@ -50,7 +50,7 @@ def create_application():
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
     for coin_name in upbit.get_all_coin_names():
         if not db.engine.dialect.has_table(db.engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
-            get_class(coin_name).__table__.create(bind=db.engine)
+            get_order_book_class(coin_name).__table__.create(bind=db.engine)
 
     # create a user
     with application.app_context():

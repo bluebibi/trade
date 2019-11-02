@@ -4,32 +4,43 @@ import time
 import traceback
 
 import sys, os
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
+from upbit.upbit_api import Upbit
 from common.utils import convert_to_daily_timestamp
 from common.logger import get_logger
+from common.global_variables import *
+from web.db.database import db, get_order_book_class
 
-from db.sqlite_handler import *
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
 
-logger = get_logger("upbit_order_book_recorder")
+import warnings
+warnings.filterwarnings('ignore')
+
+logger = get_logger("upbit_order_book_recorder_2")
+
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 if os.getcwd().endswith("upbit"):
     os.chdir("..")
 
 
-class UpbitOrderBookRecorder:
+class UpbitOrderBookRecorder2:
     def __init__(self):
         self.coin_names = upbit.get_all_coin_names()
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
-
-            for coin_name in self.coin_names:
-                cursor.execute(create_order_book_table.format(coin_name))
-
-            conn.commit()
+        engine = create_engine('sqlite:///{0}/web/db/upbit_order_book_info.db'.format(
+            PROJECT_HOME
+        ))
+        self.db_session = scoped_session(
+            sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        )
+        base = declarative_base()
+        base.query = self.db_session.query_property()
 
     def record(self, base_datetime, coin_ticker_name):
         daily_base_timestamp = convert_to_daily_timestamp(base_datetime)
@@ -62,110 +73,24 @@ class UpbitOrderBookRecorder:
                 "total_bid_size": total_bid_size}
 
     def insert_order_book(self, order_book_info):
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10,
-                             check_same_thread=False) as conn:
-            cursor = conn.cursor()
+        for coin_name in order_book_info:
+            order_book = get_order_book_class(coin_name)()
+            order_book.base_datetime = order_book_info[coin_name]["base_datetime"]
+            order_book.daily_base_timestamp = int(order_book_info[coin_name]["daily_base_timestamp"])
+            order_book.collect_timestamp = int(order_book_info[coin_name]["collect_timestamp"])
 
-            for coin_name in order_book_info:
-                cursor.execute(order_book_insert_sql.format(coin_name), (
-                    order_book_info[coin_name]["base_datetime"],
-                    int(order_book_info[coin_name]["daily_base_timestamp"]),
-                    int(order_book_info[coin_name]["collect_timestamp"]),
+            for idx in range(15):
+                setattr(order_book, "ask_price_{0}".format(idx), order_book_info[coin_name]["ask_price_lst"][idx])
+                setattr(order_book, "ask_size_{0}".format(idx), order_book_info[coin_name]["ask_size_lst"][idx])
 
-                    float(order_book_info[coin_name]["ask_price_lst"][0]),
-                    float(order_book_info[coin_name]["ask_size_lst"][0]),
+                setattr(order_book, "bid_price_{0}".format(idx), order_book_info[coin_name]["bid_price_lst"][idx])
+                setattr(order_book, "bid_size_{0}".format(idx), order_book_info[coin_name]["bid_size_lst"][idx])
 
-                    float(order_book_info[coin_name]["ask_price_lst"][1]),
-                    float(order_book_info[coin_name]["ask_size_lst"][1]),
+            order_book.total_ask_size = order_book_info[coin_name]["total_ask_size"]
+            order_book.total_bid_size = order_book_info[coin_name]["total_bid_size"]
 
-                    float(order_book_info[coin_name]["ask_price_lst"][2]),
-                    float(order_book_info[coin_name]["ask_size_lst"][2]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][3]),
-                    float(order_book_info[coin_name]["ask_size_lst"][3]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][4]),
-                    float(order_book_info[coin_name]["ask_size_lst"][4]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][5]),
-                    float(order_book_info[coin_name]["ask_size_lst"][5]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][6]),
-                    float(order_book_info[coin_name]["ask_size_lst"][6]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][7]),
-                    float(order_book_info[coin_name]["ask_size_lst"][7]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][8]),
-                    float(order_book_info[coin_name]["ask_size_lst"][8]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][9]),
-                    float(order_book_info[coin_name]["ask_size_lst"][9]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][10]),
-                    float(order_book_info[coin_name]["ask_size_lst"][10]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][11]),
-                    float(order_book_info[coin_name]["ask_size_lst"][11]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][12]),
-                    float(order_book_info[coin_name]["ask_size_lst"][12]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][13]),
-                    float(order_book_info[coin_name]["ask_size_lst"][13]),
-
-                    float(order_book_info[coin_name]["ask_price_lst"][14]),
-                    float(order_book_info[coin_name]["ask_size_lst"][14]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][0]),
-                    float(order_book_info[coin_name]["bid_size_lst"][0]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][1]),
-                    float(order_book_info[coin_name]["bid_size_lst"][1]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][2]),
-                    float(order_book_info[coin_name]["bid_size_lst"][2]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][3]),
-                    float(order_book_info[coin_name]["bid_size_lst"][3]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][4]),
-                    float(order_book_info[coin_name]["bid_size_lst"][4]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][5]),
-                    float(order_book_info[coin_name]["bid_size_lst"][5]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][6]),
-                    float(order_book_info[coin_name]["bid_size_lst"][6]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][7]),
-                    float(order_book_info[coin_name]["bid_size_lst"][7]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][8]),
-                    float(order_book_info[coin_name]["bid_size_lst"][8]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][9]),
-                    float(order_book_info[coin_name]["bid_size_lst"][9]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][10]),
-                    float(order_book_info[coin_name]["bid_size_lst"][10]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][11]),
-                    float(order_book_info[coin_name]["bid_size_lst"][11]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][12]),
-                    float(order_book_info[coin_name]["bid_size_lst"][12]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][13]),
-                    float(order_book_info[coin_name]["bid_size_lst"][13]),
-
-                    float(order_book_info[coin_name]["bid_price_lst"][14]),
-                    float(order_book_info[coin_name]["bid_size_lst"][14]),
-
-                    float(order_book_info[coin_name]["total_ask_size"]),
-                    float(order_book_info[coin_name]["total_bid_size"])
-                ))
-            conn.commit()
+            self.db_session.add(order_book)
+            self.db_session.commit()
 
 
 if __name__ == "__main__":
@@ -175,7 +100,7 @@ if __name__ == "__main__":
         current_time_str = now_str.replace("T", " ")
         base_datetime = current_time_str[:-3] + ":00"
 
-        upbit_order_book_recorder = UpbitOrderBookRecorder()
+        upbit_order_book_recorder = UpbitOrderBookRecorder2()
 
         current_time = time.time()
 
