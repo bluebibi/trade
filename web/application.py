@@ -89,7 +89,7 @@ def hello_html():
 
     for trade in trades:
         total_gain += trade.sell_krw - trade.buy_krw
-        
+
         trade.elapsed_timer = elapsed_time(trade.buy_datetime, trade.trail_datetime)
         trade.buy_datetime = trade.buy_datetime.strftime("%Y-%m-%d %H:%M")
         trade.gb_prob = convert_unit_2(trade.gb_prob)
@@ -117,6 +117,8 @@ def hello_html():
             trade.coin_status = "<span style='color:#000000'>{0}</span>".format(coin_status)
         elif trade.status == CoinStatus.bought.value:
             num_trail_bought += 1
+
+    total_gain = locale.format_string("%.2f", total_gain, grouping=True)
 
     return render_template(
         'index.html', trades=trades, menu="trade",
