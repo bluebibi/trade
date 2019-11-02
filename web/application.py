@@ -96,7 +96,7 @@ def hello_html():
         trade.trail_price = locale.format_string("%.2f", trade.trail_price, grouping=True)
         trade.buy_krw = locale.format_string("%.0f", trade.buy_krw, grouping=True)
         trade.sell_krw = locale.format_string("%.2f", trade.sell_krw, grouping=True)
-        trade.trail_rate = locale.format_string("%.4f", trade.trail_rate, grouping=True)
+        trade.trail_rate = locale.format_string("%.2f", trade.trail_rate * 100, grouping=True)
 
         num += 1
         coin_status = coin_status_to_hangul(trade.status)
