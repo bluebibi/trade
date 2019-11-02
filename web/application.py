@@ -82,6 +82,7 @@ def hello_html():
     num_trail_bought = 0
     num_gain = 0
     num_loss = 0
+    total_gain = 0.0
 
     q = db.session.query(BuySell).order_by(BuySell.id.desc())
     trades = q.all()
@@ -97,6 +98,8 @@ def hello_html():
         trade.buy_krw = locale.format_string("%.0f", trade.buy_krw, grouping=True)
         trade.sell_krw = locale.format_string("%.2f", trade.sell_krw, grouping=True)
         trade.trail_rate = locale.format_string("%.2f", trade.trail_rate * 100, grouping=True)
+
+        total_gain += trade.sell_krw - trade.buy_krw
 
         num += 1
         coin_status = coin_status_to_hangul(trade.status)
@@ -118,7 +121,7 @@ def hello_html():
     return render_template(
         'index.html', trades=trades, menu="trade",
         num=num, num_trail_bought=num_trail_bought, num_total_success=num_gain + num_success,
-        num_gain=num_gain, num_success=num_success, num_loss=num_loss
+        num_gain=num_gain, num_success=num_success, num_loss=num_loss, total_gain=total_gain
     )
 
 
