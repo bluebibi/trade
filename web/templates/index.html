@@ -166,7 +166,6 @@
                 type: 'POST',
                 url: '/trade_data_summary',
                 success: function(data) {
-                    console.log('data: ' + data.num);
                     $("#num").text(data.num);
                     $("#num_trail_bought").text(data.num_trail_bought);
                     $("#num_total_success").text(data.num_total_success);
