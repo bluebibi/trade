@@ -153,12 +153,30 @@ class BuySell(db.Model):
     total_krw = db.Column(db.Integer)
     trail_up_count = db.Column(db.Integer)
     status = db.Column(db.Integer)
+    elapsed_time = None
+    coin_status = None
 
     def __init__(self, *args, **kw):
         super(BuySell, self).__init__(*args, **kw)
 
     def get_id(self):
         return self.id
+
+    def to_json(self):
+        return {
+            "buy_datetime": self.buy_datetime,
+            "coin_ticker_name": self.coin_ticker_name,
+            "gb_prob": self.gb_prob,
+            "xgboost_prob": self.xgboost_prob,
+            "buy_base_price": self.buy_base_price,
+            "buy_price": self.buy_price,
+            "trail_price": self.trail_price,
+            "buy_krw": self.buy_krw,
+            "sell_krw": self.sell_krw,
+            "elapsed_time": self.elapsed_time,
+            "trail_rate": self.trail_rate,
+            "coin_status": self.coin_status
+        }
 
 
 class User(db.Model):

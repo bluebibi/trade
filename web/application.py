@@ -12,6 +12,8 @@ from web.db.database import db, User, get_order_book_class, BuySell
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
+from flask import jsonify
+import json
 
 from upbit.upbit_api import Upbit
 import warnings
@@ -77,6 +79,19 @@ def add_user(name, email, password):
 
 @application.route('/')
 def hello_html():
+
+    trade_data = _trade_data(return_type="dict")
+
+    return render_template(
+        'index.html', menu="trade", trades=trade_data["trades"],
+        num=trade_data["num"], num_trail_bought=trade_data["num_trail_bought"],
+        num_total_success=trade_data["num_total_success"], num_gain=trade_data["num_gain"],
+        num_success=trade_data["num_success"], num_loss=trade_data["num_loss"], total_gain=trade_data["total_gain"]
+    )
+
+
+@application.route('/trade_data', methods=["POST"])
+def _trade_data(return_type="dict"):
     num = 0
     num_success = 0
     num_trail_bought = 0
@@ -90,7 +105,10 @@ def hello_html():
     for trade in trades:
         total_gain += trade.sell_krw - trade.buy_krw
 
-        trade.elapsed_timer = elapsed_time(trade.buy_datetime, trade.trail_datetime)
+        trade.coin_ticker_name = "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}' target='_blank'>{0}</a>".format(
+            trade.coin_ticker_name
+        )
+        trade.elapsed_time = elapsed_time(trade.buy_datetime, trade.trail_datetime)
         trade.buy_datetime = trade.buy_datetime.strftime("%Y-%m-%d %H:%M")
         trade.gb_prob = convert_unit_2(trade.gb_prob)
         trade.xgboost_prob = convert_unit_2(trade.xgboost_prob)
@@ -100,6 +118,10 @@ def hello_html():
         trade.buy_krw = locale.format_string("%.0f", trade.buy_krw, grouping=True)
         trade.sell_krw = locale.format_string("%.2f", trade.sell_krw, grouping=True)
         trade.trail_rate = locale.format_string("%.2f", trade.trail_rate * 100, grouping=True)
+        trade.trail_datetime = None
+        trade.query = None
+        trade.query_class = None
+        trade.metadata = None
 
         num += 1
         coin_status = coin_status_to_hangul(trade.status)
@@ -120,11 +142,25 @@ def hello_html():
 
     total_gain = locale.format_string("%.2f", total_gain, grouping=True)
 
-    return render_template(
-        'index.html', trades=trades, menu="trade",
-        num=num, num_trail_bought=num_trail_bought, num_total_success=num_gain + num_success,
-        num_gain=num_gain, num_success=num_success, num_loss=num_loss, total_gain=total_gain
-    )
+    trade_lst = []
+    for trade in trades:
+        trade_lst.append(trade.to_json())
+
+    trade_data = {
+        "trades": trade_lst,
+        "num": num,
+        "num_trail_bought": num_trail_bought,
+        "num_total_success": num_gain + num_success,
+        "num_gain": num_gain,
+        "num_success": num_success,
+        "num_loss": num_loss,
+        "total_gain": total_gain
+    }
+
+    if return_type == "dict":
+        return trade_data
+    else:
+        return jsonify(trade_data)
 
 
 @application.errorhandler(401)
