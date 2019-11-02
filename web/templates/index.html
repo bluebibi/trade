@@ -109,21 +109,22 @@
             <table id="trade_table"
                    data-toggle="table" data-sortable="true" data-url="/trade_data" data-method="POST" data-search="true"
                    data-pagination="true" data-show-refresh="true" data-show-toggle="true" data-auto-refresh="true"
-                   data-auto-refresh-interval="10">
+                   data-auto-refresh-interval="10" data-remember-order="true" data-show-button-icons="true"
+                   data-show-pagination-switch="true" data-show-columns="true" data-icon-size="sm">
                 <thead>
                     <tr>
-                        <th data-field="buy_datetime">매수 기준 날짜/시각</th>
-                        <th data-field="coin_ticker_name">구매 코인</th>
-                        <th data-field="gb_prob">GB 모델 확신도</th>
-                        <th data-field="xgboost_prob">XGBOOST 모델 확신도</th>
+                        <th data-field="buy_datetime" data-sortable="true">매수 날짜/시각</th>
+                        <th data-field="coin_ticker_name" data-sortable="true">구매 코인</th>
+                        <th data-field="gb_prob" data-sortable="true">GB 모델 확신도</th>
+                        <th data-field="xgboost_prob" data-sortable="true">XGB 모델 확신도</th>
                         <th data-field="buy_base_price">구매 기준 가격</th>
                         <th data-field="buy_price">구매 가격</th>
                         <th data-field="trail_price">현재 가격</th>
-                        <th data-field="buy_krw">투자 금액</th>
-                        <th data-field="sell_krw">현재 원화</th>
-                        <th data-field="elapsed_time">경과 시간</th>
-                        <th data-field="trail_rate">등락 비율</th>
-                        <th data-field="coin_status">상태</th>
+                        <th data-field="buy_krw" data-sortable="true">투자 금액</th>
+                        <th data-field="sell_krw" data-sortable="true">현재 원화</th>
+                        <th data-field="elapsed_time" data-sortable="true">경과 시간</th>
+                        <th data-field="trail_rate" data-sortable="true">등락 비율</th>
+                        <th data-field="coin_status" data-sortable="true">상태</th>
                     </tr>
                 </thead>
             </table>
@@ -149,7 +150,7 @@
                     $("#now_time").text(new Date().format("yyyy년 MM월 dd일 a/p hh시 mm분 ss초"));
                 }
             });
-        }
+        },
     })
 </script>
 {% endblock %}
