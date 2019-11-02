@@ -22,8 +22,25 @@
             padding: 1px;
         }
 
-        .bootstrap-table .fixed-table-toolbar .bs-bars, .bootstrap-table .fixed-table-toolbar .search, .bootstrap-table .fixed-table-toolbar .columns {
+        .btn-group>.btn:not(:last-child):not(.dropdown-toggle), .btn-group>.btn-group:not(:last-child)>.btn {
+            padding: 0.40625rem 1.25rem;
+            font-size: 0.6875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;;
+        }
 
+        .btn-secondary:not(:disabled):not(.disabled):active, .btn-secondary:not(:disabled):not(.disabled).active, .show>.btn-secondary.dropdown-toggle {
+            padding: 0.40625rem 1.25rem;
+            font-size: 0.6875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;;
+        }
+
+        .btn-group .btn+.btn, .btn-group .btn, .btn-group .btn:active, .btn-group .btn-group, .btn-group-vertical .btn+.btn, .btn-group-vertical .btn, .btn-group-vertical .btn:active, .btn-group-vertical .btn-group {
+            padding: 0.40625rem 1.25rem;
+            font-size: 0.6875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;;
         }
         </style>
     {% endblock %}

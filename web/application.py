@@ -90,6 +90,14 @@ def hello_html():
     )
 
 
+@application.route('/trade_data_summary', methods=["POST"])
+def _trade_data_summary():
+    trade_data = _trade_data(return_type="dict")
+    del trade_data['trades']
+
+    return jsonify(trade_data)
+
+
 @application.route('/trade_data', methods=["POST"])
 def _trade_data(return_type="dict"):
     num = 0
