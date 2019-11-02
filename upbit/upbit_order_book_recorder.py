@@ -22,7 +22,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 import warnings
 warnings.filterwarnings('ignore')
 
-logger = get_logger("upbit_order_book_recorder_2")
+logger = get_logger("upbit_order_book_recorder")
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
