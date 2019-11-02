@@ -106,8 +106,8 @@
 
     <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12">
-            <table id="trade_table" class="table table-condesed" border="1" cellpadding="0" cellspacing="0" class="buy_sell_text"
-                   data-toggle="table" data-url="/trade_data" data-search="true" data-method="POST"
+            <table id="trade_table"
+                   data-toggle="table" data-sortable="true" data-url="/trade_data" data-method="POST" data-search="true"
                    data-pagination="true" data-show-refresh="true" data-show-toggle="true" data-auto-refresh="true"
                    data-auto-refresh-interval="10">
                 <thead>
@@ -134,10 +134,6 @@
 {% block additional_javascript %}
 <script type="text/javascript">
     $('#trade_table').bootstrapTable({
-        autoRefresh: true,
-        autoRefreshShow: true,
-        autoRefreshStatus: true,
-        autoRefreshInterval: 3,
         onRefresh: function (param) {
             $.ajax({
                 type: 'POST',
@@ -151,9 +147,7 @@
                     $("#num_loss").text(data.num_loss);
                     $("#total_gain").text(data.total_gain);
                     $("#now_time").text(new Date().format("yyyy년 MM월 dd일 a/p hh시 mm분 ss초"));
-                },
-                contentType: "application/json",
-                dataType: 'json'
+                }
             });
         }
     })
