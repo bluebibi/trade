@@ -103,7 +103,11 @@
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link" href="#pablo" style="font-size: 1.2em">
-                                <i class="material-icons">filter_center_focus</i> {{total_gain}}
+                                <i class="material-icons">filter_center_focus</i>
+                                {{total_gain}}
+                                &nbsp;&nbsp;
+                                <i class="material-icons">access_time</i>
+                                <span id="now_time"></span>
                             </a>
                         </li>
                         <!-- your navbar here -->
@@ -152,14 +156,43 @@
         <!--  Google Maps Plugin    -->
 {#        <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE"></script>#}
         <!-- Chartist JS -->
-        <script src="/static/assets/js/plugins/chartist.min.js"></script>
+        <script src="/static/assets/js/plugins/chartist.min.js" type="text/javascript"></script>
         <!--  Notifications Plugin    -->
-        <script src="/static/assets/js/plugins/bootstrap-notify.js"></script>
+        <script src="/static/assets/js/plugins/bootstrap-notify.js" type="text/javascript"></script>
         <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->
         <script src="/static/assets/js/material-dashboard.js?v=2.1.1" type="text/javascript"></script>
-        <script src="/static/bootstrap_table_1.15.5/dist/bootstrap-table.min.js"></script>
-        <script src="/static/bootstrap_table_1.15.5/dist/extensions/auto-refresh/bootstrap-table-auto-refresh.js"></script>
+        <script src="/static/bootstrap_table_1.15.5/dist/bootstrap-table.min.js" type="text/javascript"></script>
+        <script src="/static/bootstrap_table_1.15.5/dist/extensions/auto-refresh/bootstrap-table-auto-refresh.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            Date.prototype.format = function(f) {
+                if (!this.valueOf()) return " ";
 
+                var weekName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+                var d = this;
+
+                return f.replace(/(yyyy|yy|MM|dd|E|hh|mm|ss|a\/p)/gi, function($1) {
+                    switch ($1) {
+                        case "yyyy": return d.getFullYear();
+                        case "yy": return (d.getFullYear() % 1000).zf(2);
+                        case "MM": return (d.getMonth() + 1).zf(2);
+                        case "dd": return d.getDate().zf(2);
+                        case "E": return weekName[d.getDay()];
+                        case "HH": return d.getHours().zf(2);
+                        case "hh": return ((h = d.getHours() % 12) ? h : 12).zf(2);
+                        case "mm": return d.getMinutes().zf(2);
+                        case "ss": return d.getSeconds().zf(2);
+                        case "a/p": return d.getHours() < 12 ? "오전" : "오후";
+                        default: return $1;
+                    }
+                });
+            };
+
+            String.prototype.string = function(len){var s = '', i = 0; while (i++ < len) { s += this; } return s;};
+            String.prototype.zf = function(len){return "0".string(len - this.length) + this;};
+            Number.prototype.zf = function(len){return this.toString().zf(len);};
+
+            $("#now_time").text(new Date().format("yyyy년 MM월 dd일 a/p hh시 mm분 ss초"));
+        </script>
         {% block additional_javascript %}
 
         {% endblock %}
