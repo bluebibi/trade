@@ -133,19 +133,19 @@ if __name__ == "__main__":
 
         upbit_order_book_recorder = UpbitOrderBookRecorder()
 
-        # current_time = time.time()
-        # order_book_info = {}
-        # for coin_name in upbit_order_book_recorder.coin_names:
-        #     order_book_info[coin_name] = upbit_order_book_recorder.record(
-        #         base_datetime=base_datetime,
-        #         coin_ticker_name="KRW-" + coin_name
-        #     )
-        #     time.sleep(0.2)
-        #
-        # upbit_order_book_recorder.insert_order_book(order_book_info)
-        # elapsed_time = time.time() - current_time
-        #
-        # logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
+        current_time = time.time()
+        order_book_info = {}
+        for coin_name in upbit_order_book_recorder.coin_names:
+            order_book_info[coin_name] = upbit_order_book_recorder.record(
+                base_datetime=base_datetime,
+                coin_ticker_name="KRW-" + coin_name
+            )
+            time.sleep(0.2)
+
+        upbit_order_book_recorder.insert_order_book(order_book_info)
+        elapsed_time = time.time() - current_time
+
+        logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
 
         for coin_name in upbit_order_book_recorder.coin_names:
             upbit_order_book_recorder.check_and_arrange_missing_order_book_data(coin_name, base_datetime)
