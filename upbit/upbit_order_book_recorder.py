@@ -30,7 +30,7 @@ if os.getcwd().endswith("upbit"):
     os.chdir("..")
 
 
-class UpbitOrderBookRecorder2:
+class UpbitOrderBookRecorder:
     def __init__(self):
         self.coin_names = upbit.get_all_coin_names()
         engine = create_engine('sqlite:///{0}/web/db/upbit_order_book_info.db'.format(
@@ -92,6 +92,37 @@ class UpbitOrderBookRecorder2:
             self.db_session.add(order_book)
             self.db_session.commit()
 
+    def check_and_arrange_missing_order_book_data(self, coin_name, base_datetime_str):
+        base_datetime = dt.datetime.strptime(base_datetime_str, fmt.replace("T", " "))
+
+        missing_base_datetime_str_lst = []
+        while base_datetime:
+            base_datetime = base_datetime - dt.timedelta(minutes=10)
+            base_datetime_str = dt.datetime.strftime(base_datetime, fmt.replace("T", " "))
+            order_book_class = get_order_book_class(coin_name)
+            exist = self.db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
+            if exist:
+                missing_base_datetime_str_lst.append(base_datetime_str)
+                break
+            else:
+                missing_base_datetime_str_lst.append(base_datetime_str)
+
+        base_datetime_str = missing_base_datetime_str_lst[-1]
+        q = self.db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str)
+        order_book = q.first()
+
+        del missing_base_datetime_str_lst[-1]
+
+        for missing_base_datetime_str in missing_base_datetime_str_lst:
+            order_book.base_datetime = missing_base_datetime_str
+            missing_daily_base_timestamp = convert_to_daily_timestamp(missing_base_datetime_str)
+            order_book.daily_base_timestamp = missing_daily_base_timestamp
+            order_book.collect_timestamp = -1
+            self.db_session.add(order_book)
+            self.db_session.commit()
+
+            logger.info("{0}: missing_base_datetime: {1}".format(coin_name, missing_base_datetime_str))
+
 
 if __name__ == "__main__":
     try:
@@ -100,23 +131,25 @@ if __name__ == "__main__":
         current_time_str = now_str.replace("T", " ")
         base_datetime = current_time_str[:-3] + ":00"
 
-        upbit_order_book_recorder = UpbitOrderBookRecorder2()
+        upbit_order_book_recorder = UpbitOrderBookRecorder()
 
-        current_time = time.time()
+        # current_time = time.time()
+        # order_book_info = {}
+        # for coin_name in upbit_order_book_recorder.coin_names:
+        #     order_book_info[coin_name] = upbit_order_book_recorder.record(
+        #         base_datetime=base_datetime,
+        #         coin_ticker_name="KRW-" + coin_name
+        #     )
+        #     time.sleep(0.2)
+        #
+        # upbit_order_book_recorder.insert_order_book(order_book_info)
+        # elapsed_time = time.time() - current_time
+        #
+        # logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
 
-        order_book_info = {}
         for coin_name in upbit_order_book_recorder.coin_names:
-            order_book_info[coin_name] = upbit_order_book_recorder.record(
-                base_datetime=base_datetime,
-                coin_ticker_name="KRW-" + coin_name
-            )
-            time.sleep(0.2)
+            upbit_order_book_recorder.check_and_arrange_missing_order_book_data(coin_name, base_datetime)
 
-        upbit_order_book_recorder.insert_order_book(order_book_info)
-
-        elapsed_time = time.time() - current_time
-
-        logger.info("{0} - Elapsed Time: {1} - Num of coins: {2}".format(base_datetime, elapsed_time, len(order_book_info)))
     except Exception as ex:
         msg_str = "upbit_order_book_recorder.py - ERROR! \n"
         msg_str += ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))

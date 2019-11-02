@@ -22,6 +22,7 @@ def get_order_book_class(coin_name):
    class OrderBook(db.Model):
         __bind_key__ = 'upbit_order_book_info'
         __tablename__ = "KRW_{0}_ORDER_BOOK".format(coin_name)
+        __table_args__ = {'extend_existing': True}
 
         id = db.Column(db.Integer, primary_key=True, autoincrement=True)
         base_datetime = db.Column(db.String(32))
