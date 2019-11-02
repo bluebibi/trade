@@ -83,7 +83,7 @@ def hello_html():
     trade_data = _trade_data(return_type="dict")
 
     return render_template(
-        'index.html', menu="trade", trades=trade_data["trades"],
+        'index.html', menu="trade",
         num=trade_data["num"], num_trail_bought=trade_data["num_trail_bought"],
         num_total_success=trade_data["num_total_success"], num_gain=trade_data["num_gain"],
         num_success=trade_data["num_success"], num_loss=trade_data["num_loss"], total_gain=trade_data["total_gain"]
@@ -99,7 +99,7 @@ def _trade_data_summary():
 
 
 @application.route('/trade_data', methods=["POST"])
-def _trade_data(return_type="dict"):
+def _trade_data(return_type="json"):
     num = 0
     num_success = 0
     num_trail_bought = 0
@@ -168,7 +168,7 @@ def _trade_data(return_type="dict"):
     if return_type == "dict":
         return trade_data
     else:
-        return jsonify(trade_data)
+        return jsonify(trade_data["trades"])
 
 
 @application.errorhandler(401)

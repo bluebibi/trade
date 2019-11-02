@@ -111,40 +111,21 @@
                    data-pagination="true" data-show-refresh="true" data-show-toggle="true" data-auto-refresh="true"
                    data-auto-refresh-interval="10">
                 <thead>
-                <tr>
-                    <th>매수 기준 날짜/시각</th>
-                    <th>구매 코인</th>
-                    <th>GB 모델 확신도</th>
-                    <th>XGBOOST 모델 확신도</th>
-                    <th>구매 기준 가격</th>
-                    <th>구매 가격</th>
-                    <th>현재 가격</th>
-                    <th>투자 금액</th>
-                    <th>현재 원화</th>
-                    <th>경과 시간</th>
-                    <th>등락 비율</th>
-                    <th>상태</th>
-                </tr>
-                </thead>
-
-                <tbody>
-                {% for trade in trades %}
                     <tr>
-                        <td data-field="trade.buy_datetime">{{ trade.buy_datetime }}</td>
-                        <td data-field="trade.coin_ticker_name">{{ trade.coin_ticker_name | safe}}</td>
-                        <td data-field="trade.gb_prob">{{ trade.gb_prob }}</td>
-                        <td data-field="trade.xgboost_prob">{{ trade.xgboost_prob }}</td>
-                        <td data-field="trade.buy_base_price">{{ trade.buy_base_price }}</td>
-                        <td data-field="trade.buy_price">{{ trade.buy_price }}</td>
-                        <td data-field="trade.trail_price">{{ trade.trail_price }}</td>
-                        <td data-field="trade.buy_krw">{{ trade.buy_krw }}</td>
-                        <td data-field="trade.sell_krw">{{ trade.sell_krw }}</td>
-                        <td data-field="trade.elapsed_time">{{ trade.elapsed_time }}</td>
-                        <td data-field="trade.trail_rate">{{ trade.trail_rate }}</td>
-                        <td data-field="trade.coin_status">{{ trade.coin_status | safe}}</td>
+                        <th data-field="buy_datetime">매수 기준 날짜/시각</th>
+                        <th data-field="coin_ticker_name">구매 코인</th>
+                        <th data-field="gb_prob">GB 모델 확신도</th>
+                        <th data-field="xgboost_prob">XGBOOST 모델 확신도</th>
+                        <th data-field="buy_base_price">구매 기준 가격</th>
+                        <th data-field="buy_price">구매 가격</th>
+                        <th data-field="trail_price">현재 가격</th>
+                        <th data-field="buy_krw">투자 금액</th>
+                        <th data-field="sell_krw">현재 원화</th>
+                        <th data-field="elapsed_time">경과 시간</th>
+                        <th data-field="trail_rate">등락 비율</th>
+                        <th data-field="coin_status">상태</th>
                     </tr>
-                {% endfor %}
-                </tbody>
+                </thead>
             </table>
         </div>
     </div>
