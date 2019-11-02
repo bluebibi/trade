@@ -88,6 +88,8 @@ def hello_html():
     trades = q.all()
 
     for trade in trades:
+        total_gain += trade.sell_krw - trade.buy_krw
+        
         trade.elapsed_timer = elapsed_time(trade.buy_datetime, trade.trail_datetime)
         trade.buy_datetime = trade.buy_datetime.strftime("%Y-%m-%d %H:%M")
         trade.gb_prob = convert_unit_2(trade.gb_prob)
@@ -98,8 +100,6 @@ def hello_html():
         trade.buy_krw = locale.format_string("%.0f", trade.buy_krw, grouping=True)
         trade.sell_krw = locale.format_string("%.2f", trade.sell_krw, grouping=True)
         trade.trail_rate = locale.format_string("%.2f", trade.trail_rate * 100, grouping=True)
-
-        total_gain += trade.sell_krw - trade.buy_krw
 
         num += 1
         coin_status = coin_status_to_hangul(trade.status)
