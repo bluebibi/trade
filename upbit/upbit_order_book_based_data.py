@@ -26,7 +26,40 @@ order_book_for_one_coin = """
     C.base_datetime as 'base_datetime', 
     C.daily_base_timestamp as 'daily_base_timestamp', 
     C.collect_timestamp as 'collect_timestamp',
+    
+    {0}
 """
+
+sql_body = ""
+
+one_sql_ask_body = """
+    C.ask_price_{0} as 'ask_price_{0}',
+    B.ask_price_{0} as 'ask_price_{0}_btc',
+    C.ask_size_{0} as 'ask_size_{0}',
+    B.ask_size_{0} as 'ask_size_{0}_btc',
+"""
+
+one_sql_bid_body = """
+    C.bid_price_{0} as 'bid_price_{0}',
+    B.bid_price_{0} as 'bid_price_{0}_btc',
+    C.bid_size_{0} as 'bid_size_{0}',
+    B.bid_size_{0} as 'bid_size_{0}_btc',
+"""
+
+for i in range(0, 15):
+    sql_body += one_sql_ask_body.format(i)
+
+for i in range(0, 15):
+    sql_body += one_sql_bid_body.format(i)
+
+sql_body += """
+    C.total_ask_size as 'total_ask_size', 
+    B.total_ask_size as 'total_ask_size_btc',
+    C.total_bid_size as 'total_bid_size', 
+    B.total_bid_size as 'total_bid_size_btc'    
+    """
+
+order_book_for_one_coin = order_book_for_one_coin.format(sql_body)
 
 select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
     FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
