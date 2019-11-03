@@ -2,23 +2,93 @@ import locale
 from flask import Blueprint, render_template, request, jsonify
 import sys, os
 
+from upbit.upbit_api import Upbit
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import fmt, WINDOW_SIZE, FUTURE_TARGET_SIZE, SELL_RATE
-from common.utils import convert_unit_2
 from web.db.database import BuySell, get_order_book_class
 from web.db.database import db
-import datetime as dt
+from common.global_variables import *
+from common.utils import *
 
 subpage_blueprint = Blueprint('subpage', __name__)
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 
+upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+
+
 @subpage_blueprint.route('/models')
 def _models():
-    return render_template("subpage/models.html", menu="models")
+    coin_names = upbit.get_all_coin_names()
+
+    xgboost_model_files = glob.glob(PROJECT_HOME + '{0}XGBOOST/*.pkl'.format(model_source))
+    xgboost_models = {}
+    for xgboost_file in xgboost_model_files:
+        xgboost_file_name = xgboost_file.split("/")[-1].split(".pkl")
+        coin_name = xgboost_file_name[0]
+
+        time_diff = dt.datetime.fromtimestamp(os.stat(xgboost_file).st_mtime).strftime(fmt.replace("T", " "))
+
+        xgboost_models[coin_name] = {
+            "last_modified": time_diff
+        }
+
+    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
+    gb_models = {}
+    for gb_file in gb_model_files:
+        gb_file_name = gb_file.split("/")[-1].split(".pkl")
+        coin_name = gb_file_name[0]
+
+        time_diff = dt.datetime.fromtimestamp(os.stat(gb_file).st_mtime).strftime(fmt.replace("T", " "))
+
+        gb_models[coin_name] = {
+            "last_modified": time_diff
+        }
+
+    txt = "<tr><th>코인 이름</th><th>XGBOOST 모델 정보</th><th>GB 모델 정보</th></tr>"
+    num_xgboost_models = 0
+    num_gb_models = 0
+    for coin_name in coin_names:
+        txt += "<tr>"
+
+        if coin_name in xgboost_models:
+            xgboost_model_last_modified = xgboost_models[coin_name]["last_modified"]
+            num_xgboost_models += 1
+        else:
+            xgboost_model_last_modified = "-"
+
+        if coin_name in gb_models:
+            gb_model_last_modified = gb_models[coin_name]["last_modified"]
+            num_gb_models += 1
+        else:
+            gb_model_last_modified = "-"
+
+        if xgboost_model_last_modified != "-" and gb_model_last_modified != "-":
+            coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
+
+        txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
+            coin_name,
+            xgboost_model_last_modified,
+            gb_model_last_modified
+        )
+
+    last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
+
+    return render_template("subpage/models.html", menu="models",
+                           num_xgboost_models=num_xgboost_models, num_gb_models=num_gb_models,
+                           last_krw_btc_datetime=last_krw_btc_datetime, num_krw_btc_records=num_krw_btc_records)
+
+
+def get_KRW_BTC_info():
+    q = db.session.query(get_order_book_class("BTC")).order_by(get_order_book_class("BTC").collect_timestamp.desc()).limit(1)
+    last_krw_btc_datetime = q.first().base_datetime
+
+    num_krw_btc_records = db.session.query(get_order_book_class("BTC")).count()
+
+    return last_krw_btc_datetime, num_krw_btc_records
 
 
 @subpage_blueprint.route('/data_collects')
