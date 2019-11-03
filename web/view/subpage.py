@@ -1,6 +1,10 @@
 import locale
-
 from flask import Blueprint, render_template, request, jsonify
+import sys, os
+
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+sys.path.append(PROJECT_HOME)
 
 from common.global_variables import fmt, WINDOW_SIZE, FUTURE_TARGET_SIZE, SELL_RATE
 from common.utils import convert_unit_2
