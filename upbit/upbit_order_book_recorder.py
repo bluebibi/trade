@@ -36,6 +36,9 @@ class UpbitOrderBookRecorder:
         engine = create_engine('sqlite:///{0}/web/db/upbit_order_book_info.db'.format(
             PROJECT_HOME
         ))
+        # engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade_test'.format(
+        #     MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
+        # ), encoding='utf-8')
         self.db_session = scoped_session(
             sessionmaker(autocommit=False, autoflush=False, bind=engine)
         )

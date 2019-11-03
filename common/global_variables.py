@@ -132,3 +132,9 @@ MAX_TRADING_SESSION = config['RL']['max_trading_session']
 
 #WEB
 WEB_DEBUG = config['WEB']['web_debug']
+
+#MYSQL
+MYSQL_ROOT_PASSWORD = config['MYSQL']['root_password']
+MYSQL_ID = config['MYSQL']['mysql_id']
+MYSQL_PASSWORD = config['MYSQL']['mysql_password']
+MYSQL_HOST = config['MYSQL']['mysql_host']
