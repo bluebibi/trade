@@ -26,7 +26,6 @@ order_book_for_one_coin = """
     C.base_datetime as 'base_datetime', 
     C.daily_base_timestamp as 'daily_base_timestamp', 
     C.collect_timestamp as 'collect_timestamp',
-    {0}
 """
 
 select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
