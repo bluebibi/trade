@@ -108,20 +108,6 @@ sql_body += """
 
 order_book_for_one_coin = order_book_for_one_coin.format(sql_body)
 
-select_all_from_order_book_for_one_coin = order_book_for_one_coin + """
-    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
-    ORDER BY collect_timestamp ASC, base_datetime ASC;
-"""
-
-select_all_from_order_book_for_one_coin_limit = order_book_for_one_coin + """
-    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
-    ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT {1};
-"""
-
-select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
-    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
-    ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
-"""
 
 create_buy_sell_table = """
                 CREATE TABLE IF NOT EXISTS BUY_SELL (

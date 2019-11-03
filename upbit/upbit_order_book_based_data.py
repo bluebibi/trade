@@ -1,4 +1,5 @@
 import pickle
+import sqlite3
 
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
@@ -14,11 +15,35 @@ from common.utils import get_invest_krw
 
 from common.logger import get_logger
 
-from db.sqlite_handler import *
 from upbit.upbit_api import Upbit
+from common.global_variables import *
 
 logger = get_logger("upbit_order_book_based_data")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+
+order_book_for_one_coin = """
+    SELECT 
+    C.base_datetime as 'base_datetime', 
+    C.daily_base_timestamp as 'daily_base_timestamp', 
+    C.collect_timestamp as 'collect_timestamp',
+    {0}
+"""
+
+select_all_from_order_book_for_one_coin_recent_window = order_book_for_one_coin + """
+    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
+    ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT {1};
+"""
+
+select_all_from_order_book_for_one_coin = order_book_for_one_coin + """
+    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
+    ORDER BY collect_timestamp ASC, base_datetime ASC;
+"""
+
+select_all_from_order_book_for_one_coin_limit = order_book_for_one_coin + """
+    FROM KRW_BTC_ORDER_BOOK as B INNER JOIN KRW_{0}_ORDER_BOOK as C ON B.base_datetime = C.base_datetime
+    ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT {1};
+"""
+
 
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
@@ -50,7 +75,6 @@ class UpbitOrderBookBasedData:
                 return None
         else:
             return None
-
 
     def _get_dataset(self, limit=False):
         if limit:

@@ -1,16 +1,20 @@
-import sqlite3
 import time
-
 from pytz import timezone
 import sys, os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
+from web.db.database import BuySell
+
 from common.utils import *
 from common.logger import get_logger
 
-from db.sqlite_handler import *
+from upbit.upbit_api import Upbit
+from common.global_variables import *
 
 logger = get_logger("sell")
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
@@ -19,60 +23,64 @@ if os.getcwd().endswith("predict"):
     os.chdir("..")
 
 
+engine_trade = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
+db_trade_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine_trade))
+
+
 class Seller:
     @staticmethod
     def select_all_bought_coin_names():
-        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                select_all_bought_or_trailed_coin_names_sql,
-                (CoinStatus.bought.value, CoinStatus.trailed.value, CoinStatus.up_trailed.value)
-            )
 
-            coin_trail_info = {}
-            rows = cursor.fetchall()
-            conn.commit()
+        q = db_trade_session.query(BuySell).filter(BuySell.status.in_(
+            [CoinStatus.bought.value, CoinStatus.trailed.value, CoinStatus.up_trailed.value]
+        ))
+        trades_bought_or_trailed = q.all()
 
-        for row in rows:
-            coin_ticker_name = row[1]
-            buy_datetime = dt.datetime.strptime(row[2], fmt.replace("T", " "))
-            if row[11]:
-                trail_datetime = dt.datetime.strptime(row[11], fmt.replace("T", " "))
+        coin_trail_info = {}
+        for trade in trades_bought_or_trailed:
+            coin_ticker_name = trade.coin_ticker_name
+            buy_datetime = dt.datetime.strptime(trade.buy_datetime, fmt.replace("T", " "))
+            if trade.trail_datetime:
+                trail_datetime = dt.datetime.strptime(trade.trail_datetime, fmt.replace("T", " "))
             else:
                 trail_datetime = None
 
             coin_trail_info[coin_ticker_name] = {
-                "buy_datetime_str": row[2],
+                "buy_datetime_str": trade.buy_datetime,
                 "buy_datetime": buy_datetime,
-                "lstm_prob": float(row[3]),
-                "gb_prob": float(row[4]),
-                "xgboost_prob": float(row[5]),
-                "buy_base_price": float(row[6]),
-                "buy_krw": int(row[7]),
-                "buy_fee": int(row[8]),
-                "buy_price": float(row[9]),
-                "buy_coin_volume": float(row[10]),
-                "trail_datetime_str": row[11],
+                "lstm_prob": trade.lstm_prob,
+                "gb_prob": trade.gb_prob,
+                "xgboost_prob": trade.xgboost_prob,
+                "buy_base_price": trade.buy_base_price,
+                "buy_krw": trade.buy_krw,
+                "buy_fee": trade.buy_fee,
+                "buy_price": trade.buy_price,
+                "buy_coin_volume": trade.buy_coin_volume,
+                "trail_datetime_str": trade.trail_datetime,
                 "trail_datetime": trail_datetime,
-                "trail_price": float(row[12]),
-                "trail_rate": float(row[15]),
-                "total_krw": int(row[16]),
-                "trail_up_count": int(row[17]),
-                "status": int(row[18])
+                "trail_price": trade.trail_price,
+                "trail_rate": trade.trail_rate,
+                "total_krw": trade.total_krw,
+                "trail_up_count": trade.trail_up_count,
+                "status": trade.status
             }
         return coin_trail_info
 
     @staticmethod
     def update_coin_info(trail_datetime, trail_price, sell_fee, sell_krw, trail_rate, total_krw, trail_up_count, status,
                          coin_ticker_name, buy_datetime):
-        with sqlite3.connect(sqlite3_buy_sell_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
 
-            cursor.execute(update_trail_coin_info_sql, (
-                trail_datetime, trail_price, sell_fee, sell_krw, trail_rate, total_krw, trail_up_count, status,
-                coin_ticker_name, buy_datetime
-            ))
-            conn.commit()
+        q = db_trade_session.query(BuySell).filter_by(coin_ticker_name=coin_ticker_name, buy_datetime=buy_datetime)
+        trade = q.first()
+        trade.trail_datetime = trail_datetime
+        trade.trail_price = trail_price
+        trade.sell_fee = sell_fee
+        trade.sell_krw = sell_krw
+        trade.trail_rate = trail_rate
+        trade.total_krw = total_krw
+        trade.trail_up_count = trail_up_count
+        trade.status = status
+        db_trade_session.commit()
 
     def trail(self, coin_trail_info):
         now = dt.datetime.now(timezone('Asia/Seoul'))
