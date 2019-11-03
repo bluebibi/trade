@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import fmt, WINDOW_SIZE, FUTURE_TARGET_SIZE, SELL_RATE
 from common.utils import convert_unit_2
-from db.database import BuySell, get_order_book_class
+from web.db.database import BuySell, get_order_book_class
 from web.db.database import db
 import datetime as dt
 
