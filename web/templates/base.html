@@ -17,6 +17,8 @@
         <!-- Material Kit CSS -->
         <link href="/static/assets/css/material-dashboard.css?v=2.1.1" rel="stylesheet"/>
         <link rel="stylesheet" href="/static/bootstrap_table_1.15.5/dist/bootstrap-table.min.css">
+        <link rel="stylesheet" href="/static/chart_js_2.9.2/dist/Chart.min.css">
+
         <style>
         .card [class*="card-header-"] .card-icon, .card [class*="card-header-"] .card-text {
             padding: 1px;
@@ -144,35 +146,13 @@
         <script src="/static/assets/js/material-dashboard.js?v=2.1.1" type="text/javascript"></script>
         <script src="/static/bootstrap_table_1.15.5/dist/bootstrap-table.min.js" type="text/javascript"></script>
         <script src="/static/bootstrap_table_1.15.5/dist/extensions/auto-refresh/bootstrap-table-auto-refresh.js" type="text/javascript"></script>
+        <script src="/static/chart_js_2.9.2/dist/Chart.min.js" type="text/javascript"></script>
+        <script src="/static/chart_js_2.9.2/dist/chartjs-plugin-annotation.min.js" type="text/javascript"></script>
+        <script src="/static/assets/js/utils.js" type="text/javascript"></script>
         <script type="text/javascript">
-            Date.prototype.format = function(f) {
-                if (!this.valueOf()) return " ";
-
-                var weekName = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-                var d = this;
-
-                return f.replace(/(yyyy|yy|MM|dd|E|hh|mm|ss|a\/p)/gi, function($1) {
-                    switch ($1) {
-                        case "yyyy": return d.getFullYear();
-                        case "yy": return (d.getFullYear() % 1000).zf(2);
-                        case "MM": return (d.getMonth() + 1).zf(2);
-                        case "dd": return d.getDate().zf(2);
-                        case "E": return weekName[d.getDay()];
-                        case "HH": return d.getHours().zf(2);
-                        case "hh": return ((h = d.getHours() % 12) ? h : 12).zf(2);
-                        case "mm": return d.getMinutes().zf(2);
-                        case "ss": return d.getSeconds().zf(2);
-                        case "a/p": return d.getHours() < 12 ? "오전" : "오후";
-                        default: return $1;
-                    }
-                });
-            };
-
-            String.prototype.string = function(len){var s = '', i = 0; while (i++ < len) { s += this; } return s;};
-            String.prototype.zf = function(len){return "0".string(len - this.length) + this;};
-            Number.prototype.zf = function(len){return this.toString().zf(len);};
-
-            $("#now_time").text(new Date().format("yyyy년 MM월 dd일 a/p hh시 mm분 ss초"));
+            general_info_update();
+            set_time()
+            setInterval(set_time, 1000);
         </script>
         {% block additional_javascript %}
 

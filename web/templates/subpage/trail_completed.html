@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %} Auto Trade {% endblock %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-warning card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">content_copy</i>
+                    </div>
+                    <p class="card-category">총 매수</p>
+                    <h3 class="card-title"><span id="num">{{ num }}</span>
+                        <small></small>
+                    </h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons text-danger">warning</i>
+                        <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-success card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">store</i>
+                    </div>
+                    <p class="card-category">현재 추적</p>
+                    <h3 class="card-title"><span id="num_trail_bought">{{ num_trail_bought }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">date_range</i> <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">총 성공 매도</p>
+                    <h3 class="card-title"><span id="num_total_success">{{ num_total_success }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">성공 매도</p>
+                    <h3 class="card-title"><span id="num_success">{{ num_success }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">이득 매도</p>
+                    <h3 class="card-title"><span id="num_gain">{{ num_gain }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">손실 매도</p>
+                    <h3 class="card-title"><span id="num_loss">{{ num_loss }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div>
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block additional_javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var lineChartData = {
+                labels: {{ chart_labels | tojson }},
+                datasets: [{
+                    label: 'ask_price',
+                    backgroundColor: window.chartColors.red,
+                    borderColor: window.chartColors.red,
+                    borderWidth: 1,
+                    pointRadius: 2,
+                    data: {{ chart_ask_prices | tojson }},
+                    fill: false,
+                }, {
+                    label: 'bid_price',
+                    backgroundColor: window.chartColors.blue,
+                    borderColor: window.chartColors.blue,
+                    borderWidth: 1,
+                    pointRadius: 2,
+                    data: {{ chart_bid_prices | tojson }},
+                    fill: false,
+                }]
+            }
+
+            var config = {
+                type: 'line',
+                data: lineChartData,
+                options: {
+                    responsive: true,
+                    hoverMode: 'index',
+                    stacked: false,
+                    animation: {
+                        duration: 1, // general animation time
+                    },
+                    title: {
+                        display: true,
+                        fontSize: 17,
+                        fontFamily: "sans-serif",
+                        text: 'COIN NAME: {{ coin_name }}, BUY DATETIME: {{ buy_datetime }}, TRAIL RATE: {{ trail_rate }}%, GB PROB.: {{ gb_prob }}, XGBOOST PROB.: {{ xgboost_prob }}'
+                    },
+                    scales: {
+                        yAxes: [{
+                            type: 'linear', // only linear but allow scale type registration. This allows extensions to exist solely for log scale for instance
+                            display: true,
+                            position: 'right',
+                            id: 'y-axis-0',
+                        }],
+                        xAxes: [{
+                            display: true,
+                            position: 'bottom',
+                            id: 'x-axis-0',
+                        }]
+                    },
+                    annotation: {
+                        drawTime: 'afterDatasetsDraw',
+                        id: "readyset_hline",
+                        type: "line",
+                        mode: "horizontal",
+                        annotations: [{
+                            id: 'hline-buy',
+                            type: 'line',
+                            mode: 'horizontal',
+                            scaleID: 'y-axis-0',
+                            value: {{buy_price}},
+                            borderColor: 'black',
+                            borderWidth: 1,
+                            label: {
+                                backgroundColor: chartColors.orange,
+                                content: 'buy_price',
+                                enabled: true,
+                                position: "left"
+                            }
+                        }, {
+                            id: 'hline-target',
+                            type: 'line',
+                            mode: 'horizontal',
+                            scaleID: 'y-axis-0',
+                            value: {{target_price}},
+                            borderColor: 'black',
+                            borderWidth: 1,
+                            label: {
+                                backgroundColor: chartColors.blue,
+                                content: 'target_price',
+                                enabled: true,
+                                position: "left"
+                            }
+                        }, {
+                            id: 'hline-trail',
+                            type: 'line',
+                            mode: 'horizontal',
+                            scaleID: 'y-axis-0',
+                            value: {{trail_price}},
+                            borderColor: 'black',
+                            borderWidth: 1,
+                            label: {
+                                backgroundColor: chartColors.red,
+                                content: 'sell_price',
+                                enabled: true,
+                                position: "left"
+                            }
+                        }, {
+                            id: 'vline',
+                            type: 'line',
+                            mode: 'vertical',
+                            scaleID: 'x-axis-0',
+                            value: {{buy_datetime | tojson}},
+                            borderColor: 'black',
+                            borderWidth: 1
+                        }]
+                    }
+                }
+            }
+
+            var ctx = document.getElementById('chart').getContext('2d');
+            window.myLine = new Chart(ctx, config);
+            window.myLine.update();
+        })
+    </script>
+{% endblock %}

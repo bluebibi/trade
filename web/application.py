@@ -7,7 +7,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
-from common.utils import convert_unit_2, elapsed_time, coin_status_to_hangul
+from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
 from web.db.database import db, User, get_order_book_class, BuySell
 from web.login_manager import login_manager
 import logging
@@ -28,6 +28,7 @@ logging.basicConfig(
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
+
 def create_application():
     application.debug = WEB_DEBUG
     application.config['DEBUG'] = WEB_DEBUG
@@ -47,7 +48,6 @@ def create_application():
     #db
     db.app = application
     db.init_app(application)
-    db.create_all()
 
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
     for coin_name in upbit.get_all_coin_names():
@@ -79,15 +79,7 @@ def add_user(name, email, password):
 
 @application.route('/')
 def hello_html():
-
-    trade_data = _trade_data(return_type="dict")
-
-    return render_template(
-        'index.html', menu="trade",
-        num=trade_data["num"], num_trail_bought=trade_data["num_trail_bought"],
-        num_total_success=trade_data["num_total_success"], num_gain=trade_data["num_gain"],
-        num_success=trade_data["num_success"], num_loss=trade_data["num_loss"], total_gain=trade_data["total_gain"]
-    )
+    return render_template('index.html', menu="trade")
 
 
 @application.route('/trade_data_summary', methods=["POST"])
@@ -116,13 +108,19 @@ def _trade_data(return_type="json"):
         trade.coin_ticker_name = "<a href='https://upbit.com/exchange?code=CRIX.UPBIT.{0}' target='_blank'>{0}</a>".format(
             trade.coin_ticker_name
         )
-        trade.elapsed_time = elapsed_time(trade.buy_datetime, trade.trail_datetime)
-        trade.buy_datetime = trade.buy_datetime.strftime("%Y-%m-%d %H:%M")
+        trade.elapsed_time = elapsed_time_str(trade.buy_datetime, trade.trail_datetime)
         trade.gb_prob = convert_unit_2(trade.gb_prob)
         trade.xgboost_prob = convert_unit_2(trade.xgboost_prob)
         trade.buy_base_price = locale.format_string("%.2f", trade.buy_base_price, grouping=True)
         trade.buy_price = locale.format_string("%.2f", trade.buy_price, grouping=True)
-        trade.trail_price = locale.format_string("%.2f", trade.trail_price, grouping=True)
+        if trade.status == CoinStatus.trailed or trade.status == CoinStatus.up_trailed:
+            trade.trail_price = "<a href='/subpage/trail?trade_id={0}'>{1}</a>".format(
+                trade.id, locale.format_string("%.2f", trade.trail_price, grouping=True)
+            )
+        else:
+            trade.trail_price = "<a href='/subpage/trail_completed?trade_id={0}'>{1}</a>".format(
+                trade.id, locale.format_string("%.2f", trade.trail_price, grouping=True)
+            )
         trade.buy_krw = locale.format_string("%.0f", trade.buy_krw, grouping=True)
         trade.sell_krw = locale.format_string("%.2f", trade.sell_krw, grouping=True)
         trade.trail_rate = locale.format_string("%.2f", trade.trail_rate * 100, grouping=True)

@@ -128,15 +128,25 @@ def get_order_book_class(coin_name):
         def get_id(self):
             return self.id
 
+        def __repr__(self):
+            return str({
+                "id": self.id,
+                "base_datetime": self.base_datetime,
+                "ask_price_0": self.ask_size_0,
+                "bid_price_0": self.bid_price_0
+            })
+
    return OrderBook
 
 
 class BuySell(db.Model):
     __bind_key__ = 'upbit_buy_sell'
     __tablename__ = "BUY_SELL"
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     coin_ticker_name = db.Column(db.String(8))
-    buy_datetime = db.Column(db.DateTime)
+    buy_datetime = db.Column(db.String(32))
     lstm_prob = db.Column(db.Float)
     gb_prob = db.Column(db.Float)
     xgboost_prob = db.Column(db.Float)
@@ -145,7 +155,7 @@ class BuySell(db.Model):
     buy_fee = db.Column(db.Integer)
     buy_price = db.Column(db.Float)
     buy_coin_volume = db.Column(db.Float)
-    trail_datetime = db.Column(DateTime)
+    trail_datetime = db.Column(db.String(32))
     trail_price = db.Column(db.Float)
     sell_fee = db.Column(db.Integer)
     sell_krw = db.Column(db.Integer)
