@@ -10,7 +10,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CoinStatus, fmt, LOCAL_LOCAL_MODEL_SOURCE, LOCAL_MODEL_SOURCE
+from common.global_variables import CoinStatus, fmt, LOCAL_MODEL_SOURCE
 
 
 def convert_unit_2(unit):
