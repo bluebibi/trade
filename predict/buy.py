@@ -144,6 +144,11 @@ def get_total_krw():
 
 
 def main():
+    now = dt.datetime.now(timezone('Asia/Seoul'))
+    now_str = now.strftime(fmt)
+    current_time_str = now_str.replace("T", " ")
+    current_time_str = current_time_str[:10]
+
     right_time_coin_info = get_db_right_time_coin_names()
     already_coin_ticker_names = get_coin_ticker_names_by_bought_or_trailed_status()
 
@@ -225,7 +230,7 @@ def main():
 
                         if trades_coin_ticker_name:
                             for trade in trades_coin_ticker_name:
-                                if trade.buy_base_price < min_buy_base_rise:
+                                if current_time_str in trade.buy_datetime and trade.buy_base_price < min_buy_base_rise:
                                     min_buy_base_rise = trade.buy_base_price
 
                             logger.info("LAST CHECK: prompt_rising_rate: {0}, coin_ticker_name:{1}, min_buy_base_price:{2}, buy_price:{3}".format(
