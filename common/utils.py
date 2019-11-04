@@ -10,13 +10,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CoinStatus, fmt
-from common.global_variables import SELF_MODELS_MODE, SELF_MODEL_SOURCE, LOCAL_MODEL_SOURCE
-
-if SELF_MODELS_MODE:
-    model_source = SELF_MODEL_SOURCE
-else:
-    model_source = LOCAL_MODEL_SOURCE
+from common.global_variables import CoinStatus, fmt, LOCAL_MODEL_SOURCE
 
 
 def convert_unit_2(unit):
@@ -105,19 +99,19 @@ def get_invest_krw_live(upbit, coin_ticker_name):
 
 
 def save_model(coin_name, model, model_type="GB"):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(model_source, model_type, coin_name))
+    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
     for f in files:
         os.remove(f)
 
-    file_name = "{0}{1}/{2}.pkl".format(model_source, model_type, coin_name)
+    file_name = "{0}{1}/{2}.pkl".format(LOCAL_MODEL_SOURCE, model_type, coin_name)
     with open(file_name, 'wb') as f:
         pickle.dump(model, f)
 
 
 def load_model(coin_name, model_type="GB"):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(model_source, model_type, coin_name))
+    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
     if len(files) > 0:
-        file_name = "{0}{1}/{2}.pkl".format(model_source, model_type, coin_name)
+        file_name = "{0}{1}/{2}.pkl".format(LOCAL_MODEL_SOURCE, model_type, coin_name)
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
         return model

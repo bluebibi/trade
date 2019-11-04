@@ -32,11 +32,6 @@ logger = get_logger("make_models")
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
-if SELF_MODELS_MODE:
-    model_source = SELF_MODEL_SOURCE
-else:
-    model_source = LOCAL_MODEL_SOURCE
-
 
 def mkdir_scalers():
     if not os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers")):
@@ -59,7 +54,7 @@ def mkdir_models(source):
 
 def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
                avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/graphs/{2}*'.format(model_source, model_type, coin_name))
+    files = glob.glob(PROJECT_HOME + '{0}{1}/graphs/{2}*'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
     for f in files:
         os.remove(f)
 
@@ -82,7 +77,7 @@ def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_
     ax_lst[1][1].set_xlabel('EPISODES', size=10)
 
     filename = PROJECT_HOME + "{0}{1}/graphs/{2}_{3}_{4:.2f}_{5:.2f}_{6}_{7:.2f}.png".format(
-        model_source,
+        LOCAL_MODEL_SOURCE,
         model_type,
         coin_name,
         last_save_epoch,
@@ -354,13 +349,12 @@ def main(coin_names, model_source):
     start_time = time.time()
 
     heading_msg = "\n**************************\n"
-    heading_msg += "WINDOW SIZE:{0}, FUTURE_TARGET_SIZE:{1}, UP_RATE:{2}, INPUT_SIZE:{3}, DEVICE:{4}, SELF_MODEL_MODE:{5}, MODEL_SOURCE:{6}".format(
+    heading_msg += "WINDOW SIZE:{0}, FUTURE_TARGET_SIZE:{1}, UP_RATE:{2}, INPUT_SIZE:{3}, DEVICE:{4}, MODEL_SOURCE:{5}".format(
         WINDOW_SIZE,
         FUTURE_TARGET_SIZE,
         UP_RATE,
         INPUT_SIZE,
         DEVICE,
-        SELF_MODELS_MODE,
         model_source
     )
     logger.info(heading_msg)
@@ -414,7 +408,6 @@ def main(coin_names, model_source):
 
 if __name__ == "__main__":
     mkdir_models(LOCAL_MODEL_SOURCE)
-    mkdir_models(SELF_MODEL_SOURCE)
     mkdir_scalers()
 
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
@@ -422,9 +415,4 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        if SELF_MODELS_MODE:
-            main(coin_names=upbit.get_all_coin_names(), model_source=SELF_MODEL_SOURCE)
-        else:
-            main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
-
-    #main(coin_names=["OMG"])
+        main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
