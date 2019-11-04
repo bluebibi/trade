@@ -26,12 +26,6 @@ if os.getcwd().endswith("predict"):
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
-if SELF_MODELS_MODE:
-    model_source = SELF_MODEL_SOURCE
-else:
-    model_source = LOCAL_MODEL_SOURCE
-
-
 engine_trade = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
 db_trade_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine_trade))
 
@@ -55,11 +49,11 @@ def get_coin_ticker_names_by_bought_or_trailed_status():
 
 def get_good_quality_models_for_buy():
     lstm_models = {}
-    lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(model_source))
+    lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(LOCAL_MODEL_SOURCE))
 
     for f in lstm_files:
         if os.path.isfile(f):
-            coin_name = f.split(PROJECT_HOME + '{0}LSTM/'.format(model_source))[1].split("_")[0]
+            coin_name = f.split(PROJECT_HOME + '{0}LSTM/'.format(LOCAL_MODEL_SOURCE))[1].split("_")[0]
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()
