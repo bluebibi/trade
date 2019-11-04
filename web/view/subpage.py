@@ -92,7 +92,8 @@ def get_KRW_BTC_info():
 def news_main():
 
     last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
-
+    num_krw_btc_records = locale.format_string("%.0f", num_krw_btc_records, grouping=True)
+    
     return render_template("subpage/data_collects.html", menu="data_collects",
                            last_krw_btc_datetime=last_krw_btc_datetime, num_krw_btc_records=num_krw_btc_records)
 
