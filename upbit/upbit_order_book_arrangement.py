@@ -8,12 +8,15 @@ sys.path.append(PROJECT_HOME)
 
 from common.utils import convert_to_daily_timestamp
 from common.logger import get_logger
+from upbit.upbit_api import Upbit
+from common.global_variables import *
+import sqlite3
 
-
-from db.sqlite_handler import *
 
 logger = get_logger("upbit_order_book_arrangement")
 
+select_by_start_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT 1;"
+select_by_final_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT 1;"
 
 class UpbitOrderBookArrangement:
     def __init__(self, coin_name):
@@ -103,8 +106,18 @@ class UpbitOrderBookArrangement:
     def insert_missing_record(self, previous_base_datetime_str, missing_base_datetime_str):
         with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
+            select_order_book_by_datetime = """
+                SELECT * FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;
+            """
             cursor.execute(select_order_book_by_datetime.format(self.coin_name), (previous_base_datetime_str,))
             info = cursor.fetchone()
+
+            order_book_insert_sql = """
+                INSERT INTO 'KRW_{0}_ORDER_BOOK' VALUES(
+                NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """
 
             cursor.execute(order_book_insert_sql.format(self.coin_name), (
                 missing_base_datetime_str, convert_to_daily_timestamp(missing_base_datetime_str), info[3],
