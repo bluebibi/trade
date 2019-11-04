@@ -75,11 +75,8 @@ def _models():
             gb_model_last_modified
         )
 
-    last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
-
     return render_template("subpage/models.html", menu="models",
-                           num_xgboost_models=num_xgboost_models, num_gb_models=num_gb_models,
-                           last_krw_btc_datetime=last_krw_btc_datetime, num_krw_btc_records=num_krw_btc_records)
+                           num_xgboost_models=num_xgboost_models, num_gb_models=num_gb_models)
 
 
 def get_KRW_BTC_info():
@@ -93,7 +90,11 @@ def get_KRW_BTC_info():
 
 @subpage_blueprint.route('/data_collects')
 def news_main():
-    return render_template("subpage/data_collects.html", menu="data_collects")
+
+    last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
+
+    return render_template("subpage/data_collects.html", menu="data_collects",
+                           last_krw_btc_datetime=last_krw_btc_datetime, num_krw_btc_records=num_krw_btc_records)
 
 
 @subpage_blueprint.route('/trail')
