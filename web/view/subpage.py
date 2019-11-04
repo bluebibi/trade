@@ -24,7 +24,7 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 def _models():
     coin_names = upbit.get_all_coin_names()
 
-    xgboost_model_files = glob.glob(PROJECT_HOME + '{0}XGBOOST/*.pkl'.format(model_source))
+    xgboost_model_files = glob.glob(PROJECT_HOME + '{0}XGBOOST/*.pkl'.format(LOCAL_MODEL_SOURCE))
     xgboost_models = {}
     for xgboost_file in xgboost_model_files:
         xgboost_file_name = xgboost_file.split("/")[-1].split(".pkl")
@@ -36,7 +36,7 @@ def _models():
             "last_modified": time_diff
         }
 
-    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(model_source))
+    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(LOCAL_MODEL_SOURCE))
     gb_models = {}
     for gb_file in gb_model_files:
         gb_file_name = gb_file.split("/")[-1].split(".pkl")
