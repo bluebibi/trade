@@ -93,7 +93,7 @@ def news_main():
 
     last_krw_btc_datetime, num_krw_btc_records = get_KRW_BTC_info()
     num_krw_btc_records = locale.format_string("%.0f", num_krw_btc_records, grouping=True)
-    
+
     return render_template("subpage/data_collects.html", menu="data_collects",
                            last_krw_btc_datetime=last_krw_btc_datetime, num_krw_btc_records=num_krw_btc_records)
 
@@ -153,7 +153,7 @@ def _price_info_json(trade_id=None, coin_name=None, base_datetime_str=None, retu
     else:
         base_datetime = base_datetime_str
 
-    for cursor in range(-WINDOW_SIZE, FUTURE_TARGET_SIZE):
+    for cursor in range(-WINDOW_SIZE, FUTURE_TARGET_SIZE + 1):
         c_base_datetime = base_datetime + dt.timedelta(minutes=cursor * 10)
         c_base_datetime_str = dt.datetime.strftime(c_base_datetime, fmt.replace("T", " "))
         datetime_lst.append(c_base_datetime_str)
