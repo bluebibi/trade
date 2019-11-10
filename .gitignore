@@ -24,6 +24,6 @@ logs/
 
 predict/scalers/
 
-temp/
+tests/temp/
 
 *.log

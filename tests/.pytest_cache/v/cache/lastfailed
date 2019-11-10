@@ -1,0 +1,5 @@
+{
+  "test_upbit_api.py": true,
+  "test_upbit_api.py::UpBitAPITestCase::test_get_tickers": true,
+  "test_upbit_api.py::UpBitAPITestCase::test_order_book_consecutiveness": true
+}

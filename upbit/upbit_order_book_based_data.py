@@ -81,13 +81,17 @@ class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
 
-    def get_dataset_for_buy(self, model_type="LSTM"):
+    def get_original_dataset_for_buy(self):
         df = pd.read_sql_query(
             select_all_from_order_book_for_one_coin_recent_window.format(self.coin_name, WINDOW_SIZE),
             sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
         )
 
         df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
+        return df
+
+    def get_dataset_for_buy(self, model_type="LSTM"):
+        df = self.get_original_dataset_for_buy()
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
         if os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name)):
@@ -108,7 +112,7 @@ class UpbitOrderBookBasedData:
         else:
             return None
 
-    def _get_dataset(self, limit=False):
+    def get_original_dataset_for_training(self, limit=False):
         if limit:
             df = pd.read_sql_query(
                 select_all_from_order_book_for_one_coin_limit.format(self.coin_name, limit),
@@ -120,7 +124,10 @@ class UpbitOrderBookBasedData:
                 select_all_from_order_book_for_one_coin.format(self.coin_name),
                 sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
             )
+        return df
 
+    def _get_dataset(self, limit=False):
+        df = self.get_original_dataset_for_training(limit)
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
         data = torch.from_numpy(df.values).to(DEVICE)

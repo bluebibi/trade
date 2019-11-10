@@ -169,6 +169,7 @@ def main():
             upbit_data = UpbitOrderBookBasedData(coin_name)
             x = upbit_data.get_dataset_for_buy(model_type="GB")
 
+            print("coin_name: {0}".format(coin_name), x)
             # lstm_prob = evaluate_coin_by_model(
             #     coin_name=coin_name,
             #     x=x,
