@@ -94,9 +94,9 @@ class UpbitOrderBookBasedData:
         df = self.get_original_dataset_for_buy()
         df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
 
-        if os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name)):
+        if os.path.exists(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name)):
             try:
-                with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'rb') as f:
+                with open(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name), 'rb') as f:
                     min_max_scaler = pickle.load(f)
 
                 data_normalized = min_max_scaler.transform(df.values)
@@ -136,7 +136,7 @@ class UpbitOrderBookBasedData:
         data_normalized = min_max_scaler.fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
 
-        with open(os.path.join(PROJECT_HOME, "predict", "scalers", self.coin_name), 'wb') as f:
+        with open(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name), 'wb') as f:
             pickle.dump(min_max_scaler, f)
 
         x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(

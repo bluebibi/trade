@@ -34,8 +34,8 @@ if os.getcwd().endswith("predict"):
 
 
 def mkdir_scalers():
-    if not os.path.exists(os.path.join(PROJECT_HOME, "predict", "scalers")):
-        os.makedirs(os.path.join(PROJECT_HOME, "predict", "scalers"))
+    if not os.path.exists(os.path.join(PROJECT_HOME, "models", "scalers")):
+        os.makedirs(os.path.join(PROJECT_HOME, "models", "scalers"))
 
 
 def mkdir_models(source):
