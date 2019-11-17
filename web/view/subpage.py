@@ -2,6 +2,10 @@ import locale
 from flask import Blueprint, render_template, request, jsonify
 import sys, os
 
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
 from upbit.upbit_api import Upbit
 
 idx = os.getcwd().index("trade")
@@ -16,6 +20,9 @@ from common.utils import *
 subpage_blueprint = Blueprint('subpage', __name__)
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
+engine_model = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
+Session = sessionmaker(bind=engine_model)
+session = Session()
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 

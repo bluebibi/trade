@@ -100,19 +100,20 @@ def get_invest_krw_live(upbit, coin_ticker_name):
 
 
 def save_model(coin_name, model, model_type="GB"):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
+    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name)))
     for f in files:
         os.remove(f)
 
-    file_name = "{0}{1}/{2}.pkl".format(LOCAL_MODEL_SOURCE, model_type, coin_name)
+    file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name))
     with open(file_name, 'wb') as f:
         pickle.dump(model, f)
+    return file_name
 
 
 def load_model(coin_name, model_type="GB"):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/{2}.pkl'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
+    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name)))
     if len(files) > 0:
-        file_name = "{0}{1}/{2}.pkl".format(LOCAL_MODEL_SOURCE, model_type, coin_name)
+        file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name))
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
         return model

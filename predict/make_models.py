@@ -5,11 +5,12 @@ import time
 
 import sys, os
 import xgboost as xgb
+from pytz import timezone
 
 from sklearn.metrics import classification_report, precision_score
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring, EarlyStopping
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 
@@ -23,6 +24,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import *
 import matplotlib.pyplot as plt
+from common.utils import *
 
 from predict.model_rnn import LSTM
 import numpy as np
@@ -45,17 +47,23 @@ Base = declarative_base()
 
 class Model(Base):
     __tablename__ = 'model'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     coin_name = Column(String)
     model_type = Column(String)
-    model_file = Column(String)
-    email = Column(String)
-    age = Column(Integer)
+    model_filename = Column(String)
+    window_size = Column(Integer)
+    future_target_size = Column(Integer)
+    up_rate = Column(Float)
+    feature_size = Column(Integer)
+    datetime = Column(String)
+    one_rate = Column(Float)
+    train_size = Column(Integer)
 
     def __repr__(self):
-        return "[ID: {0}] Coin Name: {1} Model Type: {2}, Model File: {3}, Age: {4}, Invoices: {5}".format(
-            self.id, self.coin_name, self.model_type, self.model_file, self.age, self.invoices
+        return "[ID: {0}] Coin Name: {1} Model Type: {2}, Model Filename: {3}, Datetime: {4}, One Rate: {5}, Train Size: {6}".format(
+            self.id, self.coin_name, self.model_type, self.model_filename, self.datetime, self.one_rate, self.train_size
         )
 
 
@@ -315,6 +323,10 @@ def main(coin_names, model_source):
     )
     logger.info(heading_msg)
 
+    now = dt.datetime.now(timezone('Asia/Seoul'))
+    now_str = now.strftime(fmt)
+    current_time_str = now_str.replace("T", " ")
+
     for i, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
@@ -342,12 +354,70 @@ def main(coin_names, model_source):
             if VERBOSE:
                 logger.info("[[[XGBoost]]]")
             best_model = make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            save_model(coin_name, best_model, model_type="XGBOOST")
+            model_filename = save_model(coin_name, best_model, model_type="XGBOOST")
+
+            model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'XGBOOST')
+
+            if model:
+                model.model_filename=model_filename
+                model.one_rate=one_rate
+                model.train_size=total_size
+                model.datetime=current_time_str
+                model.window_size=WINDOW_SIZE
+                model.future_target_size=FUTURE_TARGET_SIZE
+                model.up_rate=UP_RATE
+                model.feature_size=INPUT_SIZE
+
+                session.commit()
+            else:
+                model = Model(
+                    coin_name=coin_name,
+                    model_type="XGBOOST",
+                    model_filename=model_filename,
+                    one_rate=one_rate,
+                    train_size=total_size,
+                    datetime=current_time_str,
+                    window_size=WINDOW_SIZE,
+                    future_target_size=FUTURE_TARGET_SIZE,
+                    up_rate=UP_RATE,
+                    feature_size=INPUT_SIZE
+                )
+                session.add(model)
+                session.commit()
 
             if VERBOSE:
                 logger.info("[[[Gradient Boosting]]]")
             best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            save_model(coin_name, best_model, model_type="GB")
+            model_filename = save_model(coin_name, best_model, model_type="GB")
+
+            model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'GB')
+
+            if model:
+                model.model_filename = model_filename
+                model.one_rate = one_rate
+                model.train_size = total_size
+                model.datetime = current_time_str
+                model.window_size = WINDOW_SIZE
+                model.future_target_size = FUTURE_TARGET_SIZE
+                model.up_rate = UP_RATE
+                model.feature_size = INPUT_SIZE
+
+                session.commit()
+            else:
+                model = Model(
+                    coin_name=coin_name,
+                    model_type="GB",
+                    model_filename=model_filename,
+                    one_rate=one_rate,
+                    train_size=total_size,
+                    datetime=current_time_str,
+                    window_size=WINDOW_SIZE,
+                    future_target_size=FUTURE_TARGET_SIZE,
+                    up_rate=UP_RATE,
+                    feature_size=INPUT_SIZE
+                )
+                session.add(model)
+                session.commit()
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
