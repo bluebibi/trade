@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from web.db.database import BuySell, get_order_book_class
@@ -49,11 +49,11 @@ def get_coin_ticker_names_by_bought_or_trailed_status():
 
 def get_good_quality_models_for_buy():
     lstm_models = {}
-    lstm_files = glob.glob(PROJECT_HOME + '{0}LSTM/*.pt'.format(LOCAL_MODEL_SOURCE))
+    lstm_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'LSTM', '*.pt'))
 
     for f in lstm_files:
         if os.path.isfile(f):
-            coin_name = f.split(PROJECT_HOME + '{0}LSTM/'.format(LOCAL_MODEL_SOURCE))[1].split("_")[0]
+            coin_name = f.split(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'LSTM'))[1].split("_")[0]
             model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
             model.load_state_dict(torch.load(f, map_location=DEVICE))
             model.eval()

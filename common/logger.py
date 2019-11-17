@@ -1,4 +1,3 @@
-import glob
 import logging, os, sys
 from logging.handlers import RotatingFileHandler
 from common.global_variables import PROJECT_HOME
@@ -16,16 +15,11 @@ def get_logger(name):
     logger.propagate = False
     logger.setLevel(logging.INFO)
 
-    if not os.path.exists(PROJECT_HOME + "/logs/"):
-        os.makedirs(PROJECT_HOME + "/logs/")
-
-    # files = glob.glob(PROJECT_HOME + "/logs/*")
-    # for f in files:
-    #     if os.path.isfile(f):
-    #         os.remove(f)
+    if not os.path.exists(os.path.join(PROJECT_HOME, "logs")):
+        os.makedirs(os.path.join(PROJECT_HOME, "logs"))
 
     rotate_handler = RotatingFileHandler(
-        PROJECT_HOME + "/logs/" + name + ".log",
+        os.path.join(PROJECT_HOME, "logs", name + ".log"),
         'a',
         1024 * 1024 * 5,
         5

@@ -10,7 +10,7 @@ from predict.model_rnn import LSTM
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 

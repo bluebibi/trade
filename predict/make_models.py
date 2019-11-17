@@ -9,9 +9,16 @@ import xgboost as xgb
 from sklearn.metrics import classification_report, precision_score
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring, EarlyStopping
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session
+
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.model_selection import ParameterGrid
+from sklearn.ensemble import GradientBoostingClassifier
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import *
@@ -32,29 +39,51 @@ logger = get_logger("make_models")
 if os.getcwd().endswith("predict"):
     os.chdir("..")
 
+engine_model = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
+Base = declarative_base()
 
-def mkdir_scalers():
-    if not os.path.exists(os.path.join(PROJECT_HOME, "models", "scalers")):
-        os.makedirs(os.path.join(PROJECT_HOME, "models", "scalers"))
+
+class Model(Base):
+    __tablename__ = 'model'
+
+    id = Column(Integer, primary_key=True)
+    coin_name = Column(String)
+    model_type = Column(String)
+    model_file = Column(String)
+    email = Column(String)
+    age = Column(Integer)
+
+    def __repr__(self):
+        return "[ID: {0}] Coin Name: {1} Model Type: {2}, Model File: {3}, Age: {4}, Invoices: {5}".format(
+            self.id, self.coin_name, self.model_type, self.model_file, self.age, self.invoices
+        )
+
+
+Base.metadata.create_all(engine_model)
+Session = sessionmaker(bind=engine_model)
+session = Session()
 
 
 def mkdir_models(source):
-    if not os.path.exists(PROJECT_HOME + "{0}".format(source)):
-        os.makedirs(PROJECT_HOME + "{0}".format(source))
+    if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE)):
+        os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE))
 
     model_type_list = ['LSTM', 'GB', 'XGBOOST']
 
     for model_type in model_type_list:
-        if not os.path.exists(PROJECT_HOME + "{0}{1}".format(source, model_type)):
-            os.makedirs(PROJECT_HOME + "{0}{1}".format(source, model_type))
+        if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type)):
+            os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type))
 
-        if not os.path.exists(PROJECT_HOME + "{0}{1}/graphs".format(source, model_type)):
-            os.makedirs(PROJECT_HOME + "{0}{1}/graphs".format(source, model_type))
+        if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, 'graphs')):
+            os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, 'graphs'))
+
+    if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'SCALERS')):
+        os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'SCALERS'))
 
 
 def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_save_epoch, valid_size, one_count_rate,
                avg_train_losses, train_accuracy_list, avg_valid_losses, valid_accuracy_list):
-    files = glob.glob(PROJECT_HOME + '{0}{1}/graphs/{2}*'.format(LOCAL_MODEL_SOURCE, model_type, coin_name))
+    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, coin_name + '*'))
     for f in files:
         os.remove(f)
 
@@ -76,16 +105,14 @@ def save_graph(coin_name, model_type, valid_loss_min, last_valid_accuracy, last_
     ax_lst[1][1].set_title('VALIDATION ACCURACY CHANGE', fontweight="bold", size=10)
     ax_lst[1][1].set_xlabel('EPISODES', size=10)
 
-    filename = PROJECT_HOME + "{0}{1}/graphs/{2}_{3}_{4:.2f}_{5:.2f}_{6}_{7:.2f}.png".format(
-        LOCAL_MODEL_SOURCE,
-        model_type,
+    filename = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, 'graphs', "{0}_{1}_{2:.2f}_{3:.2f}_{4}_{5:.2f}.png".format(
         coin_name,
         last_save_epoch,
         valid_loss_min,
         last_valid_accuracy,
         valid_size,
         one_count_rate
-    )
+    ))
 
     plt.savefig(filename)
     plt.close('all')
@@ -141,77 +168,6 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     valid_accuracy_list.append(valid_accuracy)
 
     return valid_loss, valid_accuracy
-
-
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.model_selection import ParameterGrid
-from sklearn.ensemble import GradientBoostingClassifier
-
-
-# def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):
-#     outer_score_list = []
-#     best_param_list = []
-#     model_list = []
-#
-#     num_outer_split = 1
-#     for training_samples_idx, test_samples_idx in outer_cv.split(X, y):
-#         logger.info("COIN_NAME: {0} - [Outer Split: #{0}]".format(coin_name, num_outer_split))
-#         best_score = -np.inf
-#
-#         for parameters in parameter_grid:
-#             # print("Parameters: {0}".format(parameters))
-#             cv_scores = []
-#             num_inner_split = 1
-#             for inner_train_idx, inner_test_idx in inner_cv.split(X[training_samples_idx], y[training_samples_idx]):
-#                 clf = Classifier(**parameters)
-#                 print(X[inner_train_idx])
-#                 print(y[inner_train_idx])
-#
-#                 clf.fit(X[inner_train_idx], y[inner_train_idx])
-#                 score = clf.score(X[inner_test_idx], y[inner_test_idx])
-#
-#                 y_true, y_pred = y[inner_test_idx], clf.predict(X[inner_test_idx])
-#                 print(y_true)
-#                 print(y_pred)
-#                 print(precision_score(y_true, y_pred))
-#
-#                 cv_scores.append(score)
-#                 #                 print("Inner Split: #{0}, Score: #{1}".format(
-#                 #                     num_inner_split,
-#                 #                     score
-#                 #                 ))
-#                 num_inner_split += 1
-#
-#             mean_score = np.mean(cv_scores)
-#             if mean_score > best_score:
-#                 best_score = mean_score
-#                 best_params = parameters
-#                 # print("Mean Score:{0}, Best Score:{1}".format(mean_score, best_score))
-#
-#         logger.info("COIN_NAME: {0} - Outer Split: #{1}, Best Score: {2}, Best Parameter: #{3}".format(
-#             coin_name,
-#             num_outer_split,
-#             best_score,
-#             best_params
-#         ))
-#
-#         clf = Classifier(**best_params)
-#         clf.fit(X[training_samples_idx], y[training_samples_idx])
-#
-#         best_param_list.append(best_params)
-#         outer_score_list.append(clf.score(X[test_samples_idx], y[test_samples_idx]))
-#         model_list.append(clf)
-#
-#         num_outer_split += 1
-#
-#     best_score = -np.inf
-#     best_model = None
-#     for idx, score in enumerate(outer_score_list):
-#         if score > best_score:
-#             best_score = score
-#             best_model = model_list[idx]
-#
-#     return best_model
 
 
 def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
@@ -407,8 +363,7 @@ def main(coin_names, model_source):
 
 
 if __name__ == "__main__":
-    mkdir_models(LOCAL_MODEL_SOURCE)
-    mkdir_scalers()
+    mkdir_models()
 
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", "MAKE MODELS STARTED @ {0}".format(SOURCE))
 
@@ -416,3 +371,69 @@ if __name__ == "__main__":
 
     while True:
         main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
+
+
+# def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):
+#     outer_score_list = []
+#     best_param_list = []
+#     model_list = []
+#
+#     num_outer_split = 1
+#     for training_samples_idx, test_samples_idx in outer_cv.split(X, y):
+#         logger.info("COIN_NAME: {0} - [Outer Split: #{0}]".format(coin_name, num_outer_split))
+#         best_score = -np.inf
+#
+#         for parameters in parameter_grid:
+#             # print("Parameters: {0}".format(parameters))
+#             cv_scores = []
+#             num_inner_split = 1
+#             for inner_train_idx, inner_test_idx in inner_cv.split(X[training_samples_idx], y[training_samples_idx]):
+#                 clf = Classifier(**parameters)
+#                 print(X[inner_train_idx])
+#                 print(y[inner_train_idx])
+#
+#                 clf.fit(X[inner_train_idx], y[inner_train_idx])
+#                 score = clf.score(X[inner_test_idx], y[inner_test_idx])
+#
+#                 y_true, y_pred = y[inner_test_idx], clf.predict(X[inner_test_idx])
+#                 print(y_true)
+#                 print(y_pred)
+#                 print(precision_score(y_true, y_pred))
+#
+#                 cv_scores.append(score)
+#                 #                 print("Inner Split: #{0}, Score: #{1}".format(
+#                 #                     num_inner_split,
+#                 #                     score
+#                 #                 ))
+#                 num_inner_split += 1
+#
+#             mean_score = np.mean(cv_scores)
+#             if mean_score > best_score:
+#                 best_score = mean_score
+#                 best_params = parameters
+#                 # print("Mean Score:{0}, Best Score:{1}".format(mean_score, best_score))
+#
+#         logger.info("COIN_NAME: {0} - Outer Split: #{1}, Best Score: {2}, Best Parameter: #{3}".format(
+#             coin_name,
+#             num_outer_split,
+#             best_score,
+#             best_params
+#         ))
+#
+#         clf = Classifier(**best_params)
+#         clf.fit(X[training_samples_idx], y[training_samples_idx])
+#
+#         best_param_list.append(best_params)
+#         outer_score_list.append(clf.score(X[test_samples_idx], y[test_samples_idx]))
+#         model_list.append(clf)
+#
+#         num_outer_split += 1
+#
+#     best_score = -np.inf
+#     best_model = None
+#     for idx, score in enumerate(outer_score_list):
+#         if score > best_score:
+#             best_score = score
+#             best_model = model_list[idx]
+#
+#     return best_model

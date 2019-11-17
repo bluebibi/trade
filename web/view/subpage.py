@@ -5,8 +5,8 @@ import sys, os
 from upbit.upbit_api import Upbit
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
-sys.path.append(PROJECT_HOME)
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
+sys.path.append(os.path.join(PROJECT_HOME, "/"))
 
 from web.db.database import BuySell, get_order_book_class
 from web.db.database import db
@@ -24,7 +24,7 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 def _models():
     coin_names = upbit.get_all_coin_names()
 
-    xgboost_model_files = glob.glob(PROJECT_HOME + '{0}XGBOOST/*.pkl'.format(LOCAL_MODEL_SOURCE))
+    xgboost_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE,  'XGBOOST', '*.pkl'))
     xgboost_models = {}
     for xgboost_file in xgboost_model_files:
         xgboost_file_name = xgboost_file.split("/")[-1].split(".pkl")
@@ -36,7 +36,7 @@ def _models():
             "last_modified": time_diff
         }
 
-    gb_model_files = glob.glob(PROJECT_HOME + '{0}GB/*.pkl'.format(LOCAL_MODEL_SOURCE))
+    gb_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'GB', '*.pkl'))
     gb_models = {}
     for gb_file in gb_model_files:
         gb_file_name = gb_file.split("/")[-1].split(".pkl")

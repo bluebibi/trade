@@ -5,8 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
-sys.path.append(PROJECT_HOME)
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
+sys.path.append(os.path.join(PROJECT_HOME, "/"))
 
 from web.db.database import BuySell
 

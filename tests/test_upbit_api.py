@@ -9,11 +9,10 @@ import sys, os
 from sklearn.preprocessing import MinMaxScaler
 
 from common.utils import convert_to_daily_timestamp, get_invest_krw
-from db.sqlite_handler import select_all_from_order_book_for_one_coin
 from upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import *

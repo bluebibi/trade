@@ -34,9 +34,9 @@ def create_application():
     application.config['DEBUG'] = WEB_DEBUG
     #application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
     application.config['SQLALCHEMY_BINDS'] = {
-        'user':                     'sqlite:///db/user.db',
-        'upbit_buy_sell':           'sqlite:///db/upbit_buy_sell.db',
-        'upbit_order_book_info':    'sqlite:///db/upbit_order_book_info.db'
+        'user':                     'sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME),
+        'upbit_buy_sell':           'sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME),
+        'upbit_order_book_info':    'sqlite:///{0}/web/db/upbit_order_book_info.db'.format(PROJECT_HOME)
     }
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     application.config['WTF_CSRF_SECRET_KEY'] = os.urandom(24)

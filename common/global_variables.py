@@ -8,7 +8,7 @@ import sys, os
 from upbit.slack import PushSlack
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 
@@ -120,7 +120,6 @@ REMOTE_TARGET = config['PUSH_MODELS']['remote_target']
 SSH_SCP_TARGET_PORT = config['PUSH_MODELS']['ssh_scp_target_port']
 SSH_SCP_TARGET_ID = config['PUSH_MODELS']['ssh_scp_target_id']
 SSH_SCP_TARGET_PEM_FILE_PATH = config['PUSH_MODELS']['ssh_scp_target_pem_file_path']
-LOCAL_SOURCE = config['PUSH_MODELS']['local_source']
 LOCAL_MODEL_SOURCE = config['PUSH_MODELS']['local_model_source']
 
 #RL

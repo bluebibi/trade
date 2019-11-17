@@ -22,7 +22,7 @@ common/config.ini
 
 logs/
 
-predict/scalers/
+models/scalers/
 
 tests/temp/
 

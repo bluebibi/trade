@@ -6,7 +6,7 @@ from tensortrade.exchanges.live import CCXTExchange
 from tensortrade.strategies import StableBaselinesTradingStrategy
 
 idx = os.getcwd().index("trade")
-PROJECT_HOME = os.getcwd()[:idx] + "trade/"
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import *
