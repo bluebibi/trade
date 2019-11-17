@@ -358,6 +358,8 @@ def main(coin_names, model_source):
 
             model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'XGBOOST')
 
+            logger.info("{0}: {1}".format(coin_name, model))
+
             if model:
                 model.model_filename=model_filename
                 model.one_rate=one_rate
@@ -392,6 +394,8 @@ def main(coin_names, model_source):
 
             model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'GB')
 
+            logger.info("{0}: {1}".format(coin_name, model))
+            
             if model:
                 model.model_filename = model_filename
                 model.one_rate = one_rate
