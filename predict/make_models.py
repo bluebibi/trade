@@ -64,7 +64,7 @@ Session = sessionmaker(bind=engine_model)
 session = Session()
 
 
-def mkdir_models(source):
+def mkdir_models():
     if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE)):
         os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE))
 
