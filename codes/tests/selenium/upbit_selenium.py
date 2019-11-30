@@ -24,7 +24,7 @@ elif platform.system() == "Linux":
     driver = webdriver.Firefox(executable_path='./geckodriver')
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
-    driver.implicitly_wait(7)
+    driver.implicitly_wait(10)
 
 else:
     driver = None
