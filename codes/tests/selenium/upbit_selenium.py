@@ -23,7 +23,14 @@ if platform.system() == "Darwin":
 
 elif platform.system() == "Linux":
     options = Options()
-    options.headless = True
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors')
+    options.add_argument('--allow-insecure-localhost')
+    options.add_argument('--allow-running-insecure-content')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--start-maximized')
     driver = webdriver.Firefox(executable_path='./geckodriver', options=options)
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
@@ -38,6 +45,8 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 def get_info(coin_name):
     driver.get('https://upbit.com/exchange?code=CRIX.UPBIT.KRW-{0}'.format(coin_name))
+    driver.save_screenshot('picture.png')
+    
     driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
     html = driver.page_source
 
