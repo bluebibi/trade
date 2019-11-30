@@ -17,7 +17,7 @@ options.add_argument("headless")
 if platform.system() == "Darwin":
     driver = webdriver.Chrome('./chromedriver_mac', options=options)
 elif platform.system() == "Linux":
-    driver = webdriver.Chrome('./chromedriver_linux', options=options)
+    driver = webdriver.Firefox('./geckodriver', options=options)
 else:
     driver = None
 
