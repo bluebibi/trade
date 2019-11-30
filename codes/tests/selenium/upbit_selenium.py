@@ -30,8 +30,11 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 def get_info(coin_name):
     driver.get('https://upbit.com/exchange?code=CRIX.UPBIT.KRW-{0}'.format(coin_name))
-    driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
     html = driver.page_source
+    print(html)
+    
+    driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
+
 
     soup = BeautifulSoup(html, 'html.parser') # BeautifulSoup사용하기
 
