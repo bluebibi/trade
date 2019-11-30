@@ -75,7 +75,11 @@ if __name__ == "__main__":
     coin_names = upbit.get_all_coin_names()
 
     coin_info = {}
-    for coin_name in coin_names:
-        info = get_info(coin_name)
-        coin_info[coin_name] = info
-        print(coin_name, info)
+    try:
+        for coin_name in coin_names:
+            info = get_info(coin_name)
+            coin_info[coin_name] = info
+            print(coin_name, info)
+    except Exception as ex:
+        print(ex)
+        driver.close()
