@@ -19,31 +19,6 @@ logger = get_logger("upbit_api")
 pp = pprint.PrettyPrinter(indent=2)
 
 getframe_expr = 'sys._getframe({}).f_code.co_name'
-ccxt_upbit = ccxt.upbit()
-
-def get_markets(quote='KRW'):
-    upbit_markets = ccxt_upbit.load_markets()
-    markets_krw = []
-    for symbol, market in upbit_markets.items():
-        if '/{0}'.format(quote) in symbol:
-            market['symbol'] = market['symbol']
-            market['korean_name'] = market['info']['korean_name']
-            market['eng_name'] = market['info']['english_name']
-            market['limit_amount_max'] = market['limits']['amount']['max']
-            market['limit_amount_min'] = market['limits']['amount']['min']
-            market['limit_cost_max'] = market['limits']['cost']['max']
-            market['limit_cost_min'] = market['limits']['cost']['min']
-            market['limit_price_max'] = market['limits']['price']['max']
-            market['limit_price_min'] = market['limits']['price']['min']
-            market['maker'] = market['maker']
-            market['percentage'] = market['percentage']
-            market['precision_amount'] = market['precision']['amount']
-            market['precision_price'] = market['precision']['price']
-            market['taker'] = market['taker']
-            market['tierBased'] = market['tierBased']
-            markets_krw.append(market)
-    pprint.pprint(markets_krw)
-    return markets_krw
 
 
 def _send_post_request(url, headers=None, data=None):

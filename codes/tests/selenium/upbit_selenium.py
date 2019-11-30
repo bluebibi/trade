@@ -1,5 +1,10 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
+import sys, os
+
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
+sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 from codes.upbit.upbit_api import Upbit

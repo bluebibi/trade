@@ -19,6 +19,7 @@ common/config.ini
 /web/db/upbit_buy_sell.db
 /web/db/upbit_order_book_info.db
 /web/db/user.db
+/web/db/upbit_info.db
 
 logs/
 

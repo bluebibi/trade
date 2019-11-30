@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
-from web.db.database import db, User, get_order_book_class, BuySell
+from web.db.database import db, User, get_order_book_class, BuySell, UpbitInfo
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
@@ -35,6 +35,7 @@ def create_application():
     application.config['SQLALCHEMY_BINDS'] = {
         'user':                     'sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME),
         'upbit_buy_sell':           'sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME),
+        'upbit_info':               'sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME),
         'upbit_order_book_info':    'sqlite:///{0}/web/db/upbit_order_book_info.db'.format(PROJECT_HOME)
     }
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -52,6 +53,8 @@ def create_application():
     for coin_name in upbit.get_all_coin_names():
         if not db.engine.dialect.has_table(db.engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
             get_order_book_class(coin_name).__table__.create(bind=db.engine)
+
+    UpbitInfo.__table__.create(bind=db.engine)
 
     # create a user
     with application.app_context():

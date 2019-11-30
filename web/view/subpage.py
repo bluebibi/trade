@@ -5,7 +5,8 @@ import sys, os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from codes.upbit.upbit_api import Upbit, get_markets
+from codes.upbit.upbit_api import Upbit
+from codes.upbit.upbit_info import get_market_info
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -33,7 +34,7 @@ def _markets():
 
 @subpage_blueprint.route('/market_data', methods=["POST"])
 def _market_data():
-    return jsonify(get_markets(quote='KRW'))
+    return jsonify(get_market_info(quote='KRW'))
 
 
 @subpage_blueprint.route('/models')
