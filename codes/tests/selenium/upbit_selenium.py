@@ -20,7 +20,7 @@ if platform.system() == "Darwin":
     driver.implicitly_wait(5)
 
 elif platform.system() == "Linux":
-    driver = webdriver.Firefox(executable_path='./geckodriver')
+    driver = webdriver.Firefox(executable_path='./geckodriver', options=options)
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
     driver.implicitly_wait(10)
