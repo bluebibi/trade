@@ -24,12 +24,6 @@ if platform.system() == "Darwin":
 elif platform.system() == "Linux":
     options = Options()
     options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors')
-    options.add_argument('--allow-insecure-localhost')
-    options.add_argument('--allow-running-insecure-content')
-    options.add_argument('--disable-extensions')
     options.add_argument('--start-maximized')
     driver = webdriver.Firefox(executable_path='./geckodriver', options=options)
     driver.implicitly_wait(3)
@@ -46,7 +40,7 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 def get_info(coin_name):
     driver.get('https://upbit.com/exchange?code=CRIX.UPBIT.KRW-{0}'.format(coin_name))
     driver.save_screenshot('picture.png')
-    
+
     driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
     html = driver.page_source
 
@@ -81,6 +75,10 @@ def get_info(coin_name):
             else:
                 print("!!!!!!!!!!!!!!!!!!!!", cell_title.string)
 
+    website_css_selector = 'body.bgWhite > div#root > div > div > div > div.mainB > section.ty01 > article > div > div.scorllB > div > div > span.inforB > div.title > div.linkWrap > a'
+
+    website_tag = soup.select(website_css_selector)
+    print(website_tag)
     return info
 
 
