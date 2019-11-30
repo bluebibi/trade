@@ -14,7 +14,13 @@ print(platform.system())
 options = webdriver.ChromeOptions()
 options.add_argument("headless")
 
-driver = webdriver.Chrome('./chromedriver', options=options)
+if platform.system() == "Darwin":
+    driver = webdriver.Chrome('./chromedriver_mac', options=options)
+elif platform.system() == "Linux":
+    driver = webdriver.Chrome('./chromedriver_linux', options=options)
+else:
+    driver = None
+
 driver.implicitly_wait(3)
 driver.get('https://upbit.com')
 driver.implicitly_wait(5)
