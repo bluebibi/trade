@@ -70,12 +70,11 @@ def get_info(coin_name):
                 info['total_limit'] = cells[idx].string
             elif cell_title.string == '합의 프로토콜':
                 info['consensus_protocol'] = cells[idx].string
-            elif cell_title.string == '발행량':
-                info
             else:
                 print("!!!!!!!!!!!!!!!!!!!!", cell_title.string)
 
-    website_css_selector = 'body.bgWhite > div#root > div > div > div > div.mainB > section.ty01 > article > div > div.scorllB > div > div > span.inforB > div.title > div.linkWrap > a'
+    # website_css_selector = 'div.mainB > section.ty01 > article > div > div.scorllB > div > div > span.inforB > div.title > div.linkWrap > a'
+    website_css_selector = 'div.mainB > section.ty01 > article > div'
 
     website_tag = soup.select(website_css_selector)
     print(website_tag)
