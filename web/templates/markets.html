@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %} Auto Trade {% endblock %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-warning card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">content_copy</i>
+                    </div>
+                    <p class="card-category">총 매수</p>
+                    <h3 class="card-title"><span id="num">{{ num }}</span>
+                        <small></small>
+                    </h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons text-danger">warning</i>
+                        <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-success card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">store</i>
+                    </div>
+                    <p class="card-category">현재 추적</p>
+                    <h3 class="card-title"><span id="num_trail_bought">{{ num_trail_bought }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">date_range</i> <a href="#">Get More Information...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">총 성공 매도</p>
+                    <h3 class="card-title"><span id="num_total_success">{{ num_total_success }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">성공 매도</p>
+                    <h3 class="card-title"><span id="num_success">{{ num_success }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-danger card-header-icon">
+                    <div class="card-icon">
+                        <i class="material-icons">info_outline</i>
+                    </div>
+                    <p class="card-category">이득 매도</p>
+                    <h3 class="card-title"><span id="num_gain">{{ num_gain }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">local_offer</i> Tracked from Github
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <div class="card card-stats">
+                <div class="card-header card-header-info card-header-icon">
+                    <div class="card-icon">
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                    <p class="card-category">손실 매도</p>
+                    <h3 class="card-title"><span id="num_loss">{{ num_loss }}</span></h3>
+                </div>
+                <div class="card-footer">
+                    <div class="stats">
+                        <i class="material-icons">update</i> Just Updated
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <table id="trade_table"
+                   data-toggle="table" data-sortable="true" data-url="/subpage/market_data" data-method="POST" data-search="true"
+                   data-pagination="true" data-show-refresh="true" data-show-toggle="true"
+                   data-remember-order="true" data-show-button-icons="true"
+                   data-show-columns="true" data-icon-size="sm" data-page-size ="100">
+                <thead>
+                    <tr>
+                        <th data-field="symbol" data-sortable="true">Symbol</th>
+                        <th data-field="korean_name" data-sortable="true">Korean Name</th>
+                        <th data-field="eng_name" data-sortable="true">Name</th>
+                        <th data-field="limit_amount_max" data-sortable="true">Max Limit Amount</th>
+                        <th data-field="limit_amount_min" data-sortable="true">Min Limit Amount</th>
+                        <th data-field="limit_cost_max" data-sortable="true">Max Limit Cost</th>
+                        <th data-field="limit_cost_min" data-sortable="true">Min Limit Cost</th>
+                        <th data-field="limit_price_max" data-sortable="true">Max Limit Price</th>
+                        <th data-field="limit_price_min" data-sortable="true">Min Limit Price</th>
+                        <th data-field="maker" data-sortable="true">Maker</th>
+                        <th data-field="percentage" data-sortable="true">Percentage</th>
+                        <th data-field="precision_amount" data-sortable="true">Amount Precision</th>
+                        <th data-field="precision_price" data-sortable="true">Price Precision</th>
+                        <th data-field="taker" data-sortable="true">Taker</th>
+                        <th data-field="tierBased" data-sortable="true">TierBased</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block additional_javascript %}
+<script type="text/javascript">
+    $('#trade_table').bootstrapTable({
+        onRefresh: function (param) {
+            general_info_update()
+        },
+    })
+</script>
+{% endblock %}

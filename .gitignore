@@ -24,6 +24,6 @@ logs/
 
 models/scalers/
 
-tests/temp/
+codes/tests/temp/
 
 *.log

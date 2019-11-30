@@ -13,9 +13,8 @@ from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
 from flask import jsonify
-import json
 
-from upbit.upbit_api import Upbit
+from codes.upbit.upbit_api import Upbit
 import warnings
 warnings.filterwarnings('ignore')
 

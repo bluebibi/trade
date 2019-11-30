@@ -2,5 +2,5 @@
 #
 cd $HOME/git/trade
 
-$HOME/anaconda/envs/trade/bin/python -m predict.sell >> $HOME/git/trade/logs/error/sell.log 2>&1
+$HOME/anaconda/envs/trade/bin/python -m codes.predict.sell >> $HOME/git/trade/logs/error/sell.log 2>&1
 

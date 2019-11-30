@@ -3,10 +3,9 @@ from flask import Blueprint, render_template, request, jsonify
 import sys, os
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from upbit.upbit_api import Upbit
+from codes.upbit.upbit_api import Upbit, get_markets
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -25,6 +24,16 @@ Session = sessionmaker(bind=engine_model)
 session = Session()
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+
+
+@subpage_blueprint.route('/markets')
+def _markets():
+    return render_template('markets.html', menu="markets")
+
+
+@subpage_blueprint.route('/market_data', methods=["POST"])
+def _market_data():
+    return jsonify(get_markets(quote='KRW'))
 
 
 @subpage_blueprint.route('/models')

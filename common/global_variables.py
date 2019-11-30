@@ -5,7 +5,7 @@ import torch
 
 import sys, os
 
-from upbit.slack import PushSlack
+from codes.upbit.slack import PushSlack
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
