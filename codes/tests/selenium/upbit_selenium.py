@@ -24,11 +24,10 @@ elif platform.system() == "Linux":
     driver = webdriver.Firefox(executable_path='./geckodriver')
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
-    driver.implicitly_wait(15)
+    driver.implicitly_wait(7)
 
 else:
     driver = None
-
 
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
@@ -39,7 +38,7 @@ def get_info(coin_name):
     html = driver.page_source
     driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
 
-    soup = BeautifulSoup(html, 'html.parser') # BeautifulSoup사용하기
+    soup = BeautifulSoup(html, 'html.parser')
 
     info_table_css_selector = 'article > div > div.scrollB > div > div > span.inforB > div.tableLayout > table'
 
