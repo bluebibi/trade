@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 import sys, os
 
+from selenium.webdriver.firefox.options import Options
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -10,16 +12,18 @@ from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 from codes.upbit.upbit_api import Upbit
 import platform
 
-options = webdriver.ChromeOptions()
-options.add_argument("headless")
 
 if platform.system() == "Darwin":
+    options = webdriver.ChromeOptions()
+    options.add_argument("headless")
     driver = webdriver.Chrome('./chromedriver_mac', options=options)
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
     driver.implicitly_wait(5)
 
 elif platform.system() == "Linux":
+    options = Options()
+    options.headless = True
     driver = webdriver.Firefox(executable_path='./geckodriver', options=options)
     driver.implicitly_wait(3)
     driver.get('https://upbit.com')
