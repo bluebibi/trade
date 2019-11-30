@@ -54,8 +54,6 @@ def create_application():
         if not db.engine.dialect.has_table(db.engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
             get_order_book_class(coin_name).__table__.create(bind=db.engine)
 
-    UpbitInfo.__table__.create(bind=db.engine)
-
     # create a user
     with application.app_context():
         email = "yh21.han@gmail.com"
