@@ -128,7 +128,7 @@
                 <thead>
                     <tr class="text-center">
                         <th data-field="coin_name" data-formatter="coin_formatter">코인</th>
-                        <th data-field="market" data-sortable="true">마켓</th>
+                        <th data-field="market" data-sortable="true">마켓 이름</th>
                         <th data-field="korean_name" data-sortable="true">코인 이름</th>
                         <th data-field="eng_name" data-sortable="true">영문 이름</th>
                         <th data-field="birth" data-sortable="true">최초발행</th>
@@ -140,20 +140,20 @@
                         <th data-field="consensus_protocol" data-sortable="true">합의 프로토콜</th>
                         <th data-field="maker" data-sortable="true">Maker</th>
                         <th data-field="taker" data-sortable="true">Taker</th>
-                        <th data-field="num_exchanges" data-sortable="true">상장거래소</th>
-                        <th data-field="period_block_creation" data-sortable="true">블럭 생성주기</th>
-                        <th data-field="mine_reward_unit" data-sortable="true">채굴 보상량</th>
-                        <th data-field="total_limit" data-sortable="true">총 발행한도</th>
-                        <th data-field="limit_amount_max" data-sortable="true">Max Limit Amount</th>
-                        <th data-field="limit_amount_min" data-sortable="true">Min Limit Amount</th>
-                        <th data-field="limit_cost_max" data-sortable="true">Max Limit Cost</th>
-                        <th data-field="limit_cost_min" data-sortable="true">Min Limit Cost</th>
-                        <th data-field="limit_price_max" data-sortable="true">Max Limit Price</th>
-                        <th data-field="limit_price_min" data-sortable="true">Min Limit Price</th>
-                        <th data-field="percentage" data-sortable="true">Percentage</th>
-                        <th data-field="precision_amount" data-sortable="true">Amount Precision</th>
-                        <th data-field="precision_price" data-sortable="true">Price Precision</th>
-                        <th data-field="tierBased" data-sortable="true">TierBased</th>
+{#                        <th data-field="num_exchanges" data-sortable="true">상장거래소</th>#}
+{#                        <th data-field="period_block_creation" data-sortable="true">블럭 생성주기</th>#}
+{#                        <th data-field="mine_reward_unit" data-sortable="true">채굴 보상량</th>#}
+{#                        <th data-field="total_limit" data-sortable="true">총 발행한도</th>#}
+{#                        <th data-field="limit_amount_max" data-sortable="true">Max Limit Amount</th>#}
+{#                        <th data-field="limit_amount_min" data-sortable="true">Min Limit Amount</th>#}
+{#                        <th data-field="limit_cost_max" data-sortable="true">Max Limit Cost</th>#}
+{#                        <th data-field="limit_cost_min" data-sortable="true">Min Limit Cost</th>#}
+{#                        <th data-field="limit_price_max" data-sortable="true">Max Limit Price</th>#}
+{#                        <th data-field="limit_price_min" data-sortable="true">Min Limit Price</th>#}
+{#                        <th data-field="percentage" data-sortable="true">Percentage</th>#}
+{#                        <th data-field="precision_amount" data-sortable="true">Amount Precision</th>#}
+{#                        <th data-field="precision_price" data-sortable="true">Price Precision</th>#}
+{#                        <th data-field="tierBased" data-sortable="true">TierBased</th>#}
                     </tr>
                 </thead>
             </table>
@@ -174,13 +174,13 @@
     }
 
     function coin_formatter(value, row, index) {
-        return ['<img src="/static/assets/img/coin_images/', value, '.png" width="50%" />'].join('');
+        return ['<img src="/static/assets/img/coin_images/', value, '.png" width="20%" />'].join('');
     }
 
     function detailFormatter(index, row) {
         var html = []
         $.each(row, function (key, value) {
-          html.push('<p class="text-left"><b>' + key + ':</b> ' + value + '</p>')
+          html.push('<p class="text-left" style="word-wrap: break-word;"><b>' + key + ':</b> ' + value + '</p>')
         })
         return html.join('')
     }

@@ -51,11 +51,12 @@ def get_coin_info(coin_name):
 
     table_tags = soup.select(info_table_css_selector)
 
+    info = {}
+
     if len(table_tags) != 0:
         table = soup.select(info_table_css_selector)[0]
         rows = table.findChildren(['th', 'tr'])
 
-        info = {}
         for row in rows:
             cell_titles = row.findChildren('th')
             cells = row.findChildren('td')
@@ -91,8 +92,10 @@ def get_coin_info(coin_name):
             info["block_site"] = tag.get_attribute_list("href")[0]
 
     intro_css_selector = 'div.mainB > section.ty01 > article > div > div.scrollB > div > div > span.inforB > div.desc'
-    intro_tags = soup.select(intro_css_selector)
-    print(intro_tags)
+    intro_tags_lst = soup.select(intro_css_selector)
+    if len(intro_tags_lst) > 0:
+        intro_tags = soup.select(intro_css_selector)[0]
+        info["intro"] = intro_tags.text
 
     try:
         driver.switch_to.frame(driver.find_element_by_tag_name("iframe#twitter-widget-0"))
@@ -121,6 +124,6 @@ if __name__ == "__main__":
             print(coin_name, info)
     except Exception as ex:
         print(ex)
+    finally:
         driver.close()
-
-driver.close()
+        driver.quit()
