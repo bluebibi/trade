@@ -67,6 +67,7 @@ class UpbitInfo(Base):
 
     def to_dict(self):
         d = {}
+        d["coin_name"] = self.market.replace("KRW-", "")
         d["market"] = self.market
         d["korean_name"] = self.korean_name
         d["eng_name"] = self.eng_name

@@ -127,6 +127,7 @@
                    data-detail-view="true">
                 <thead>
                     <tr class="text-center">
+                        <th data-field="coin_name" data-formatter="coin_formatter">코인</th>
                         <th data-field="market" data-sortable="true">마켓</th>
                         <th data-field="korean_name" data-sortable="true">코인 이름</th>
                         <th data-field="eng_name" data-sortable="true">영문 이름</th>
@@ -136,13 +137,13 @@
                         <th data-field="whitepaper" data-sortable="true" data-formatter="link_formatter">백서</th>
                         <th data-field="block_site" data-sortable="true" data-formatter="link_formatter">블록조회</th>
                         <th data-field="total_markets" data-sortable="true">시가총액</th>
+                        <th data-field="consensus_protocol" data-sortable="true">합의 프로토콜</th>
+                        <th data-field="maker" data-sortable="true">Maker</th>
+                        <th data-field="taker" data-sortable="true">Taker</th>
                         <th data-field="num_exchanges" data-sortable="true">상장거래소</th>
                         <th data-field="period_block_creation" data-sortable="true">블럭 생성주기</th>
                         <th data-field="mine_reward_unit" data-sortable="true">채굴 보상량</th>
                         <th data-field="total_limit" data-sortable="true">총 발행한도</th>
-                        <th data-field="consensus_protocol" data-sortable="true">합의 프로토콜</th>
-                        <th data-field="maker" data-sortable="true">Maker</th>
-                        <th data-field="taker" data-sortable="true">Taker</th>
                         <th data-field="limit_amount_max" data-sortable="true">Max Limit Amount</th>
                         <th data-field="limit_amount_min" data-sortable="true">Min Limit Amount</th>
                         <th data-field="limit_cost_max" data-sortable="true">Max Limit Cost</th>
@@ -169,7 +170,11 @@
     })
 
     function link_formatter(value, row, index) {
-        return ['<a href="', value, '" target="_blank">Home</a>'].join('');
+        return ['<a href="', value, '" target="_blank">Link</a>'].join('');
+    }
+
+    function coin_formatter(value, row, index) {
+        return ['<img src="/static/assets/img/coin_images/', value, '.png" width="50%" />'].join('');
     }
 
     function detailFormatter(index, row) {
