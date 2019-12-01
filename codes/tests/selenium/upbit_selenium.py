@@ -39,7 +39,7 @@ upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 def get_info(coin_name):
     driver.get('https://upbit.com/exchange?code=CRIX.UPBIT.KRW-{0}'.format(coin_name))
-    driver.save_screenshot('picture.png')
+    #driver.save_screenshot('picture.png')
 
     driver.find_element_by_css_selector('article > span.titB > div.inforTab > dl > dd > a').click()
     html = driver.page_source
@@ -73,13 +73,28 @@ def get_info(coin_name):
             else:
                 print("!!!!!!!!!!!!!!!!!!!!", cell_title.string)
 
-    # website_css_selector = 'div.mainB > section.ty01 > article > div > div.scorllB > div > div > span.inforB > div.title > div.linkWrap > a'
-    website_css_selector = 'div.mainB > section.ty01 > article > div'
+    website_css_selector = 'div.mainB > section.ty01 > article > div > div.scrollB > div > div > span.inforB > div.title > div.linkWrap > a'
 
-    website_tag = soup.select(website_css_selector)
-    print(website_tag)
+    website_tags = soup.select(website_css_selector)
+    for tag in website_tags:
+        if "웹사이트" in tag.string:
+            info["web_site"] = tag.get_attribute_list("href")[0]
+        if "백서" in tag.string:
+            info["whitepaper"] = tag.get_attribute_list("href")[0]
+        if "블록조회" in tag.string:
+            info["block_site"] = tag.get_attribute_list("href")[0]
+
+    driver.switch_to.frame(driver.find_element_by_tag_name("iframe#twitter-widget-0"))
+    twitter_css_selector = 'html > body > div.timeline-Widget > footer.timeline-Footer.u-cf > a.u-floatRight'
+    driver.find_element_by_css_selector(twitter_css_selector)
+    html = driver.page_source
+
+    soup = BeautifulSoup(html, 'html.parser')
+    tag = soup.select("a.u-floatRight")[0]
+
+    info["twitter_url"] = tag.get_attribute_list("href")[0]
+
     return info
-
 
 if __name__ == "__main__":
     coin_names = upbit.get_all_coin_names()

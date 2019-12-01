@@ -52,3 +52,12 @@
 ### 8. orderbook 데이터 가져오기 
 
 - scp -i ~/yh21-han-aws-key-seoul.pem ubuntu@15.164.143.230:/home/ubuntu/git/trade/db/upbit_order_book_info.db.new .
+
+### 9. upbit_info DB 데이터 보내기
+
+- scp -i ~/yh21-han-aws-key-seoul.pem /Users/yhhan/git/trade/web/db/upbit_info.db ubuntu@15.164.143.230:/home/ubuntu/git/trade/web/db/upbit_info.db
+
+
+### 9. 마켓 정적 정보 가져오기 
+
+- python -m codes.upbit.upbit_info

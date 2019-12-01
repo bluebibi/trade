@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from codes.upbit.upbit_api import Upbit
-from codes.upbit.upbit_info import get_market_info
+from codes.upbit.upbit_info import get_market_info, UpbitInfo
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -24,6 +24,13 @@ engine_model = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME
 Session = sessionmaker(bind=engine_model)
 session = Session()
 
+upbit_info_engine = create_engine(
+    'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
+    echo=False, connect_args={'check_same_thread': False}
+)
+upbit_info_session = sessionmaker(bind=upbit_info_engine)
+upbit_info_session = upbit_info_session()
+
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 
@@ -34,7 +41,13 @@ def _markets():
 
 @subpage_blueprint.route('/market_data', methods=["POST"])
 def _market_data():
-    return jsonify(get_market_info(quote='KRW'))
+    upbit_info_results = upbit_info_session.query(UpbitInfo).all()
+
+    market_lst = []
+    for upbit_info in upbit_info_results:
+        market_lst.append(upbit_info.to_dict())
+
+    return jsonify(market_lst)
 
 
 @subpage_blueprint.route('/models')
