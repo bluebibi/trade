@@ -155,6 +155,7 @@ def _call_public_api(url, **kwargs):
         while True:
             time.sleep(0.1)
             resp = requests_retry_session().get(url, params=kwargs)
+            #pprint.pprint(resp.json())
             contents = resp.json()
 
             if contents and 'error' in contents and contents['error']['message'] == 'Too many API requests.':

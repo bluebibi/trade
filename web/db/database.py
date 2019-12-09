@@ -27,7 +27,8 @@ def get_order_book_class(coin_name):
         id = db.Column(db.Integer, primary_key=True, autoincrement=True)
         base_datetime = db.Column(db.String(32))
         daily_base_timestamp = db.Column(db.Integer)
-        collect_timestamp = db.Column(db.Integer)
+        from sqlalchemy.dialects.mysql import BIGINT
+        collect_timestamp = db.Column(BIGINT(unsigned=True))
 
         ask_price_0 = db.Column(db.Float)
         ask_size_0 = db.Column(db.Float)
