@@ -53,7 +53,9 @@ for coin_name in coin_names:
         if stored_order_book is None:
             local_object = mysql_db_session.merge(order_book)
             mysql_db_session.add(local_object)
-            print(idx, end=", ")
+            if idx % 100 == 0: print(idx, end=", ")
+            mysql_db_session.commit()
+    print(idx)
     mysql_db_session.commit()
     sqlite_db_session.commit()
 
