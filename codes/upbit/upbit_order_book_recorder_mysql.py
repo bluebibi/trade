@@ -31,7 +31,7 @@ if os.getcwd().endswith("upbit"):
 
 IS_INIT = False
 
-engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade_test'.format(
+engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 
