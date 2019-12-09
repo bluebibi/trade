@@ -1,4 +1,5 @@
 import sys, os
+import time
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -43,6 +44,11 @@ sqlite_db_session = scoped_session(
 
 coin_names = upbit.get_all_coin_names()
 
+# with mysql_engine.connect() as con:
+#     for c_idx, coin_name in enumerate(coin_names):
+#         con.execute('ALTER TABLE KRW_{0}_ORDER_BOOK MODIFY `collect_timestamp` bigint;'.format(coin_name))
+#         print(c_idx, coin_name)
+
 for coin_name in coin_names:
     order_book_class = get_order_book_class(coin_name)
     order_books = sqlite_db_session.query(order_book_class).all()
@@ -53,9 +59,13 @@ for coin_name in coin_names:
         if stored_order_book is None:
             local_object = mysql_db_session.merge(order_book)
             mysql_db_session.add(local_object)
-            if idx % 100 == 0: print(idx, end=", ")
+            if idx % 100 == 0:
+                print(idx, end=", ")
+                sys.stdout.flush()
             mysql_db_session.commit()
+            time.sleep(0.01)
     print(idx)
+    sys.stdout.flush()
     mysql_db_session.commit()
     sqlite_db_session.commit()
 
