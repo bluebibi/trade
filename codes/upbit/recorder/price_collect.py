@@ -298,7 +298,7 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
 
 
 if __name__ == "__main__":
-    count = 10
+    count = 100
     for unit in Unit:
         for idx, coin_name in enumerate(upbit.get_all_coin_names()):
             utc_date_time_first_inserted, utc_date_time_last_inserted = collect(unit, idx, coin_name, count)
