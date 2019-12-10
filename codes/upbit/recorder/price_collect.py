@@ -17,6 +17,8 @@ sys.path.append(PROJECT_HOME)
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
+import warnings
+warnings.filterwarnings("ignore")
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
@@ -276,7 +278,6 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
 
     for coin_price in coin_price_list:
         if str(coin_price.datetime_utc) == str(utc_date_time_first_inserted):
-            print(str(coin_price.datetime_utc), ":", str(utc_date_time_first_inserted))
             break
 
         next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)

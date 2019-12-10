@@ -10,6 +10,8 @@ sys.path.append(PROJECT_HOME)
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
+import warnings
+warnings.filterwarnings("ignore")
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
