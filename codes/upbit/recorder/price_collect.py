@@ -281,20 +281,25 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
 
         next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)
 
-        next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
+        while True:
+            next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
 
-        if next_coin_price is None:
-            new_coin_price = coin_price_class()
-            new_coin_price.datetime_utc = next_datetime
-            new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
-            new_coin_price.open = coin_price.open
-            new_coin_price.high = coin_price.high
-            new_coin_price.low = coin_price.low
-            new_coin_price.final = coin_price.final
-            new_coin_price.volume = coin_price.volume
-            db_session.add(new_coin_price)
-            db_session.commit()
-            print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
+            if next_coin_price is None:
+                new_coin_price = coin_price_class()
+                new_coin_price.datetime_utc = next_datetime
+                new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
+                new_coin_price.open = coin_price.open
+                new_coin_price.high = coin_price.high
+                new_coin_price.low = coin_price.low
+                new_coin_price.final = coin_price.final
+                new_coin_price.volume = coin_price.volume
+                db_session.add(new_coin_price)
+                db_session.commit()
+                print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
+
+                next_datetime = get_next_date_time(str(next_datetime), unit, 1)
+            else:
+                break
 
 
 if __name__ == "__main__":
