@@ -188,7 +188,7 @@ def get_price(coin_name, to_datetime, unit, count):
     return price_list, last_utc_date_time.strftime(local_fmt)
 
 
-mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade_test'.format(
+mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 Base = declarative_base()
