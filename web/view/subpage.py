@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from codes.upbit.upbit_api import Upbit
-from codes.upbit.upbit_info import get_market_info, UpbitInfo
+from codes.upbit.recorder.upbit_info import UpbitInfo
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"

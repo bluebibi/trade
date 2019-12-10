@@ -1,11 +1,13 @@
 import datetime
 import pprint
 import time
+
+import pytz
 import requests, json
 import os, sys
 import enum
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -40,6 +42,14 @@ url_list = {
     Unit.ONE_DAY: 'https://crix-api-endpoint.upbit.com/v1/crix/candles/days?code=CRIX.UPBIT.KRW-{0}&count={1}&to={2}'
 }
 
+
+def convert_utc_to_seoul_time(date_time_utc):
+    local_timezone = pytz.timezone('Asia/Seoul')
+    date_time_utc = datetime.datetime.strptime(date_time_utc, local_fmt)
+    local_time = date_time_utc.replace(tzinfo=pytz.utc).astimezone(local_timezone)
+    return local_time.strftime(local_fmt)
+
+
 def get_next_date_time(date_time, unit=Unit.TEN_MINUTES, count=1):
     '''
 
@@ -50,9 +60,7 @@ def get_next_date_time(date_time, unit=Unit.TEN_MINUTES, count=1):
     '''
     date_time = datetime.datetime.strptime(date_time, local_fmt)
 
-    if unit == Unit.ONE_MINUTE:
-        next_date_time = date_time + datetime.timedelta(minutes=1 * count)
-    elif unit == Unit.TEN_MINUTES:
+    if unit == Unit.TEN_MINUTES:
         next_date_time = date_time + datetime.timedelta(minutes=10 * count)
     elif unit == Unit.ONE_HOUR:
         next_date_time = date_time + datetime.timedelta(hours=1 * count)
@@ -84,9 +92,7 @@ def get_previous_date_time(date_time, unit=Unit.TEN_MINUTES, count=1):
     '''
     date_time = datetime.datetime.strptime(date_time, local_fmt)
 
-    if unit == Unit.ONE_MINUTE:
-        previous_date_time = date_time - datetime.timedelta(minutes=1 * count)
-    elif unit == Unit.TEN_MINUTES:
+    if unit == Unit.TEN_MINUTES:
         previous_date_time = date_time - datetime.timedelta(minutes=10 * count)
     elif unit == Unit.ONE_HOUR:
         previous_date_time = date_time - datetime.timedelta(hours=1 * count)
@@ -129,15 +135,6 @@ def get_last_date_time(date_time, unit):
             date_time = date_time - datetime.timedelta(seconds=1)
             date_time_str = date_time.strftime(local_fmt)
             if date_time_str.endswith("0:00"):
-                break
-    elif unit == Unit.ONE_MINUTE:
-        if date_time.endswith(":00"):
-            return date_time
-        date_time = datetime.datetime.strptime(date_time, local_fmt)
-        while True:
-            date_time = date_time - datetime.timedelta(seconds=1)
-            date_time_str = date_time.strftime(local_fmt)
-            if date_time_str.endswith(":00"):
                 break
     else:
         raise ValueError("{0} unit is not supported".format(unit))
@@ -191,7 +188,7 @@ def get_price(coin_name, to_datetime, unit, count):
     return price_list, last_utc_date_time.strftime(local_fmt)
 
 
-mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
+mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade_test'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 Base = declarative_base()
@@ -224,41 +221,86 @@ for coin_name in upbit.get_all_coin_names():
             get_coin_price_class(coin_name, unit).__table__.create(bind=mysql_engine)
 
 
+def collect(unit, idx, coin_name, count):
+    coin_price_class = get_coin_price_class(coin_name, unit)
+
+    to_utc_date_time = get_utc_now_string()
+    to_utc_date_time = get_last_date_time(to_utc_date_time, unit)
+    to_utc_date_time = get_next_one_second_date_time(to_utc_date_time)
+
+    price_list, _ = get_price(coin_name, to_utc_date_time, unit, count)
+
+    utc_date_time_first_inserted = None
+    utc_date_time_last_inserted = None
+
+    is_first = True
+    for price in price_list:
+        datetime_utc = price[1].split("+")[0].replace("T", " ")
+        datetime_krw = price[2].split("+")[0].replace("T", " ")
+        q = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == datetime_utc)
+        coin_price = q.first()
+        if coin_price is None:
+            coin_price = coin_price_class()
+            coin_price.datetime_utc = datetime_utc
+            coin_price.datetime_krw = datetime_krw
+            coin_price.open = float(price[3])
+            coin_price.high = float(price[4])
+            coin_price.low = float(price[5])
+            coin_price.final = float(price[6])
+            coin_price.volume = float(price[7])
+
+            db_session.add(coin_price)
+            db_session.commit()
+            utc_date_time_last_inserted = datetime_utc
+            if is_first:
+                utc_date_time_first_inserted = datetime_utc
+                is_first = False
+
+    print("[{0}-{1}-{2}] First Inserted: {3}, Last Inserted: {4}".format(
+        unit, idx, coin_name, utc_date_time_first_inserted, utc_date_time_last_inserted
+    ))
+    return utc_date_time_first_inserted, utc_date_time_last_inserted
+
+
+def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_time_last_inserted):
+    coin_price_class = get_coin_price_class(coin_name, unit)
+
+    utc_date_time_first_inserted = datetime.datetime.strptime(utc_date_time_first_inserted, local_fmt)
+    utc_date_time_last_inserted = datetime.datetime.strptime(utc_date_time_last_inserted, local_fmt)
+    coin_price_list = db_session.query(coin_price_class).filter(
+        and_(
+            utc_date_time_first_inserted >= coin_price_class.datetime_utc,
+            coin_price_class.datetime_utc >= utc_date_time_last_inserted
+        )
+    ).order_by(coin_price_class.datetime_utc.asc()).all()
+
+    for coin_price in coin_price_list:
+        if str(coin_price.datetime_utc) == str(utc_date_time_first_inserted):
+            print(str(coin_price.datetime_utc), ":", str(utc_date_time_first_inserted))
+            break
+
+        next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)
+
+        next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
+
+        if next_coin_price is None:
+            new_coin_price = coin_price_class()
+            new_coin_price.datetime_utc = next_datetime
+            new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
+            new_coin_price.open = coin_price.open
+            new_coin_price.high = coin_price.high
+            new_coin_price.low = coin_price.low
+            new_coin_price.final = coin_price.final
+            new_coin_price.volume = coin_price.volume
+            db_session.add(new_coin_price)
+            db_session.commit()
+            print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
+
+
 if __name__ == "__main__":
-    count = 10
+    count = 100
     for unit in Unit:
         for idx, coin_name in enumerate(upbit.get_all_coin_names()):
-            coin_price_class = get_coin_price_class(coin_name, unit)
-
-            to_utc_date_time = get_utc_now_string()
-            to_utc_date_time = get_last_date_time(to_utc_date_time, unit)
-            to_utc_date_time = get_next_one_second_date_time(to_utc_date_time)
-
-            price_list, _ = get_price(coin_name, to_utc_date_time, unit, count)
-            for price in price_list:
-                datetime_utc = price[1].split("+")[0].replace("T", " ")
-                datetime_krw = price[2].split("+")[0].replace("T", " ")
-                q = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == datetime_utc)
-                coin_price = q.first()
-                if coin_price is None:
-                    coin_price = coin_price_class()
-                    coin_price.datetime_utc = datetime_utc
-                    coin_price.datetime_krw = datetime_krw
-                    coin_price.open = float(price[3])
-                    coin_price.high = float(price[4])
-                    coin_price.low = float(price[5])
-                    coin_price.final = float(price[6])
-                    coin_price.volume = float(price[7])
-
-                    db_session.add(coin_price)
-                    db_session.commit()
-
-            print(unit, idx, coin_name)
-
-
-
-
-
-
-
-# print("   date    open high low final    vol")
+            utc_date_time_first_inserted, utc_date_time_last_inserted = collect(unit, idx, coin_name, count)
+            if utc_date_time_first_inserted and utc_date_time_last_inserted:
+                fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_time_last_inserted)

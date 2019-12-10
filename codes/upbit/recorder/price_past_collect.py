@@ -1,22 +1,15 @@
-import datetime
-import pprint
-import time
-import requests, json
 import os, sys
-import enum
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, func
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
-from codes.upbit.price_collect import get_coin_price_class, db_session, Unit, local_fmt, get_price
+from codes.upbit.recorder.price_collect import get_coin_price_class, db_session, Unit, local_fmt, get_price
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from codes.upbit.upbit_api import Upbit
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
+from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
@@ -55,10 +48,3 @@ if __name__ == "__main__":
 
             if num_of_total_collect == 0:
                 break
-
-
-
-
-
-
-# print("   date    open high low final    vol")
