@@ -639,6 +639,17 @@ class Upbit:
             transaction_fee_rate=transaction_fee_rate
         )
 
+    def get_past_price(self, coin_name, from_datetime, to_datetime, period):
+        """
+
+        :param coin_name:
+        :param from_datetime:
+        :param to_datetime:
+        :param period: 1m, 5m, 10m, 60m, 24h
+        :return:
+        """
+        pass
+
 
 # if __name__ == "__main__":
 #     while True:
