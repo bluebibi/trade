@@ -24,7 +24,7 @@ from common.logger import get_logger
 
 logger = get_logger("test_upbit")
 
-from codes.upbit.upbit_order_book_recorder import UpbitOrderBookRecorder
+from codes.tests.upbit_order_book_recorder import UpbitOrderBookRecorder
 
 pp = pprint.PrettyPrinter(indent=2)
 
