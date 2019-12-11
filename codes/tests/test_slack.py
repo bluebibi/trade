@@ -6,7 +6,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from codes.upbit.slack import PushSlack
+from common.slack import PushSlack
 from common.global_variables import SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2
 
 
