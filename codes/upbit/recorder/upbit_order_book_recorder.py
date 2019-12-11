@@ -39,7 +39,7 @@ for coin_name in upbit.get_all_coin_names():
     if not engine.dialect.has_table(engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
         IS_INIT = True
         get_order_book_class(coin_name).__table__.create(bind=engine)
-        print(coin_name)
+        print("KRW_{0}_ORDER_BOOK Table Created".format(coin_name))
 
 
 class UpbitOrderBookRecorder:

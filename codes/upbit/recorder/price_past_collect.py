@@ -2,7 +2,7 @@ import os, sys
 
 from sqlalchemy import func
 
-from codes.upbit.recorder.price_collect import get_coin_price_class, db_session, Unit, local_fmt, get_price
+from codes.upbit.recorder.upbit_price_collector import get_coin_price_class, db_session, Unit, local_fmt, get_price
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"

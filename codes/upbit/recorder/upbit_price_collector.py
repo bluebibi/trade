@@ -11,6 +11,8 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from common.logger import get_logger
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -19,6 +21,8 @@ from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
 import warnings
 warnings.filterwarnings("ignore")
+
+logger = get_logger("upbit_price_collector")
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
@@ -263,7 +267,7 @@ def collect(unit, idx, coin_name, count):
                 utc_date_time_first_inserted = datetime_utc
                 is_first = False
 
-    print("[{0}-{1}-{2}] First Inserted: {3}, Last Inserted: {4}".format(
+    logger.info("[{0}-{1}-{2}] First Inserted: {3}, Last Inserted: {4}".format(
         unit, idx, coin_name, utc_date_time_first_inserted, utc_date_time_last_inserted
     ))
     return utc_date_time_first_inserted, utc_date_time_last_inserted
@@ -284,8 +288,6 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
     db_coin_price_dict = {}
     for coin_price in db_coin_price_list:
         db_coin_price_dict[str(coin_price.datetime_utc)] = coin_price
-
-    print(db_coin_price_dict)
 
     next_date_time_utc = get_next_date_time(utc_date_time_last_inserted, unit, 1)
     while True:
@@ -310,36 +312,10 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
             new_coin_price.volume = 0.0
             db_session.add(new_coin_price)
             db_session.commit()
-            print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_date_time_utc))
+            logger.info("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_date_time_utc))
             db_coin_price_dict[next_date_time_utc] = new_coin_price
         else:
             next_date_time_utc = get_next_date_time(next_date_time_utc, unit, 1)
-
-    # for coin_price in db_coin_price_list:
-    #     if str(coin_price.datetime_utc) == str(utc_date_time_first_inserted):
-    #         break
-    #
-    #     next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)
-    #
-    #     while True:
-    #         next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
-    #
-    #         if next_coin_price is None:
-    #             new_coin_price = coin_price_class()
-    #             new_coin_price.datetime_utc = next_datetime
-    #             new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
-    #             new_coin_price.open = coin_price.open
-    #             new_coin_price.high = coin_price.high
-    #             new_coin_price.low = coin_price.low
-    #             new_coin_price.final = coin_price.final
-    #             new_coin_price.volume = coin_price.volume
-    #             db_session.add(new_coin_price)
-    #             db_session.commit()
-    #             print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
-    #
-    #             next_datetime = get_next_date_time(str(next_datetime), unit, 1)
-    #         else:
-    #             break
 
 
 if __name__ == "__main__":
@@ -347,5 +323,5 @@ if __name__ == "__main__":
     for unit in Unit:
         for idx, coin_name in enumerate(upbit.get_all_coin_names()):
             utc_date_time_first_inserted, utc_date_time_last_inserted = collect(unit, idx, coin_name, count)
-            if utc_date_time_first_inserted and utc_date_time_last_inserted:
+            if utc_date_time_first_inserted and utc_date_time_last_inserted and utc_date_time_first_inserted != utc_date_time_last_inserted:
                 fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_time_last_inserted)
