@@ -60,7 +60,8 @@ def get_next_date_time(date_time, unit=Unit.TEN_MINUTES, count=1):
     :param count: 2
     :return: "2017-09-27 00:12:00"
     '''
-    date_time = datetime.datetime.strptime(date_time, local_fmt)
+    if type(date_time)==type(str()):
+        date_time = datetime.datetime.strptime(date_time, local_fmt)
 
     if unit == Unit.TEN_MINUTES:
         next_date_time = date_time + datetime.timedelta(minutes=10 * count)
@@ -92,7 +93,8 @@ def get_previous_date_time(date_time, unit=Unit.TEN_MINUTES, count=1):
     :param count: 2
     :return: "2017-09-26 23:50:00"
     '''
-    date_time = datetime.datetime.strptime(date_time, local_fmt)
+    if type(date_time) == type(str()):
+        date_time = datetime.datetime.strptime(date_time, local_fmt)
 
     if unit == Unit.TEN_MINUTES:
         previous_date_time = date_time - datetime.timedelta(minutes=10 * count)
@@ -155,7 +157,7 @@ def get_price(coin_name, to_datetime, unit, count):
                 headers=headers
             ).text   # url에 있는 데이터 읽기
         except Exception as e:
-            print('Error code: ', e, ' 5초 대기')
+            print('Error code: ', e, ' 1초 대기')
             fail_count += 1
             if fail_count > 10:
                 fail_get_data = True
@@ -187,10 +189,13 @@ def get_price(coin_name, to_datetime, unit, count):
         )
         last_utc_date_time = datetime.datetime.strptime(utc_date.split("+")[0], "%Y-%m-%dT%H:%M:%S")
 
-    return price_list, last_utc_date_time.strftime(local_fmt)
+    if last_utc_date_time:
+        return price_list, last_utc_date_time.strftime(local_fmt)
+    else:
+        return price_list, None
 
 
-mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
+mysql_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade_test'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 Base = declarative_base()
@@ -269,38 +274,72 @@ def fill_missing_data(unit, coin_name, utc_date_time_first_inserted, utc_date_ti
 
     utc_date_time_first_inserted = datetime.datetime.strptime(utc_date_time_first_inserted, local_fmt)
     utc_date_time_last_inserted = datetime.datetime.strptime(utc_date_time_last_inserted, local_fmt)
-    coin_price_list = db_session.query(coin_price_class).filter(
+    db_coin_price_list = db_session.query(coin_price_class).filter(
         and_(
             utc_date_time_first_inserted >= coin_price_class.datetime_utc,
             coin_price_class.datetime_utc >= utc_date_time_last_inserted
         )
     ).order_by(coin_price_class.datetime_utc.asc()).all()
 
-    for coin_price in coin_price_list:
-        if str(coin_price.datetime_utc) == str(utc_date_time_first_inserted):
+    db_coin_price_dict = {}
+    for coin_price in db_coin_price_list:
+        db_coin_price_dict[str(coin_price.datetime_utc)] = coin_price
+
+    print(db_coin_price_dict)
+
+    next_date_time_utc = get_next_date_time(utc_date_time_last_inserted, unit, 1)
+    while True:
+        if next_date_time_utc == str(utc_date_time_first_inserted):
             break
 
-        next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)
+        if next_date_time_utc not in db_coin_price_dict:
+            searching_date_time_utc = get_previous_date_time(next_date_time_utc, unit, 1)
+            while True:
+                if searching_date_time_utc in db_coin_price_dict:
+                    last_recent_coin_price = db_coin_price_dict[searching_date_time_utc]
+                    break
+                else:
+                    searching_date_time_utc = get_previous_date_time(searching_date_time_utc, unit, 1)
+            new_coin_price = coin_price_class()
+            new_coin_price.datetime_utc = next_date_time_utc
+            new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_date_time_utc)
+            new_coin_price.open = last_recent_coin_price.open
+            new_coin_price.high = last_recent_coin_price.high
+            new_coin_price.low = last_recent_coin_price.low
+            new_coin_price.final = last_recent_coin_price.final
+            new_coin_price.volume = 0.0
+            db_session.add(new_coin_price)
+            db_session.commit()
+            print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_date_time_utc))
+            db_coin_price_dict[next_date_time_utc] = new_coin_price
+        else:
+            next_date_time_utc = get_next_date_time(next_date_time_utc, unit, 1)
 
-        while True:
-            next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
-
-            if next_coin_price is None:
-                new_coin_price = coin_price_class()
-                new_coin_price.datetime_utc = next_datetime
-                new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
-                new_coin_price.open = coin_price.open
-                new_coin_price.high = coin_price.high
-                new_coin_price.low = coin_price.low
-                new_coin_price.final = coin_price.final
-                new_coin_price.volume = coin_price.volume
-                db_session.add(new_coin_price)
-                db_session.commit()
-                print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
-
-                next_datetime = get_next_date_time(str(next_datetime), unit, 1)
-            else:
-                break
+    # for coin_price in db_coin_price_list:
+    #     if str(coin_price.datetime_utc) == str(utc_date_time_first_inserted):
+    #         break
+    #
+    #     next_datetime = get_next_date_time(str(coin_price.datetime_utc), unit, 1)
+    #
+    #     while True:
+    #         next_coin_price = db_session.query(coin_price_class).filter(coin_price_class.datetime_utc == next_datetime).first()
+    #
+    #         if next_coin_price is None:
+    #             new_coin_price = coin_price_class()
+    #             new_coin_price.datetime_utc = next_datetime
+    #             new_coin_price.datetime_krw = convert_utc_to_seoul_time(next_datetime)
+    #             new_coin_price.open = coin_price.open
+    #             new_coin_price.high = coin_price.high
+    #             new_coin_price.low = coin_price.low
+    #             new_coin_price.final = coin_price.final
+    #             new_coin_price.volume = coin_price.volume
+    #             db_session.add(new_coin_price)
+    #             db_session.commit()
+    #             print("[{0}-{1}-{2}] Missing Price Info Inserted: {3}".format(unit, idx, coin_name, next_datetime))
+    #
+    #             next_datetime = get_next_date_time(str(next_datetime), unit, 1)
+    #         else:
+    #             break
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ if __name__ == "__main__":
         num_of_total_collect = 0
         while True:
             for idx, coin_name in enumerate(upbit.get_all_coin_names()):
+                print(unit, idx, coin_name, end=": ")
                 coin_price_class = get_coin_price_class(coin_name, unit)
                 last_utc_date_time = db_session.query(func.min(coin_price_class.datetime_utc)).one()[0]
 
@@ -46,7 +47,7 @@ if __name__ == "__main__":
                         db_session.commit()
 
                 num_of_total_collect += len(price_list)
-                print(unit, idx, coin_name, last_utc_date_time, len(price_list))
+                print(last_utc_date_time, len(price_list))
 
             if num_of_total_collect == 0:
                 break
