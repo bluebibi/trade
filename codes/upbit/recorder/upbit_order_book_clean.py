@@ -89,6 +89,8 @@ class UpbitOrderBookArrangement:
         return missing_count, last_base_datetime_str
 
     def insert_missing_record(self, previous_base_datetime_str, missing_base_datetime_str):
+
+
         with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
             cursor = conn.cursor()
 

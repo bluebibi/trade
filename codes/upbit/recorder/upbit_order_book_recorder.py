@@ -38,8 +38,6 @@ engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
 db_session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=engine)
 )
-base = declarative_base()
-base.query = db_session.query_property()
 
 for coin_name in upbit.get_all_coin_names():
     if not engine.dialect.has_table(engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
