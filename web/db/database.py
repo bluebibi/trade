@@ -25,10 +25,10 @@ def get_order_book_class(coin_name):
         __table_args__ = {'extend_existing': True}
 
         id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-        base_datetime = db.Column(db.String(32))
+        base_datetime = db.Column(db.DateTime, unique=True, index=True)
         daily_base_timestamp = db.Column(db.Integer)
         from sqlalchemy.dialects.mysql import BIGINT
-        collect_timestamp = db.Column(BIGINT(unsigned=True))
+        collect_timestamp = db.Column(BIGINT(unsigned=True), index=True)
 
         ask_price_0 = db.Column(db.Float)
         ask_size_0 = db.Column(db.Float)
@@ -146,8 +146,8 @@ class BuySell(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    coin_ticker_name = db.Column(db.String(8))
-    buy_datetime = db.Column(db.String(32))
+    coin_ticker_name = db.Column(db.String(8), index=True)
+    buy_datetime = db.Column(db.String(32), index=True)
     lstm_prob = db.Column(db.Float)
     gb_prob = db.Column(db.Float)
     xgboost_prob = db.Column(db.Float)

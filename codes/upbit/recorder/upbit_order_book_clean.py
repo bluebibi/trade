@@ -3,7 +3,11 @@ from datetime import timedelta
 
 import sys, os
 
+import sqlalchemy
 from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
+from web.db.database import get_order_book_class
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -13,7 +17,6 @@ from common.utils import convert_to_daily_timestamp
 from common.logger import get_logger
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
-import sqlite3
 
 logger = get_logger("upbit_order_book_clean")
 
@@ -21,18 +24,10 @@ engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 
-select_by_start_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT 1;"
-select_by_final_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp DESC, base_datetime DESC LIMIT 1;"
-select_by_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;"
-select_order_book_by_datetime = """
-    SELECT * FROM 'KRW_{0}_ORDER_BOOK' WHERE base_datetime=? LIMIT 1;
-"""
-order_book_insert_sql = """
-    INSERT INTO 'KRW_{0}_ORDER_BOOK' VALUES(
-    NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-"""
+db_session = scoped_session(
+    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+)
+
 
 class UpbitOrderBookArrangement:
     def __init__(self, coin_name):
@@ -57,7 +52,7 @@ class UpbitOrderBookArrangement:
             )
 
             if last_base_datetime_str == final_base_datetime_str:
-                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2}".format(
+                logger.info("{0:5s} - Start Base Datetime: {1}, Last Base Datetime: {2} --> FINAL".format(
                     self.coin_name, start_base_datetime_str, last_base_datetime_str
                 ))
                 break
@@ -89,77 +84,99 @@ class UpbitOrderBookArrangement:
         return missing_count, last_base_datetime_str
 
     def insert_missing_record(self, previous_base_datetime_str, missing_base_datetime_str):
+        order_book_class = get_order_book_class(self.coin_name)
+        exist_order_book = None
+        try:
+            exist_order_book = db_session.query(order_book_class).filter(order_book_class.base_datetime == previous_base_datetime_str).one()
+        except sqlalchemy.orm.exc.MultipleResultsFound as e:
+            print("Multiple rows were found for one()", e.__traceback__)
+            print(self.coin_name, previous_base_datetime_str)
+            exit()
 
+        order_book_class = get_order_book_class(self.coin_name)
+        exist = db_session.query(order_book_class).filter_by(base_datetime=missing_base_datetime_str).scalar() is not None
+        if exist:
+            return
 
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
+        missing_order_book = order_book_class()
+        missing_order_book.base_datetime = missing_base_datetime_str
+        missing_order_book.daily_base_timestamp = convert_to_daily_timestamp(missing_base_datetime_str)
+        missing_order_book.collect_timestamp = -1
+        for idx in range(15):
+            setattr(
+                missing_order_book,
+                "ask_price_{0}".format(idx),
+                getattr(exist_order_book, "ask_price_{0}".format(idx))
+            )
+            setattr(
+                missing_order_book,
+                "ask_size_{0}".format(idx),
+                getattr(exist_order_book, "ask_size_{0}".format(idx))
+            )
+            setattr(
+                missing_order_book,
+                "bid_price_{0}".format(idx),
+                getattr(exist_order_book, "bid_price_{0}".format(idx))
+            )
+            setattr(
+                missing_order_book,
+                "bid_size_{0}".format(idx),
+                getattr(exist_order_book, "bid_size_{0}".format(idx))
+            )
+        missing_order_book.total_ask_size = exist_order_book.total_ask_size
+        missing_order_book.total_bid_size = exist_order_book.total_bid_size
 
-            cursor.execute(select_order_book_by_datetime.format(self.coin_name), (previous_base_datetime_str,))
-            info = cursor.fetchone()
-
-            cursor.execute(order_book_insert_sql.format(self.coin_name), (
-                missing_base_datetime_str, convert_to_daily_timestamp(missing_base_datetime_str), info[3],
-                info[4], info[5], info[6], info[7], info[8], info[9], info[10], info[11], info[12],
-                info[13],
-                info[14], info[15], info[16], info[17], info[18], info[19], info[20], info[21], info[22],
-                info[23],
-                info[24], info[25], info[26], info[27], info[28], info[29], info[30], info[31], info[32],
-                info[33],
-                info[34], info[35], info[36], info[37], info[38], info[39], info[40], info[41], info[42],
-                info[43],
-                info[44], info[45], info[46], info[47], info[48], info[49], info[50], info[51], info[52],
-                info[53],
-                info[54], info[55], info[56], info[57], info[58], info[59], info[60], info[61], info[62],
-                info[63],
-                info[64], info[65]
-            ))
-            conn.commit()
+        db_session.add(missing_order_book)
+        db_session.commit()
 
     def get_order_book_start_and_final(self):
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
+        order_book_class = get_order_book_class(self.coin_name)
 
-            cursor.execute(select_by_start_base_datetime.format(self.coin_name))
-            start_base_datetime_str = cursor.fetchone()[0]
+        start_base_datetime_str = db_session.query(order_book_class.base_datetime).order_by(
+            order_book_class.base_datetime.asc(), order_book_class.collect_timestamp.asc()).limit(1).one()[0]
 
-            cursor.execute(select_by_final_base_datetime.format(self.coin_name))
-            final_base_datetime_str = cursor.fetchone()[0]
+        final_base_datetime_str = db_session.query(order_book_class.base_datetime).order_by(
+            order_book_class.base_datetime.desc(), order_book_class.collect_timestamp.desc()).limit(1).one()[0]
 
-            conn.commit()
         return start_base_datetime_str, final_base_datetime_str
 
     def get_order_book_consecutiveness(self, start_base_datetime_str=None):
-        with sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False) as conn:
-            cursor = conn.cursor()
+        order_book_class = get_order_book_class(self.coin_name)
 
-            if start_base_datetime_str is None:
-                cursor.execute(select_by_start_base_datetime.format(self.coin_name))
-                start_base_datetime_str = cursor.fetchone()[0]
+        if start_base_datetime_str is None:
+            result = db_session.query(order_book_class.base_datetime).order_by(
+                order_book_class.base_datetime.asc(), order_book_class.collect_timestamp.asc()
+            ).limit(1).one_or_none()
 
-            cursor.execute(select_by_datetime.format(self.coin_name), (start_base_datetime_str,))
-            start_base_datetime_str = cursor.fetchone()
-
-            if start_base_datetime_str is None:
+            if result is None:
                 return None
+            else:
+                start_base_datetime_str = result[0]
 
-            base_datetime = dt.datetime.strptime(start_base_datetime_str[0], fmt.replace("T", " "))
+        result = db_session.query(order_book_class.base_datetime).filter(
+            order_book_class.base_datetime == start_base_datetime_str
+        ).one_or_none()
 
-            last_base_datetime_str = start_base_datetime_str[0]
-            while True:
-                next_base_datetime = base_datetime + timedelta(minutes=10)
-                next_base_datetime_str = dt.datetime.strftime(next_base_datetime, fmt.replace("T", " "))
+        if result is None:
+            return None
 
-                cursor.execute(select_by_datetime.format(self.coin_name), (next_base_datetime_str, ))
-                next_base_datetime_str = cursor.fetchone()
+        base_datetime = dt.datetime.strptime(start_base_datetime_str, fmt.replace("T", " "))
+        last_base_datetime_str = None
+        while True:
+            next_base_datetime = base_datetime + timedelta(minutes=10)
+            next_base_datetime_str = dt.datetime.strftime(next_base_datetime, fmt.replace("T", " "))
 
-                if not next_base_datetime_str:
-                    break
+            result = db_session.query(order_book_class.base_datetime).filter(
+                order_book_class.base_datetime == next_base_datetime_str
+            ).one_or_none()
 
-                next_base_datetime_str = next_base_datetime_str[0]
-                last_base_datetime_str = next_base_datetime_str
-                base_datetime = dt.datetime.strptime(next_base_datetime_str, fmt.replace("T", " "))
+            if result is None:
+                break
+            else:
+                next_base_datetime_str = result[0]
 
-            conn.commit()
+            last_base_datetime_str = next_base_datetime_str
+            base_datetime = dt.datetime.strptime(next_base_datetime_str, fmt.replace("T", " "))
 
         return last_base_datetime_str
 

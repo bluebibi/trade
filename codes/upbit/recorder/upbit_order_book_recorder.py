@@ -82,7 +82,13 @@ class UpbitOrderBookRecorder:
 
     def insert_order_book(self, order_book_info):
         for coin_name in order_book_info:
-            order_book = get_order_book_class(coin_name)()
+            order_book_class = get_order_book_class(coin_name)
+
+            exist = db_session.query(order_book_class).filter_by(base_datetime=order_book_info[coin_name]["base_datetime"]).scalar() is not None
+            if exist:
+                continue
+
+            order_book = order_book_class()
             order_book.base_datetime = order_book_info[coin_name]["base_datetime"]
             order_book.daily_base_timestamp = int(order_book_info[coin_name]["daily_base_timestamp"])
             order_book.collect_timestamp = int(order_book_info[coin_name]["collect_timestamp"])
@@ -125,6 +131,10 @@ class UpbitOrderBookRecorder:
         del missing_base_datetime_str_lst[-1]
 
         for missing_base_datetime_str in missing_base_datetime_str_lst:
+            exist = db_session.query(order_book_class).filter_by(base_datetime=missing_base_datetime_str).scalar() is not None
+            if exist:
+                continue
+
             order_book.base_datetime = missing_base_datetime_str
             missing_daily_base_timestamp = convert_to_daily_timestamp(missing_base_datetime_str)
             order_book.daily_base_timestamp = missing_daily_base_timestamp
