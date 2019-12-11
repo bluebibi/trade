@@ -12,7 +12,7 @@ from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
 import sqlite3
 
-logger = get_logger("upbit_order_book_arrangement")
+logger = get_logger("upbit_order_book_clean")
 
 
 select_by_start_base_datetime = "SELECT base_datetime FROM 'KRW_{0}_ORDER_BOOK' ORDER BY collect_timestamp ASC, base_datetime ASC LIMIT 1;"
