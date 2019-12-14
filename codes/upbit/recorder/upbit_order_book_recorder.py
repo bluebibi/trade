@@ -35,22 +35,20 @@ engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
         ), encoding='utf-8')
 
+db_session = scoped_session(
+    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+)
+
 for coin_name in upbit.get_all_coin_names():
     if not engine.dialect.has_table(engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
         IS_INIT = True
         get_order_book_class(coin_name).__table__.create(bind=engine)
-        print(coin_name)
+        print("KRW_{0}_ORDER_BOOK Table Created".format(coin_name))
 
 
 class UpbitOrderBookRecorder:
     def __init__(self):
         self.coin_names = upbit.get_all_coin_names()
-
-        self.db_session = scoped_session(
-            sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        )
-        base = declarative_base()
-        base.query = self.db_session.query_property()
 
     def record(self, base_datetime, coin_ticker_name):
         daily_base_timestamp = convert_to_daily_timestamp(base_datetime)
@@ -84,7 +82,13 @@ class UpbitOrderBookRecorder:
 
     def insert_order_book(self, order_book_info):
         for coin_name in order_book_info:
-            order_book = get_order_book_class(coin_name)()
+            order_book_class = get_order_book_class(coin_name)
+
+            exist = db_session.query(order_book_class).filter_by(base_datetime=order_book_info[coin_name]["base_datetime"]).scalar() is not None
+            if exist:
+                continue
+
+            order_book = order_book_class()
             order_book.base_datetime = order_book_info[coin_name]["base_datetime"]
             order_book.daily_base_timestamp = int(order_book_info[coin_name]["daily_base_timestamp"])
             order_book.collect_timestamp = int(order_book_info[coin_name]["collect_timestamp"])
@@ -99,8 +103,8 @@ class UpbitOrderBookRecorder:
             order_book.total_ask_size = order_book_info[coin_name]["total_ask_size"]
             order_book.total_bid_size = order_book_info[coin_name]["total_bid_size"]
 
-            self.db_session.add(order_book)
-            self.db_session.commit()
+            db_session.add(order_book)
+            db_session.commit()
 
     def check_and_arrange_missing_order_book_data(self, coin_name, base_datetime_str):
         base_datetime = dt.datetime.strptime(base_datetime_str, fmt.replace("T", " "))
@@ -110,7 +114,7 @@ class UpbitOrderBookRecorder:
             base_datetime = base_datetime - dt.timedelta(minutes=10)
             base_datetime_str = dt.datetime.strftime(base_datetime, fmt.replace("T", " "))
             order_book_class = get_order_book_class(coin_name)
-            exist = self.db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
+            exist = db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
             if exist:
                 missing_base_datetime_str_lst.append(base_datetime_str)
                 break
@@ -121,18 +125,22 @@ class UpbitOrderBookRecorder:
             return
 
         base_datetime_str = missing_base_datetime_str_lst[-1]
-        q = self.db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str)
+        q = db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str)
         order_book = q.first()
 
         del missing_base_datetime_str_lst[-1]
 
         for missing_base_datetime_str in missing_base_datetime_str_lst:
+            exist = db_session.query(order_book_class).filter_by(base_datetime=missing_base_datetime_str).scalar() is not None
+            if exist:
+                continue
+
             order_book.base_datetime = missing_base_datetime_str
             missing_daily_base_timestamp = convert_to_daily_timestamp(missing_base_datetime_str)
             order_book.daily_base_timestamp = missing_daily_base_timestamp
             order_book.collect_timestamp = -1
-            self.db_session.add(order_book)
-            self.db_session.commit()
+            db_session.add(order_book)
+            db_session.commit()
 
             logger.info("{0}: missing_base_datetime: {1}".format(coin_name, missing_base_datetime_str))
 
