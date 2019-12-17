@@ -1,3 +1,4 @@
+import gc
 import pickle
 import sqlite3
 
@@ -138,6 +139,7 @@ class UpbitOrderBookBasedData:
         return x, x_train_normalized, train_size, x_valid_normalized, valid_size
 
     def get_dataset(self, split=True):
+        gc.collect()
         x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset()
 
         # Imbalanced Preprocessing - Start
