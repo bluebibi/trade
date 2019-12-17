@@ -303,7 +303,10 @@ def main(coin_names):
         one_rate_list.append(one_rate)
         global_total_size += total_size
 
+    gc.collect()
     x_normalized = np.concatenate(x_normalized_list)
+
+    gc.collect()
     y_up = np.concatenate(y_up_list)
     one_rate = float(np.mean(one_rate_list))
 
@@ -315,6 +318,7 @@ def main(coin_names):
     if VERBOSE:
         logger.info("[[[XGBoost]]]")
 
+    gc.collect()
     best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
     model_filename = save_model(best_model, model_type="XGBOOST")
 
@@ -351,6 +355,7 @@ def main(coin_names):
     if VERBOSE:
         logger.info("[[[Gradient Boosting]]]")
 
+    gc.collect()
     best_model, best_f1_score = make_gboost_model(x_normalized, y_up, global_total_size)
     model_filename = save_model(best_model, model_type="GB")
 
