@@ -3,6 +3,8 @@
 import time
 import sys, os
 
+from sklearn.metrics import f1_score
+
 from web.db.database import model_session, Model
 
 idx = os.getcwd().index("trade")
@@ -13,7 +15,7 @@ import xgboost as xgb
 from pytz import timezone
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring, EarlyStopping
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.model_selection import StratifiedKFold, GridSearchCV, StratifiedShuffleSplit, train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from common.global_variables import *
 import matplotlib.pyplot as plt
@@ -290,7 +292,7 @@ def main(coin_names):
 
         x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
 
-        included = np.random.randint(low=0, high=2)
+        included = np.random.randint(low=0, high=3)
 
         if VERBOSE:
             logger.info("{0}, {1}: x_normalized_original: {2}, y_up_original: {3}, one_rate: {4}, total_size: {5}, included: {6}".format(
@@ -300,10 +302,10 @@ def main(coin_names):
                 y_up_original.shape,
                 one_rate,
                 total_size,
-                bool(included)
+                True if included == 2 else False
             ))
 
-        if included:
+        if included == 2:
             x_normalized_list.append(x_normalized_original)
             y_up_list.append(y_up_original)
             one_rate_list.append(one_rate)
@@ -322,11 +324,23 @@ def main(coin_names):
             x_normalized.shape, y_up.shape, one_rate, global_total_size
         ))
 
+    ##### MAKE MODELS
+
+    X_train, X_test, y_train, y_test = train_test_split(x_normalized, y_up, test_size=0.2, random_state=0)
+
     if VERBOSE:
         logger.info("[[[XGBoost]]]")
 
-    gc.collect()
-    best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
+    model = load_model(model_type="XGBOOST")
+    if model:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        best_model = model
+        best_f1_score = f1_score(y_test, y_pred)
+    else:
+        gc.collect()
+        best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
+
     model_filename = save_model(best_model, model_type="XGBOOST")
 
     model = model_session.query(Model).filter(Model.model_type == 'XGBOOST')
@@ -362,8 +376,16 @@ def main(coin_names):
     if VERBOSE:
         logger.info("[[[Gradient Boosting]]]")
 
-    gc.collect()
-    best_model, best_f1_score = make_gboost_model(x_normalized, y_up, global_total_size)
+    model = load_model(model_type="GB")
+    if model:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        best_model = model
+        best_f1_score = f1_score(y_test, y_pred)
+    else:
+        gc.collect()
+        best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
+
     model_filename = save_model(best_model, model_type="GB")
 
     model = model_session.query(Model).filter(Model.model_type == 'GB')
