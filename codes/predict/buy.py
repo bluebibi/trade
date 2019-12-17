@@ -74,8 +74,8 @@ def get_db_right_time_coin_names():
     return coin_right_time_info
 
 
-def evaluate_coin_by_model(coin_name, x, model_type="GB"):
-    model = load_model(coin_name=coin_name, model_type=model_type)
+def evaluate_coin_by_model(x, model_type="GB"):
+    model = load_model(model_type=model_type)
 
     if model and x is not None:
         y_prediction = model.predict_proba(x)
@@ -162,13 +162,11 @@ def main():
             x = upbit_order_book_data.get_dataset_for_buy()
 
             gb_prob = evaluate_coin_by_model(
-                coin_name=coin_name,
                 x=x,
                 model_type="GB"
             )
 
             xgboost_prob = evaluate_coin_by_model(
-                coin_name=coin_name,
                 x=x,
                 model_type="XGBOOST"
             )
