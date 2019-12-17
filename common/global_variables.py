@@ -81,7 +81,8 @@ WINDOW_SIZE = int(config['DATA']['window_size'])
 FUTURE_TARGET_SIZE = int(config['DATA']['future_target_size'])
 UP_RATE = float(config['DATA']['up_rate'])
 
-INPUT_SIZE = 125 # 1 (daily_base_timestamp) + 30 (ask_price) + 30 (ask_price_btc) + 30 (bid_price) + 30 (bid_price_btc) + 2 (total ask, total bid) + 2 (total_btc ask, total_btc bid)
+#INPUT_SIZE = 125 # 1 (daily_base_timestamp) + 30 (ask_price) + 30 (ask_price_btc) + 30 (bid_price) + 30 (bid_price_btc) + 2 (total ask, total bid) + 2 (total_btc ask, total_btc bid)
+INPUT_SIZE = 63 # 1 (daily_base_timestamp) + 15 (ask_price) + 15 (ask_price_btc) + 15 (bid_price) + 15 (bid_price_btc) + 2 (total ask, total bid)
 
 VERBOSE = True
 

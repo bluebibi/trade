@@ -9,6 +9,8 @@ import numpy as np
 
 import sys, os
 
+from sklearn.utils import shuffle
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -151,6 +153,8 @@ class UpbitOrderBookBasedData:
                 )
                 x_normalized = x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
                 y_up = y_up_samp
+
+                x_normalized, y_up = shuffle(x_normalized, y_up)
 
                 total_size = len(x_normalized)
                 one_rate = sum(y_up) / total_size
