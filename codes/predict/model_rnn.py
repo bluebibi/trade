@@ -7,7 +7,7 @@ from common.global_variables import *
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 class LSTM(nn.Module):
-    def __init__(self, bias=True, dropout=0.25, input_size=125, hidden_size=256, output_size=1, num_layers=3):
+    def __init__(self, bias=True, dropout=0.25, input_size=63, hidden_size=256, output_size=1, num_layers=3):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -68,8 +68,7 @@ if __name__ == "__main__":
 
     gs = GridSearchCV(net, param_grid, refit=True, cv=4, scoring='precision_macro')
 
-    X = x_normalized_original.numpy()
-    y = y_up_original.numpy().astype(np.int64)
+    X = x_normalized_original
+    y = y_up_original
 
     gs.fit(X=X, y=y)
-

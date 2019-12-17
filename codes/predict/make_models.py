@@ -193,7 +193,6 @@ def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size,
     X = x_normalized_original.numpy()
     y = y_up_original.numpy().astype(np.int64)
 
-    lstm_model = LSTM(input_size=INPUT_SIZE, bias=True, dropout=0.5).to(DEVICE)
     net = NeuralNetClassifier(
         lstm_model,
         max_epochs=10,
@@ -206,8 +205,8 @@ def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size,
     clf = GridSearchCV(
         net,
         param_grid,
-        cv=StratifiedKFold(n_splits=4, shuffle=True),
-        scoring='roc_auc',
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
         refit=True,
         verbose=True
     )
@@ -434,4 +433,4 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        main(coin_names=upbit.get_all_coin_names(parts=10))
+        main(coin_names=upbit.get_all_coin_names(parts=5))
