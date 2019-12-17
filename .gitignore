@@ -18,6 +18,7 @@ common/config.ini
 /web/db/upbit_order_book_info.db
 /web/db/user.db
 /web/db/upbit_info.db
+/web/db/model.db
 
 logs/
 

@@ -182,16 +182,6 @@ class UpbitOrderBookArrangement:
 
 
 def make_arrangement(coin_names):
-    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
-    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
-    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
-    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
-        "BTC",
-        missing_count,
-        last_base_datetime_str
-    )
-    logger.info(msg)
-
     for idx, coin_name in enumerate(coin_names):
         coin_order_book_arrangement = UpbitOrderBookArrangement(coin_name)
         missing_count, last_base_datetime_str = coin_order_book_arrangement.processing_missing_data()
@@ -202,9 +192,23 @@ def make_arrangement(coin_names):
             last_base_datetime_str
         )
         logger.info(msg)
+        print("{0} {1} Completed".format(idx, coin_name))
 
 
 if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-    make_arrangement(upbit.get_all_coin_names())
+    # 중요. BTC 데이터 부터 Missing_Data 처리해야 함.
+    btc_order_book_arrangement = UpbitOrderBookArrangement("BTC")
+    missing_count, last_base_datetime_str = btc_order_book_arrangement.processing_missing_data()
+    msg = "{0}: {1} Missing Data was Processed!. Last arranged data: {2}".format(
+        "BTC",
+        missing_count,
+        last_base_datetime_str
+    )
+    logger.info(msg)
+
+    all_coin_names = upbit.get_all_coin_names()
+    all_coin_names.remove("BTC")
+
+    make_arrangement(all_coin_names)

@@ -80,8 +80,7 @@ def convert_to_daily_timestamp(datetime_str):
     return daily_base_timestamp
 
 
-def get_invest_krw(current_price, total_ask_size, total_bid_size):
-    # base_price = current_price * (total_ask_size + total_bid_size) * 0.001
+def get_invest_krw():
     base_price = 100000
     if base_price > 300000:
         return 300000
@@ -99,21 +98,22 @@ def get_invest_krw_live(upbit, coin_ticker_name):
     return get_invest_krw(current_price, total_ask_size, total_bid_size)
 
 
-def save_model(coin_name, model, model_type="GB"):
-    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name)))
+def save_model(model, model_type):
+    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type)))
     for f in files:
         os.remove(f)
 
-    file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name))
+    file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type))
     with open(file_name, 'wb') as f:
         pickle.dump(model, f)
+
     return file_name
 
 
-def load_model(coin_name, model_type="GB"):
-    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name)))
+def load_model(model_type):
+    files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type)))
     if len(files) > 0:
-        file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, '{0}.pkl'.format(coin_name))
+        file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type))
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
         return model

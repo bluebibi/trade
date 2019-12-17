@@ -8,11 +8,9 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(os.path.join(PROJECT_HOME, "/"))
 
-from web.db.database import BuySell
-
+from web.db.database import BuySell, buy_sell_session
 from common.utils import *
 from common.logger import get_logger
-
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
 
@@ -23,18 +21,13 @@ if os.getcwd().endswith("predict"):
     os.chdir("..")
 
 
-engine_trade = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
-db_trade_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine_trade))
-
-
 class Seller:
     @staticmethod
     def select_all_bought_coin_names():
 
-        q = db_trade_session.query(BuySell).filter(BuySell.status.in_(
+        trades_bought_or_trailed = buy_sell_session.query(BuySell).filter(BuySell.status.in_(
             [CoinStatus.bought.value, CoinStatus.trailed.value, CoinStatus.up_trailed.value]
-        ))
-        trades_bought_or_trailed = q.all()
+        )).all()
 
         coin_trail_info = {}
         for trade in trades_bought_or_trailed:
@@ -70,7 +63,7 @@ class Seller:
     def update_coin_info(trail_datetime, trail_price, sell_fee, sell_krw, trail_rate, total_krw, trail_up_count, status,
                          coin_ticker_name, buy_datetime):
 
-        q = db_trade_session.query(BuySell).filter_by(coin_ticker_name=coin_ticker_name, buy_datetime=buy_datetime)
+        q = buy_sell_session.query(BuySell).filter_by(coin_ticker_name=coin_ticker_name, buy_datetime=buy_datetime)
         trade = q.first()
         trade.trail_datetime = trail_datetime
         trade.trail_price = trail_price
@@ -80,7 +73,7 @@ class Seller:
         trade.total_krw = total_krw
         trade.trail_up_count = trail_up_count
         trade.status = status
-        db_trade_session.commit()
+        buy_sell_session.commit()
 
     def trail(self, coin_trail_info):
         now = dt.datetime.now(timezone('Asia/Seoul'))

@@ -1,8 +1,6 @@
 import locale
 import sys, os
 from pytz import timezone
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -10,7 +8,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from web.db.database import BuySell, get_order_book_class
+from web.db.database import BuySell, get_order_book_class, order_book_session, buy_sell_session
 from codes.predict.model_rnn import LSTM
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import *
@@ -26,20 +24,13 @@ if os.getcwd().endswith("predict"):
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
-engine_trade = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
-db_trade_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine_trade))
-
-engine_order_book = create_engine('sqlite:///{0}/web/db/upbit_order_book_info.db'.format(PROJECT_HOME))
-db_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine_order_book))
-
 
 def get_coin_ticker_names_by_bought_or_trailed_status():
     coin_ticker_name_list = []
 
-    q = db_trade_session.query(BuySell).filter(BuySell.status.in_(
-        [CoinStatus.bought.value, CoinStatus.trailed.value]
-    ))
-    trades_bought_or_trailed = q.all()
+    trades_bought_or_trailed = buy_sell_session.query(BuySell).filter(
+        BuySell.status.in_([CoinStatus.bought.value, CoinStatus.trailed.value])
+    ).all()
 
     for trade in trades_bought_or_trailed:
         coin_ticker_name_list.append(trade.coin_ticker_name.replace("KRW-", ""))
@@ -64,6 +55,7 @@ def get_good_quality_models_for_buy():
 
 def get_db_right_time_coin_names():
     coin_right_time_info = {}
+
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
@@ -72,7 +64,7 @@ def get_db_right_time_coin_names():
     all_coin_names = upbit.get_all_coin_names()
     for coin_name in all_coin_names:
         order_book_class = get_order_book_class(coin_name)
-        q = db_order_book_session.query(order_book_class).filter_by(base_datetime=current_time_str)
+        q = order_book_session.query(order_book_class).filter_by(base_datetime=current_time_str)
         base_datetime_info = q.first()
         if base_datetime_info:                  # base_datetime, ask_price_0
             base_datetime = base_datetime_info.base_datetime
@@ -114,8 +106,8 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgb
     buy_sell.trail_up_count = trail_up_count
     buy_sell.status = status
 
-    db_trade_session.add(buy_sell)
-    db_trade_session.commit()
+    buy_sell_session.add(buy_sell)
+    buy_sell_session.commit()
 
     msg_str = "*** BUY [{0}, lstm_prob: {1}, gb_prob: {2}, xgboost_prob: {3}, ask_price_0: {4}, buy_price: {5}, buy_krw: {6}, buy_coin_volume: {7}] @ {8}".format(
         coin_ticker_name,
@@ -133,7 +125,7 @@ def insert_buy_coin_info(coin_ticker_name, buy_datetime, lstm_prob, gb_prob, xgb
 
 
 def get_total_krw():
-    q = db_trade_session.query(BuySell).order_by(BuySell.id.desc()).limit(1)
+    q = buy_sell_session.query(BuySell).order_by(BuySell.id.desc()).limit(1)
 
     if q.first() is None:
         total_krw = INITIAL_TOTAL_KRW
@@ -167,14 +159,7 @@ def main():
 
         for coin_name in target_coin_names:
             upbit_data = UpbitOrderBookBasedData(coin_name)
-            x = upbit_data.get_dataset_for_buy(model_type="GB")
-
-            print("coin_name: {0}".format(coin_name), x)
-            # lstm_prob = evaluate_coin_by_model(
-            #     coin_name=coin_name,
-            #     x=x,
-            #     model_type="LSTM"
-            # )
+            x = upbit_data.get_dataset_for_buy()
 
             gb_prob = evaluate_coin_by_model(
                 coin_name=coin_name,
@@ -222,7 +207,7 @@ def main():
                     prompt_rising_rate = (buy_price - buy_base_price) / buy_base_price
 
                     if prompt_rising_rate < 0.001:
-                        q = db_trade_session.query(BuySell).filter_by(coin_ticker_name=coin_ticker_name)
+                        q = buy_sell_session.query(BuySell).filter_by(coin_ticker_name=coin_ticker_name)
 
                         trades_coin_ticker_name = q.all()
 

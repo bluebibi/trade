@@ -7,18 +7,20 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
 import sys, os
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from common.utils import get_invest_krw
-
 from common.logger import get_logger
-
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
+from web.db.database import get_order_book_class, order_book_engine, order_book_session
+
 
 logger = get_logger("upbit_order_book_based_data")
+
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
 order_book_for_one_coin = """
@@ -80,77 +82,48 @@ select_all_from_order_book_for_one_coin_limit = order_book_for_one_coin + """
 class UpbitOrderBookBasedData:
     def __init__(self, coin_name):
         self.coin_name = coin_name
+        self.order_book_class = get_order_book_class(coin_name)
 
-    def get_original_dataset_for_buy(self):
-        df = pd.read_sql_query(
-            select_all_from_order_book_for_one_coin_recent_window.format(self.coin_name, WINDOW_SIZE),
-            sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-        )
+    def get_dataset_for_buy(self, model_type="GB"):
+        queryset = order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.desc()).limit(WINDOW_SIZE).all()
+        df = pd.read_sql(queryset.statement, order_book_session.bind)
+        df = df.sort_values(['base_datetime'], ascending=True)
+        df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
 
-        df = df.sort_values(['collect_timestamp', 'base_datetime'], ascending=True)
-        return df
+        if os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name)):
+            with open(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name), 'rb') as f:
+                min_max_scaler = pickle.load(f)
 
-    def get_dataset_for_buy(self, model_type="LSTM"):
-        df = self.get_original_dataset_for_buy()
-        df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
+            data_normalized = min_max_scaler.transform(df.values)
 
-        if os.path.exists(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name)):
-            try:
-                with open(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name), 'rb') as f:
-                    min_max_scaler = pickle.load(f)
-
-                data_normalized = min_max_scaler.transform(df.values)
-                data_normalized = torch.from_numpy(data_normalized).float().to(DEVICE)
-
-                if model_type == "LSTM":
-                    return data_normalized.unsqueeze(dim=0)
-                else:
-                    data_normalized = data_normalized.flatten()
-                    return data_normalized.unsqueeze(dim=0)
-            except Exception:
-                return None
+            if model_type == "LSTM":
+                return data_normalized.unsqueeze(dim=0)
+            else:
+                data_normalized = data_normalized.flatten()
+                return data_normalized.unsqueeze(dim=0)
         else:
             return None
 
-    def get_original_dataset_for_training(self, limit=False):
-        if limit:
-            df = pd.read_sql_query(
-                select_all_from_order_book_for_one_coin_limit.format(self.coin_name, limit),
-                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-            )
-        else:
-            #print(select_all_from_order_book_for_one_coin.format(self.coin_name))
-            df = pd.read_sql_query(
-                select_all_from_order_book_for_one_coin.format(self.coin_name),
-                sqlite3.connect(sqlite3_order_book_db_filename, timeout=10, check_same_thread=False)
-            )
-        return df
-
-    def _get_dataset(self, limit=False):
-        df = self.get_original_dataset_for_training(limit)
-        df = df.drop(["base_datetime", "collect_timestamp"], axis=1)
-
-        data = torch.from_numpy(df.values).to(DEVICE)
+    def _get_dataset(self):
+        queryset = order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
+        df = pd.read_sql(queryset.statement, order_book_session.bind)
+        df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
 
         min_max_scaler = MinMaxScaler()
         data_normalized = min_max_scaler.fit_transform(df.values)
-        data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
 
-        with open(os.path.join(PROJECT_HOME, "models", "scalers", self.coin_name), 'wb') as f:
+        with open(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name), 'wb') as f:
             pickle.dump(min_max_scaler, f)
 
         x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(
-            data=data,
-            data_normalized=data_normalized,
-            window_size=WINDOW_SIZE,
-            future_target_size=FUTURE_TARGET_SIZE,
-            up_rate=UP_RATE
+            data=df.values,
+            data_normalized=data_normalized
         )
 
         return x, x_normalized, y, y_up, one_rate, total_size
 
     def get_rl_dataset(self):
-        x, x_normalized, _, _, _, total_size = self._get_dataset(limit=False)
+        x, x_normalized, _, _, _, total_size = self._get_dataset()
 
         indices = list(range(total_size))
         train_indices = list(set(indices[:int(total_size * 0.8)]))
@@ -162,90 +135,75 @@ class UpbitOrderBookBasedData:
 
         return x, x_train_normalized, train_size, x_valid_normalized, valid_size
 
-    def get_dataset(self, limit=False, split=True):
-        x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset(limit=limit)
+    def get_dataset(self, split=True):
+        x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset()
 
         # Imbalanced Preprocessing - Start
-        if one_rate > 0.01:
-            x_normalized = x_normalized.cpu()
-            y_up = y_up.cpu()
-
+        if one_rate < 0.25:
             try:
                 x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
                     x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
                     y_up
                 )
-                x_normalized = torch.from_numpy(
-                    x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
-                ).to(DEVICE)
-                y_up = torch.from_numpy(y_up_samp).to(DEVICE)
+                x_normalized = x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
+                y_up = y_up_samp
+
+                total_size = len(x_normalized)
+                one_rate = sum(y_up) / total_size
             except ValueError:
                 logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
-                x_normalized = x_normalized.to(DEVICE)
-                y_up = y_up.to(DEVICE)
-            # Imbalanced Preprocessing - End
+        # Imbalanced Preprocessing - End
 
-            total_size = len(x_normalized)
+        if split:
+            indices = list(range(total_size))
+            np.random.shuffle(indices)
 
-            if split:
-                indices = list(range(total_size))
-                np.random.shuffle(indices)
+            train_indices = list(set(indices[:int(total_size * 0.8)]))
+            validation_indices = list(set(range(total_size)) - set(train_indices))
 
-                train_indices = list(set(indices[:int(total_size * 0.8)]))
-                validation_indices = list(set(range(total_size)) - set(train_indices))
+            x_train_normalized = x_normalized[train_indices]
+            x_valid_normalized = x_normalized[validation_indices]
 
-                x_train_normalized = x_normalized[train_indices]
-                x_valid_normalized = x_normalized[validation_indices]
+            y_up_train = y_up[train_indices]
+            y_up_valid = y_up[validation_indices]
 
-                y_up_train = y_up[train_indices]
-                y_up_valid = y_up[validation_indices]
+            one_rate_train = sum(y_up_train) / y_up_train.shape[0]
+            one_rate_valid = sum(y_up_valid) / y_up_valid.shape[0]
 
-                one_rate_train = y_up_train.sum().float() / y_up_train.size(0)
-                one_rate_valid = y_up_valid.sum().float() / y_up_valid.size(0)
+            train_size = x_train_normalized.shape[0]
+            valid_size = x_valid_normalized.shape[0]
 
-                train_size = x_train_normalized.size(0)
-                valid_size = x_valid_normalized.size(0)
-
-                return x_train_normalized, y_up_train, one_rate_train, train_size,\
-                       x_valid_normalized, y_up_valid, one_rate_valid, valid_size
-            else:
-                one_rate = y_up.sum().float() / y_up.size(0)
-                return x_normalized, y_up, one_rate, total_size
+            return x_train_normalized, y_up_train, one_rate_train, train_size, \
+                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
         else:
-            return x_normalized, y_up, -1, -1
+            return x_normalized, y_up, one_rate, total_size
 
     @staticmethod
-    def build_timeseries(data, data_normalized, window_size, future_target_size, up_rate):
-        future_target = future_target_size - 1
+    def build_timeseries(data, data_normalized):
+        future_target = FUTURE_TARGET_SIZE - 1
 
-        dim_0 = data.shape[0] - window_size - future_target
+        dim_0 = data.shape[0] - WINDOW_SIZE - future_target
         dim_1 = data.shape[1]
 
-        x = torch.zeros((dim_0, window_size, dim_1)).to(DEVICE)
-        x_normalized = torch.zeros((dim_0, window_size, dim_1)).to(DEVICE)
+        x = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
+        x_normalized = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
 
-        y = torch.zeros((dim_0,)).to(DEVICE)
-        y_up = torch.zeros((dim_0,)).float().to(DEVICE)
+        y = np.zeros(dim_0,)
+        y_up = np.zeros(dim_0,)
 
         for i in range(dim_0):
-            x[i] = data[i: i + window_size]
-            x_normalized[i] = data_normalized[i: i + window_size]
+            x[i] = data[i: i + WINDOW_SIZE]
+            x_normalized[i] = data_normalized[i: i + WINDOW_SIZE]
 
         count_one = 0
         for i in range(dim_0):
-            max_price = -1.0
-
             ask_price_lst = []
             ask_size_lst = []
-            for w in range(0, 60, 4):
+            for w in range(0, 30, 2):
                 ask_price_lst.append(x[i][-1][1 + w].item())
-                ask_size_lst.append(x[i][-1][3 + w].item())
+                ask_size_lst.append(x[i][-1][2 + w].item())
 
-            invest_krw = get_invest_krw(
-                current_price=x[i][-1][1].item(),
-                total_ask_size=x[i][-1][121],
-                total_bid_size=x[i][-1][123]
-            )
+            invest_krw = get_invest_krw()
 
             original_krw, fee, calc_price, calc_size_sum = upbit.get_expected_buy_coin_price_for_krw_and_ask_list(
                 ask_price_lst=ask_price_lst,
@@ -254,12 +212,13 @@ class UpbitOrderBookBasedData:
                 transaction_fee_rate=TRANSACTION_FEE_RATE
             )
 
-            for j in range(future_target + 1):
+            max_price = -1.0
+            for j in range(FUTURE_TARGET_SIZE):
                 bid_price_lst = []
                 bid_size_lst = []
-                for w in range(0, 60, 4):
-                    bid_price_lst.append(data[i + window_size + j][61 + w].item())
-                    bid_size_lst.append(data[i + window_size + j][63 + w].item())
+                for w in range(0, 30, 2):
+                    bid_price_lst.append(data[i + WINDOW_SIZE + j][31 + w])
+                    bid_size_lst.append(data[i + WINDOW_SIZE + j][32 + w])
 
                 original_volume, future_price, fee, future_krw_sum = upbit.get_expected_sell_coin_price_for_volume_and_bid_list(
                     bid_price_lst=bid_price_lst,
@@ -273,7 +232,7 @@ class UpbitOrderBookBasedData:
 
             y[i] = max_price
 
-            if y[i] > calc_price * (1 + up_rate):
+            if y[i] > calc_price * (1 + UP_RATE):
                 y_up[i] = 1
                 count_one += 1
 

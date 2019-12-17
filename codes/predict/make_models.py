@@ -1,24 +1,20 @@
 # https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb
 # https://www.kaggle.com/stuarthallows/using-xgboost-with-scikit-learn
 import time
-
 import sys, os
-import xgboost as xgb
-from pytz import timezone
 
-from skorch import NeuralNetClassifier
-from skorch.callbacks import EpochScoring, EarlyStopping
-from sqlalchemy import create_engine, Column, Integer, String, Float
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.ensemble import GradientBoostingClassifier
+from web.db.database import model_session, Model
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
+import xgboost as xgb
+from pytz import timezone
+from skorch import NeuralNetClassifier
+from skorch.callbacks import EpochScoring, EarlyStopping
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.ensemble import GradientBoostingClassifier
 from common.global_variables import *
 import matplotlib.pyplot as plt
 from common.utils import *
@@ -35,52 +31,13 @@ import torch.nn.modules.loss
 
 logger = get_logger("make_models")
 
-if os.getcwd().endswith("predict"):
-    os.chdir("..")
-
-engine_model = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
-Base = declarative_base()
-
-
-class Model(Base):
-    __tablename__ = 'model'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True)
-    coin_name = Column(String)
-    model_type = Column(String)
-    model_filename = Column(String)
-    window_size = Column(Integer)
-    future_target_size = Column(Integer)
-    up_rate = Column(Float)
-    feature_size = Column(Integer)
-    datetime = Column(String)
-    one_rate = Column(Float)
-    train_size = Column(Integer)
-
-    def __repr__(self):
-        return "[ID: {0}] Coin Name: {1} Model Type: {2}, Model Filename: {3}, Datetime: {4}, One Rate: {5}, Train Size: {6}".format(
-            self.id, self.coin_name, self.model_type, self.model_filename, self.datetime, self.one_rate, self.train_size
-        )
-
-
-Base.metadata.create_all(engine_model)
-Session = sessionmaker(bind=engine_model)
-session = Session()
-
 
 def mkdir_models():
     if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE)):
         os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE))
 
-    model_type_list = ['LSTM', 'GB', 'XGBOOST']
-
-    for model_type in model_type_list:
-        if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type)):
-            os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type))
-
-        if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, 'graphs')):
-            os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, model_type, 'graphs'))
+    if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'graphs')):
+        os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'graphs'))
 
     if not os.path.exists(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'SCALERS')):
         os.makedirs(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'SCALERS'))
@@ -175,17 +132,17 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
-def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+def make_gboost_model(x_normalized, y_up, total_size):
     coin_model_start_time = time.time()
 
-    X = x_normalized_original.numpy().reshape(total_size, -1)
-    y = y_up_original.numpy()
+    X = x_normalized.reshape(total_size, -1)
+    y = y_up
 
     param_grid = {
         'learning_rate': [0.01, 0.05, 0.1],
         'max_depth': np.linspace(1, 8, 4, endpoint=True),
         'n_estimators': [32, 64, 128],
-        'max_features': list(range(int(x_normalized_original.shape[1] / 2), x_normalized_original.shape[1], 2)),
+        'max_features': list(range(int(x_normalized.shape[1] / 2), x_normalized.shape[1], 2)),
     }
 
     gb_model = GradientBoostingClassifier()
@@ -193,24 +150,22 @@ def make_gboost_model(coin_name, x_normalized_original, y_up_original, total_siz
     clf = GridSearchCV(
         gb_model,
         param_grid,
-        cv=StratifiedKFold(n_splits=4, shuffle=True),
-        scoring='accuracy',
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
         refit=True,
         verbose=True
     )
 
     clf.fit(X, y)
 
-    logger.info(clf.best_estimator_)
-
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
 
-    msg_str = "{0}: GradientBoostingClassifier - make_gboost_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str)
+    msg_str = "GradientBoostingClassifier - make_gboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(coin_model_elapsed_time_str, clf.best_score_)
     logger.info(msg_str)
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
 
-    return clf.best_estimator_
+    return clf.best_estimator_, clf.best_score_
 
 
 def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
@@ -267,11 +222,11 @@ def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size,
     return clf.best_estimator_
 
 
-def make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+def make_xgboost_model(x_normalized, y_up, total_size):
     coin_model_start_time = time.time()
 
-    X = x_normalized_original.numpy().reshape(total_size, -1)
-    y = y_up_original.numpy()
+    X = x_normalized.reshape(total_size, -1)
+    y = y_up
 
     param_grid = {
         'objective': ['binary:logistic'],
@@ -286,27 +241,25 @@ def make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_si
     clf = GridSearchCV(
         xgb_model,
         param_grid,
-        cv=StratifiedKFold(n_splits=4, shuffle=True),
-        scoring='accuracy',
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
         refit=True,
         verbose=True
     )
 
     clf.fit(X, y)
 
-    logger.info(clf.best_estimator_)
-
     coin_model_elapsed_time = time.time() - coin_model_start_time
     coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
 
-    msg_str = "{0}: XGBoostClassifier - make_xgboost_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str)
+    msg_str = "XGBoostClassifier - make_xgboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(coin_model_elapsed_time_str, clf.best_score_)
     logger.info(msg_str)
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
 
-    return clf.best_estimator_
+    return clf.best_estimator_, clf.best_score_
 
 
-def main(coin_names, model_source):
+def main(coin_names):
     start_time = time.time()
 
     heading_msg = "\n**************************\n"
@@ -316,7 +269,7 @@ def main(coin_names, model_source):
         UP_RATE,
         INPUT_SIZE,
         DEVICE,
-        model_source
+        LOCAL_MODEL_SOURCE
     )
     logger.info(heading_msg)
 
@@ -324,101 +277,108 @@ def main(coin_names, model_source):
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
 
-    for i, coin_name in enumerate(coin_names):
+    x_normalized_list = []
+    y_up_list = []
+    one_rate_list = []
+    global_total_size = 0
+    for idx, coin_name in enumerate(coin_names):
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
 
         x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
-
         if VERBOSE:
-            logger.info("{0}: x_normalized_original: {1}, y_up_original: {2}, one_rate: {3}, total_size: {4}".format(
+            logger.info("{0}, {1}: x_normalized_original: {2}, y_up_original: {3}, one_rate: {4}, total_size: {5}".format(
+                idx,
                 coin_name,
-                x_normalized_original.size(),
-                y_up_original.size(),
+                x_normalized_original.shape,
+                y_up_original.shape,
                 one_rate,
                 total_size
             ))
+        x_normalized_list.append(x_normalized_original)
+        y_up_list.append(y_up_original)
+        one_rate_list.append(one_rate)
+        global_total_size += total_size
 
-        if one_rate == -1 or total_size == -1:
-            if VERBOSE:
-                logger.info("{0}: 'One rate' is too low, so that the model construction is skipped".format(coin_name))
-            continue
-        else:
-            # if VERBOSE:
-            #     logger.info("[[[LSTM]]]")
-            # best_model = make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            # save_model(coin_name, best_model, model_type="LSTM")
+    x_normalized = np.concatenate(x_normalized_list)
+    y_up = np.concatenate(y_up_list)
+    one_rate = float(np.mean(one_rate_list))
 
-            if VERBOSE:
-                logger.info("[[[XGBoost]]]")
-            best_model = make_xgboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            model_filename = save_model(coin_name, best_model, model_type="XGBOOST")
+    if VERBOSE:
+        logger.info("TOTAL -- x_normalized: {0}, y_up: {1}, one_rate: {2}, total_size: {3}".format(
+            x_normalized.shape, y_up.shape, one_rate, global_total_size
+        ))
 
-            model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'XGBOOST')
+    if VERBOSE:
+        logger.info("[[[XGBoost]]]")
 
-            logger.info("{0}: {1}".format(coin_name, model))
+    best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
+    model_filename = save_model(best_model, model_type="XGBOOST")
 
-            if model:
-                model.model_filename=model_filename
-                model.one_rate=one_rate
-                model.train_size=total_size
-                model.datetime=current_time_str
-                model.window_size=WINDOW_SIZE
-                model.future_target_size=FUTURE_TARGET_SIZE
-                model.up_rate=UP_RATE
-                model.feature_size=INPUT_SIZE
+    model = model_session.query(Model).filter(Model.model_type == 'XGBOOST')
 
-                session.commit()
-            else:
-                model = Model(
-                    coin_name=coin_name,
-                    model_type="XGBOOST",
-                    model_filename=model_filename,
-                    one_rate=one_rate,
-                    train_size=total_size,
-                    datetime=current_time_str,
-                    window_size=WINDOW_SIZE,
-                    future_target_size=FUTURE_TARGET_SIZE,
-                    up_rate=UP_RATE,
-                    feature_size=INPUT_SIZE
-                )
-                session.add(model)
-                session.commit()
+    if model:
+        model.model_filename = model_filename
+        model.one_rate = one_rate
+        model.train_size = global_total_size
+        model.datetime = current_time_str
+        model.window_size = WINDOW_SIZE
+        model.future_target_size = FUTURE_TARGET_SIZE
+        model.up_rate = UP_RATE
+        model.feature_size = INPUT_SIZE
+        model.best_score = best_f1_score
 
-            if VERBOSE:
-                logger.info("[[[Gradient Boosting]]]")
-            best_model = make_gboost_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate)
-            model_filename = save_model(coin_name, best_model, model_type="GB")
+        model_session.commit()
+    else:
+        model = Model(
+            model_type="XGBOOST",
+            model_filename=model_filename,
+            one_rate=one_rate,
+            train_size=global_total_size,
+            datetime=current_time_str,
+            window_size=WINDOW_SIZE,
+            future_target_size=FUTURE_TARGET_SIZE,
+            up_rate=UP_RATE,
+            feature_size=INPUT_SIZE,
+            best_score=best_f1_score
+        )
+        model_session.add(model)
+        model_session.commit()
 
-            model = session.query(Model).filter(Model.coin_name == coin_name and Model.model_type == 'GB')
+    if VERBOSE:
+        logger.info("[[[Gradient Boosting]]]")
 
-            logger.info("{0}: {1}".format(coin_name, model))
-            
-            if model:
-                model.model_filename = model_filename
-                model.one_rate = one_rate
-                model.train_size = total_size
-                model.datetime = current_time_str
-                model.window_size = WINDOW_SIZE
-                model.future_target_size = FUTURE_TARGET_SIZE
-                model.up_rate = UP_RATE
-                model.feature_size = INPUT_SIZE
+    best_model, best_f1_score = make_gboost_model(x_normalized, y_up, global_total_size)
+    model_filename = save_model(best_model, model_type="GB")
 
-                session.commit()
-            else:
-                model = Model(
-                    coin_name=coin_name,
-                    model_type="GB",
-                    model_filename=model_filename,
-                    one_rate=one_rate,
-                    train_size=total_size,
-                    datetime=current_time_str,
-                    window_size=WINDOW_SIZE,
-                    future_target_size=FUTURE_TARGET_SIZE,
-                    up_rate=UP_RATE,
-                    feature_size=INPUT_SIZE
-                )
-                session.add(model)
-                session.commit()
+    model = model_session.query(Model).filter(Model.model_type == 'GB')
+
+    if model:
+        model.model_filename = model_filename
+        model.one_rate = one_rate
+        model.train_size = global_total_size
+        model.datetime = current_time_str
+        model.window_size = WINDOW_SIZE
+        model.future_target_size = FUTURE_TARGET_SIZE
+        model.up_rate = UP_RATE
+        model.feature_size = INPUT_SIZE
+        model.best_score = best_f1_score
+
+        model_session.commit()
+    else:
+        model = Model(
+            model_type="GB",
+            model_filename=model_filename,
+            one_rate=one_rate,
+            train_size=global_total_size,
+            datetime=current_time_str,
+            window_size=WINDOW_SIZE,
+            future_target_size=FUTURE_TARGET_SIZE,
+            up_rate=UP_RATE,
+            feature_size=INPUT_SIZE,
+            best_score=best_f1_score
+        )
+        model_session.add(model)
+        model_session.commit()
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -441,7 +401,7 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        main(coin_names=upbit.get_all_coin_names(), model_source=LOCAL_MODEL_SOURCE)
+        main(coin_names=upbit.get_all_coin_names())
 
 
 # def get_best_model_by_nested_cv(coin_name, X, y, inner_cv, outer_cv, Classifier, parameter_grid):

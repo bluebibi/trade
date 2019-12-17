@@ -18,6 +18,9 @@ def get_logger(name):
     if not os.path.exists(os.path.join(PROJECT_HOME, "logs")):
         os.makedirs(os.path.join(PROJECT_HOME, "logs"))
 
+    if not os.path.exists(os.path.join(PROJECT_HOME, "logs", "error")):
+        os.makedirs(os.path.join(PROJECT_HOME, "logs", "error"))
+
     rotate_handler = RotatingFileHandler(
         os.path.join(PROJECT_HOME, "logs", name + ".log"),
         'a',
