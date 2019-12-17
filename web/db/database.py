@@ -38,6 +38,14 @@ naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflu
 model_engine = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
 model_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=model_engine))
 
+user_engine = create_engine('sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME))
+user_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=user_engine))
+
+upbit_info_engine = create_engine(
+    'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
+    echo=False, connect_args={'check_same_thread': False}
+)
+upbit_info_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=upbit_info_engine))
 
 class Model(Base):
     __tablename__ = 'MODEL'
@@ -295,3 +303,7 @@ if __name__ == "__main__":
     if not model_engine.dialect.has_table(model_engine, "MODEL"):
         Model.__table__.create(bind=model_engine)
         print("MODEL Table Created")
+
+    if not user_engine.dialect.has_table(user_engine, "USER"):
+        User.__table__.create(bind=user_engine)
+        print("USER Table Created")

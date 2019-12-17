@@ -5,31 +5,19 @@ import sys, os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from codes.upbit.upbit_api import Upbit
-from codes.upbit.recorder.upbit_info import UpbitInfo
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(os.path.join(PROJECT_HOME, "/"))
 
-from web.db.database import BuySell, get_order_book_class
-from web.db.database import db
+from codes.upbit.upbit_api import Upbit
+from codes.upbit.recorder.upbit_info import UpbitInfo
+from web.db.database import BuySell, get_order_book_class, upbit_info_session, naver_order_book_session, \
+    buy_sell_session
 from common.global_variables import *
 from common.utils import *
 
 subpage_blueprint = Blueprint('subpage', __name__)
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-
-engine_model = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
-Session = sessionmaker(bind=engine_model)
-session = Session()
-
-upbit_info_engine = create_engine(
-    'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
-    echo=False, connect_args={'check_same_thread': False}
-)
-upbit_info_session = sessionmaker(bind=upbit_info_engine)
-upbit_info_session = upbit_info_session()
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
@@ -54,66 +42,32 @@ def _market_data():
 def _models():
     coin_names = upbit.get_all_coin_names()
 
-    xgboost_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE,  'XGBOOST', '*.pkl'))
-    xgboost_models = {}
-    for xgboost_file in xgboost_model_files:
-        xgboost_file_name = xgboost_file.split("/")[-1].split(".pkl")
-        coin_name = xgboost_file_name[0]
+    models = {}
+    xgboost_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE,  'XGBOOST.pkl'))
 
+    for xgboost_file in xgboost_model_files:
         time_diff = dt.datetime.fromtimestamp(os.stat(xgboost_file).st_mtime).strftime(fmt.replace("T", " "))
 
-        xgboost_models[coin_name] = {
+        models['xgboost'] = {
             "last_modified": time_diff
         }
 
-    gb_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'GB', '*.pkl'))
-    gb_models = {}
+    gb_model_files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, 'GB.pkl'))
     for gb_file in gb_model_files:
-        gb_file_name = gb_file.split("/")[-1].split(".pkl")
-        coin_name = gb_file_name[0]
-
         time_diff = dt.datetime.fromtimestamp(os.stat(gb_file).st_mtime).strftime(fmt.replace("T", " "))
 
-        gb_models[coin_name] = {
+        models["gb"] = {
             "last_modified": time_diff
         }
 
-    txt = "<tr><th>코인 이름</th><th>XGBOOST 모델 정보</th><th>GB 모델 정보</th></tr>"
-    num_xgboost_models = 0
-    num_gb_models = 0
-    for coin_name in coin_names:
-        txt += "<tr>"
-
-        if coin_name in xgboost_models:
-            xgboost_model_last_modified = xgboost_models[coin_name]["last_modified"]
-            num_xgboost_models += 1
-        else:
-            xgboost_model_last_modified = "-"
-
-        if coin_name in gb_models:
-            gb_model_last_modified = gb_models[coin_name]["last_modified"]
-            num_gb_models += 1
-        else:
-            gb_model_last_modified = "-"
-
-        if xgboost_model_last_modified != "-" and gb_model_last_modified != "-":
-            coin_name = "<span style='color:#FF0000'><strong>{0}</strong></span>".format(coin_name)
-
-        txt += "<td>{0}</td><td>{1}</td><td>{2}</td>".format(
-            coin_name,
-            xgboost_model_last_modified,
-            gb_model_last_modified
-        )
-
-    return render_template("subpage/models.html", menu="models",
-                           num_xgboost_models=num_xgboost_models, num_gb_models=num_gb_models)
+    return render_template("subpage/models.html", menu="models", models=models)
 
 
 def get_KRW_BTC_info():
-    q = db.session.query(get_order_book_class("BTC")).order_by(get_order_book_class("BTC").collect_timestamp.desc()).limit(1)
+    q = naver_order_book_session.query(get_order_book_class("BTC")).order_by(get_order_book_class("BTC").collect_timestamp.desc()).limit(1)
     last_krw_btc_datetime = q.first().base_datetime
 
-    num_krw_btc_records = db.session.query(get_order_book_class("BTC")).count()
+    num_krw_btc_records = naver_order_book_session.query(get_order_book_class("BTC")).count()
 
     return last_krw_btc_datetime, num_krw_btc_records
 
@@ -130,7 +84,7 @@ def news_main():
 
 @subpage_blueprint.route('/trail')
 def _trail():
-    q = db.session.query(BuySell).filter_by(id=request.args.get("trade_id"))
+    q = buy_sell_session.query(BuySell).filter_by(id=request.args.get("trade_id"))
     trade = q.first()
 
     coin_name = trade.coin_ticker_name.split('-')[1]
@@ -141,7 +95,7 @@ def _trail():
 
 @subpage_blueprint.route('/trail_completed')
 def _trail_completed():
-    q = db.session.query(BuySell).filter_by(id=request.args.get("trade_id"))
+    q = buy_sell_session.query(BuySell).filter_by(id=request.args.get("trade_id"))
     trade = q.first()
 
     coin_name = trade.coin_ticker_name.split('-')[1]
@@ -171,10 +125,10 @@ def _price_info_json(trade_id=None, coin_name=None, base_datetime_str=None, retu
     if coin_name is None and return_type == 'dict':
         coin_name = request.args.get("coin_name")
         base_datetime_str = request.args.get("base_datetime")
-        q = db.session.query(BuySell).filter_by(id=request.args.get("trade_id"))
+        q = buy_sell_session.query(BuySell).filter_by(id=request.args.get("trade_id"))
         trade = q.first()
     else:
-        q = db.session.query(BuySell).filter_by(id=trade_id)
+        q = buy_sell_session.query(BuySell).filter_by(id=trade_id)
         trade = q.first()
 
     datetime_lst = []
@@ -188,7 +142,7 @@ def _price_info_json(trade_id=None, coin_name=None, base_datetime_str=None, retu
         c_base_datetime_str = dt.datetime.strftime(c_base_datetime, fmt.replace("T", " "))
         datetime_lst.append(c_base_datetime_str)
 
-    q = db.session.query(get_order_book_class(coin_name)).filter(
+    q = naver_order_book_session.query(get_order_book_class(coin_name)).filter(
         get_order_book_class(coin_name).base_datetime.in_(datetime_lst))
     order_book_lst = q.all()
 

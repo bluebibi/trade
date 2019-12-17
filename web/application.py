@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
-from web.db.database import db, User, get_order_book_class, BuySell
+from web.db.database import User, get_order_book_class, BuySell, user_session, buy_sell_session
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
@@ -32,12 +32,6 @@ def create_application():
     application.debug = WEB_DEBUG
     application.config['DEBUG'] = WEB_DEBUG
     #application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
-    application.config['SQLALCHEMY_BINDS'] = {
-        'user':                     'sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME),
-        'upbit_buy_sell':           'sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME),
-        'upbit_info':               'sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME),
-        'upbit_order_book_info':    'sqlite:///{0}/web/db/upbit_order_book_info.db'.format(PROJECT_HOME)
-    }
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     application.config['WTF_CSRF_SECRET_KEY'] = os.urandom(24)
     application.config['SECRET_KEY'] = os.urandom(24)
@@ -45,19 +39,12 @@ def create_application():
     application.register_blueprint(subpage_blueprint, url_prefix='/subpage')
     login_manager.init_app(application)
 
-    #db
-    db.app = application
-    db.init_app(application)
-
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
-    for coin_name in upbit.get_all_coin_names():
-        if not db.engine.dialect.has_table(db.engine, "KRW_{0}_ORDER_BOOK".format(coin_name)):
-            get_order_book_class(coin_name).__table__.create(bind=db.engine)
 
     # create a user
     with application.app_context():
         email = "yh21.han@gmail.com"
-        q = db.session.query(User).filter(User.email == email)
+        q = user_session.query(User).filter(User.email == email)
         user = q.first()
         if user is None:
             add_user(
@@ -73,8 +60,8 @@ def add_user(name, email, password):
     admin.email = email
     admin.set_password(password)
     admin.is_admin = True
-    db.session.add(admin)
-    db.session.commit()
+    user_session.add(admin)
+    user_session.commit()
 
 
 @application.route('/')
@@ -99,7 +86,7 @@ def _trade_data(return_type="json"):
     num_loss = 0
     total_gain = 0.0
 
-    q = db.session.query(BuySell).order_by(BuySell.id.desc())
+    q = buy_sell_session.query(BuySell).order_by(BuySell.id.desc())
     trades = q.all()
 
     for trade in trades:
