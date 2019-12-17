@@ -434,4 +434,4 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        main(coin_names=upbit.get_all_coin_names(parts=25))
+        main(coin_names=upbit.get_all_coin_names(parts=10))
