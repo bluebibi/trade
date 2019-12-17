@@ -183,10 +183,9 @@ def main():
                     "xgboost_prob": float(xgboost_prob)
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
-
+                logger.info(msg_str)
             else:
                 msg_str += " - "
-            logger.info(msg_str)
 
         if buy_try_coin_ticker_names:
             for coin_ticker_name in buy_try_coin_ticker_names:
