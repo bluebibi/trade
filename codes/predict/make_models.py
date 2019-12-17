@@ -289,27 +289,22 @@ def main(coin_names):
         gc.collect()
 
         upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
-
         x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
 
-        included = np.random.randint(low=0, high=3)
-
         if VERBOSE:
-            logger.info("{0}, {1}: x_normalized_original: {2}, y_up_original: {3}, one_rate: {4}, total_size: {5}, included: {6}".format(
+            logger.info("{0}, {1}: x_normalized_original: {2}, y_up_original: {3}, one_rate: {4}, total_size: {5}".format(
                 idx,
                 coin_name,
                 x_normalized_original.shape,
                 y_up_original.shape,
                 one_rate,
-                total_size,
-                True if included == 2 else False
+                total_size
             ))
 
-        if included == 2:
-            x_normalized_list.append(x_normalized_original)
-            y_up_list.append(y_up_original)
-            one_rate_list.append(one_rate)
-            global_total_size += total_size
+        x_normalized_list.append(x_normalized_original)
+        y_up_list.append(y_up_original)
+        one_rate_list.append(one_rate)
+        global_total_size += total_size
 
     gc.collect()
     x_normalized = np.concatenate(x_normalized_list)
@@ -431,8 +426,6 @@ def main(coin_names):
     if PUSH_SLACK_MESSAGE: SLACK.send_message("me", slack_msg)
 
 
-
-
 if __name__ == "__main__":
     mkdir_models()
 
@@ -441,4 +434,4 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        main(coin_names=upbit.get_all_coin_names())
+        main(coin_names=upbit.get_all_coin_names(parts=25))

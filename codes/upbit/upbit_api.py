@@ -541,7 +541,7 @@ class Upbit:
             logger.info(x.__class__.__name__)
             return None
 
-    def get_all_coin_names(self):
+    def get_all_coin_names(self, parts="ALL"):
         url = "https://api.upbit.com/v1/market/all"
 
         contents = _call_public_api(url)
@@ -552,7 +552,10 @@ class Upbit:
 
         random.shuffle(coin_names)
 
-        return coin_names
+        if parts == "ALL":
+            return coin_names
+        else:
+            return coin_names[:parts]
 
     def get_expected_buy_coin_price_for_krw_and_ask_list(self, ask_price_lst, ask_size_lst, krw, transaction_fee_rate):
         original_krw = krw
