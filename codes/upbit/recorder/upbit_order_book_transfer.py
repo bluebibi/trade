@@ -51,13 +51,13 @@ coin_names = upbit.get_all_coin_names()
 
 for coin_name in coin_names:
     order_book_class = get_order_book_class(coin_name)
-    order_books = sqlite_db_session.query(order_book_class).all()
+    sqlite_order_books = sqlite_db_session.query(order_book_class).all()
     print(coin_name)
-    for idx, order_book in enumerate(order_books):
-        q = mysql_db_session.query(order_book_class).filter(order_book_class.collect_timestamp == order_book.collect_timestamp)
+    for idx, sqlite_order_book in enumerate(sqlite_order_books):
+        q = mysql_db_session.query(order_book_class).filter(order_book_class.base_datetime == sqlite_order_book.base_datetime)
         stored_order_book = q.first()
         if stored_order_book is None:
-            local_object = mysql_db_session.merge(order_book)
+            local_object = mysql_db_session.merge(sqlite_order_book)
             mysql_db_session.add(local_object)
             if idx % 100 == 0:
                 print(idx, end=", ")
