@@ -133,3 +133,8 @@ MYSQL_ROOT_PASSWORD = config['MYSQL']['root_password']
 MYSQL_ID = config['MYSQL']['mysql_id']
 MYSQL_PASSWORD = config['MYSQL']['mysql_password']
 MYSQL_HOST = config['MYSQL']['mysql_host']
+
+#MYSQL_NAVER
+NAVER_MYSQL_ID = config['MYSQL_NAVER']['mysql_id']
+NAVER_MYSQL_PASSWORD = config['MYSQL_NAVER']['mysql_password']
+NAVER_MYSQL_HOST = config['MYSQL_NAVER']['mysql_host']

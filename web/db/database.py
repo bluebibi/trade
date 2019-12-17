@@ -13,7 +13,8 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.dialects.mysql import BIGINT
 
-from common.global_variables import MYSQL_HOST, MYSQL_PASSWORD, MYSQL_ID
+from common.global_variables import MYSQL_HOST, MYSQL_PASSWORD, MYSQL_ID, NAVER_MYSQL_ID, NAVER_MYSQL_PASSWORD, \
+    NAVER_MYSQL_HOST
 
 Base = declarative_base()
 
@@ -29,10 +30,10 @@ class CoinStatus(Enum):
 buy_sell_engine = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
 buy_sell_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=buy_sell_engine))
 
-order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/record_order_book?use_pure=True'.format(
-            MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
+naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/record_order_book?use_pure=True'.format(
+            NAVER_MYSQL_ID, NAVER_MYSQL_PASSWORD, NAVER_MYSQL_HOST
         ), encoding='utf-8')
-order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=order_book_engine))
+naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
 model_engine = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
 model_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=model_engine))

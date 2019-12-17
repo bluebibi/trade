@@ -16,7 +16,7 @@ from common.utils import get_invest_krw
 from common.logger import get_logger
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
-from web.db.database import get_order_book_class, order_book_engine, order_book_session
+from web.db.database import get_order_book_class, naver_order_book_session
 
 
 logger = get_logger("upbit_order_book_based_data")
@@ -85,8 +85,11 @@ class UpbitOrderBookBasedData:
         self.order_book_class = get_order_book_class(coin_name)
 
     def get_dataset_for_buy(self, model_type="GB"):
-        queryset = order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.desc()).limit(WINDOW_SIZE).all()
-        df = pd.read_sql(queryset.statement, order_book_session.bind)
+        queryset = naver_order_book_session.query(self.order_book_class).order_by(
+            self.order_book_class.base_datetime.desc()
+        ).limit(WINDOW_SIZE)
+
+        df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
         df = df.sort_values(['base_datetime'], ascending=True)
         df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
 
@@ -96,17 +99,16 @@ class UpbitOrderBookBasedData:
 
             data_normalized = min_max_scaler.transform(df.values)
 
-            if model_type == "LSTM":
-                return data_normalized.unsqueeze(dim=0)
-            else:
+            if model_type != "LSTM":
                 data_normalized = data_normalized.flatten()
-                return data_normalized.unsqueeze(dim=0)
+
+            return np.expand_dims(data_normalized, axis=0)
         else:
             return None
 
     def _get_dataset(self):
-        queryset = order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
-        df = pd.read_sql(queryset.statement, order_book_session.bind)
+        queryset = naver_order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
+        df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
         df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
 
         min_max_scaler = MinMaxScaler()

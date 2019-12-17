@@ -1,8 +1,6 @@
 import time
 from pytz import timezone
 import sys, os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"

@@ -8,7 +8,7 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from web.db.database import BuySell, get_order_book_class, order_book_session, buy_sell_session
+from web.db.database import BuySell, get_order_book_class, naver_order_book_session, buy_sell_session
 from codes.predict.model_rnn import LSTM
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import *
@@ -64,7 +64,7 @@ def get_db_right_time_coin_names():
     all_coin_names = upbit.get_all_coin_names()
     for coin_name in all_coin_names:
         order_book_class = get_order_book_class(coin_name)
-        q = order_book_session.query(order_book_class).filter_by(base_datetime=current_time_str)
+        q = naver_order_book_session.query(order_book_class).filter_by(base_datetime=current_time_str)
         base_datetime_info = q.first()
         if base_datetime_info:                  # base_datetime, ask_price_0
             base_datetime = base_datetime_info.base_datetime
@@ -158,8 +158,8 @@ def main():
         buy_try_coin_ticker_names = []
 
         for coin_name in target_coin_names:
-            upbit_data = UpbitOrderBookBasedData(coin_name)
-            x = upbit_data.get_dataset_for_buy()
+            upbit_order_book_data = UpbitOrderBookBasedData(coin_name)
+            x = upbit_order_book_data.get_dataset_for_buy()
 
             gb_prob = evaluate_coin_by_model(
                 coin_name=coin_name,
