@@ -323,6 +323,9 @@ def main(coin_names):
     X_train, X_test, y_train, y_test = train_test_split(x_normalized, y_up, test_size=0.2, random_state=0)
 
     if VERBOSE:
+        logger.info(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+    if VERBOSE:
         logger.info("[[[XGBoost]]]")
 
     model = load_model(model_type="XGBOOST")
