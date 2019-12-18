@@ -63,6 +63,19 @@ class Model(Base):
     train_size = Column(Integer)
     best_score = Column(Float)
 
+    def to_json(self):
+        return {
+            "model_type": self.model_type,
+            "window_size": self.window_size,
+            "future_target_size": self.future_target_size,
+            "up_rate": self.up_rate,
+            "feature_size": self.feature_size,
+            "one_rate": self.one_rate,
+            "train_size": self.train_size,
+            "best_score": self.best_score,
+            "datetime": self.datetime
+        }
+
     def __repr__(self):
         return "[ID: {0}] Model Type: {1}, Model Filename: {2}, Datetime: {3}, One Rate: {4}, Train Size: {5}".format(
             self.id, self.model_type, self.model_filename, self.datetime, self.one_rate, self.train_size

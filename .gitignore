@@ -27,3 +27,4 @@ models/scalers/
 codes/tests/temp/
 
 *.log
+*.pkl

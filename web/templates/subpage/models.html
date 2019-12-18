@@ -9,8 +9,8 @@
                     <div class="card-icon">
                         <i class="material-icons">info_outline</i>
                     </div>
-                    <p class="card-category">XGBOOST 모델 보유 코인 수</p>
-                    <h3 class="card-title">{{ num_xgboost_models }}</h3>
+                    <p class="card-category">마지막 XGBOOST 모델 저장 날짜</p>
+                    <h3 class="card-title">{{ model_dates['xgboost']["last_modified"] }}</h3>
                 </div>
                 <div class="card-footer">
                     <div class="stats">
@@ -25,8 +25,8 @@
                     <div class="card-icon">
                         <i class="fa fa-twitter"></i>
                     </div>
-                    <p class="card-category">GB 모델 보유 코인 수</p>
-                    <h3 class="card-title">{{ num_gb_models }}</h3>
+                    <p class="card-category">마지막 GB 모델 저장 날짜</p>
+                    <h3 class="card-title">{{ model_dates['gb']["last_modified"] }}</h3>
                 </div>
                 <div class="card-footer">
                     <div class="stats">
@@ -37,14 +37,33 @@
         </div>
     </div>
 
-    <div row>
+    <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12">
-            <table role="presentation" border="1" cellpadding="0" cellspacing="0" class="buy_sell_text">
-                <tbody>
-                {{ model_status }}
-                </tbody>
+            <table id="model_table"
+                   data-toggle="table" data-sortable="true" data-url="/subpage/model_data" data-method="POST" data-search="true"
+                   data-pagination="true" data-remember-order="true" data-icon-size="sm">
+                <thead>
+                    <tr>
+                        <th data-field="model_type" data-sortable="true">모델 타입</th>
+                        <th data-field="window_size" data-sortable="true">롤링 윈도우 사이즈</th>
+                        <th data-field="future_target_size" data-sortable="true">매수후 매도 만기</th>
+                        <th data-field="up_rate" data-sortable="true">즉시 매도 이득률</th>
+                        <th data-field="feature_size">Feature 개수</th>
+                        <th data-field="one_rate">훈련 데이터 내 성공 개수</th>
+                        <th data-field="train_size">훈련 데이터 수</th>
+                        <th data-field="best_score" data-sortable="true">테스트 데이터 F1-Score</th>
+                        <th data-field="datetime" data-sortable="true">모델 저장 날짜</th>
+                    </tr>
+                </thead>
             </table>
         </div>
     </div>
-    </table>
+{% endblock %}
+{% block additional_javascript %}
+<script type="text/javascript">
+    $('#model_table').bootstrapTable({
+
+
+    })
+</script>
 {% endblock %}

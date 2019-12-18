@@ -345,7 +345,7 @@ def main(coin_names):
     if model:
         model.model_filename = model_filename
         model.one_rate = one_rate
-        model.train_size = global_total_size
+        model.train_size = model.train_size + global_total_size
         model.datetime = current_time_str
         model.window_size = WINDOW_SIZE
         model.future_target_size = FUTURE_TARGET_SIZE
@@ -390,7 +390,7 @@ def main(coin_names):
     if model:
         model.model_filename = model_filename
         model.one_rate = one_rate
-        model.train_size = global_total_size
+        model.train_size = model.train_size + global_total_size
         model.datetime = current_time_str
         model.window_size = WINDOW_SIZE
         model.future_target_size = FUTURE_TARGET_SIZE

@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
-from web.db.database import User, get_order_book_class, BuySell, user_session, buy_sell_session
+from web.db.database import User, BuySell, user_session, buy_sell_session
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
