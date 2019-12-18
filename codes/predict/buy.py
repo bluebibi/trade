@@ -190,7 +190,7 @@ def main():
         if buy_try_coin_ticker_names:
             for coin_ticker_name in buy_try_coin_ticker_names:
                 current_total_krw = get_total_krw()
-                invest_krw = get_invest_krw_live(upbit=upbit, coin_ticker_name=coin_ticker_name)
+                invest_krw = get_invest_krw()
 
                 if True:           # if current_total_krw - invest_krw > 0:
                     _, buy_fee, buy_price, buy_coin_volume = upbit.get_expected_buy_coin_price_for_krw(
