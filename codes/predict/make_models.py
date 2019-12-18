@@ -340,7 +340,7 @@ def main(coin_names):
 
     model_filename = save_model(best_model, model_type="XGBOOST")
 
-    model = model_session.query(Model).filter(Model.model_type == 'XGBOOST')
+    model = model_session.query(Model).filter(Model.model_type == 'XGBOOST').first()
 
     if model:
         model.model_filename = model_filename
@@ -388,7 +388,7 @@ def main(coin_names):
 
     model_filename = save_model(best_model, model_type="GB")
 
-    model = model_session.query(Model).filter(Model.model_type == 'GB')
+    model = model_session.query(Model).filter(Model.model_type == 'GB').first()
 
     if model:
         model.model_filename = model_filename
