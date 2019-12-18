@@ -35,7 +35,9 @@ naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/reco
         ), encoding='utf-8')
 naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
-model_engine = create_engine('sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME))
+model_engine = create_engine(
+    'sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME)
+)
 model_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=model_engine))
 
 user_engine = create_engine('sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME))

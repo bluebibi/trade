@@ -371,6 +371,9 @@ def main(coin_names):
         model_session.commit()
 
     if VERBOSE:
+        logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
+
+    if VERBOSE:
         logger.info("[[[Gradient Boosting]]]")
 
     model = load_model(model_type="GB")
@@ -417,6 +420,8 @@ def main(coin_names):
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+    if VERBOSE:
+        logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
 
     logger.info("####################################################################")
     logger.info("Elapsed Time: {0}".format(elapsed_time_str))
