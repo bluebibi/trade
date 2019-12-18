@@ -5,6 +5,8 @@ import traceback
 
 import sys, os
 
+from sqlalchemy.orm.exc import MultipleResultsFound
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -84,7 +86,14 @@ class UpbitOrderBookRecorder:
         for coin_name in order_book_info:
             order_book_class = get_order_book_class(coin_name)
 
-            exist = db_session.query(order_book_class).filter_by(base_datetime=order_book_info[coin_name]["base_datetime"]).scalar() is not None
+            try:
+                exist = db_session.query(order_book_class).filter_by(base_datetime=order_book_info[coin_name]["base_datetime"]).scalar() is not None
+            except MultipleResultsFound as e:
+                msg = "{0}: Multiple rows were found for base_datetime: {1}".format(coin_name, order_book_info[coin_name]["base_datetime"])
+                logger.info(msg)
+                SLACK.send_message("me", msg)
+                exist = True
+
             if exist:
                 continue
 
