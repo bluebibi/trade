@@ -4,13 +4,15 @@ import pickle
 import sys, os
 import glob
 import subprocess
+
+import boto3
 import torch
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade/"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CoinStatus, fmt, LOCAL_MODEL_SOURCE
+from common.global_variables import CoinStatus, fmt, LOCAL_MODEL_SOURCE, S3_BUCKET_NAME
 
 
 def convert_unit_2(unit):
@@ -107,13 +109,20 @@ def save_model(model, model_type):
     with open(file_name, 'wb') as f:
         pickle.dump(model, f)
 
+    s3 = boto3.client('s3')
+    s3.upload_file(file_name, S3_BUCKET_NAME, '{0}.pkl'.format(model_type))
+
     return file_name
 
 
 def load_model(model_type):
+    file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type))
+
+    s3 = boto3.client('s3')
+    s3.download_file(S3_BUCKET_NAME, '{0}.pkl'.format(model_type), file_name)
+
     files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type)))
     if len(files) > 0:
-        file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type))
         with open(file_name, 'rb') as f:
             model = pickle.load(f)
         return model

@@ -26,23 +26,33 @@ class CoinStatus(Enum):
     loss_sold = 4
     up_trailed = 5
 
+######################
+trade_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
+            MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
+        ), encoding='utf-8')
 
+trade_db_session = scoped_session(
+    sessionmaker(autocommit=False, autoflush=False, bind=trade_engine)
+)
+
+######################
 buy_sell_engine = create_engine('sqlite:///{0}/web/db/upbit_buy_sell.db'.format(PROJECT_HOME))
 buy_sell_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=buy_sell_engine))
 
+
+######################
 naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/record_order_book?use_pure=True'.format(
             NAVER_MYSQL_ID, NAVER_MYSQL_PASSWORD, NAVER_MYSQL_HOST
         ), encoding='utf-8')
 naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
-model_engine = create_engine(
-    'sqlite:///{0}/web/db/model.db'.format(PROJECT_HOME)
-)
-model_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=model_engine))
 
+######################
 user_engine = create_engine('sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME))
 user_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=user_engine))
 
+
+######################
 upbit_info_engine = create_engine(
     'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
     echo=False, connect_args={'check_same_thread': False}
@@ -310,15 +320,95 @@ class User(Base):
         return str(r)
 
 
+class UpbitInfo(Base):
+    __tablename__ = "UPBIT_INFO"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    market = Column(String)
+    korean_name = Column(String)
+    eng_name = Column(String)
+    limit_amount_max = Column(Float)
+    limit_amount_min = Column(Float)
+    limit_cost_max = Column(Float)
+    limit_cost_min = Column(Float)
+    limit_price_max = Column(Float)
+    limit_price_min = Column(Float)
+    maker = Column(Float)
+    taker = Column(Float)
+    percentage = Column(Boolean)
+    precision_amount = Column(Float)
+    precision_price = Column(Float)
+    tierBased = Column(Boolean)
+
+    birth = Column(String)
+    total_markets = Column(String)
+    num_exchanges = Column(String)
+    period_block_creation = Column(String)
+    mine_reward_unit = Column(String)
+    total_limit = Column(String)
+    consensus_protocol = Column(String)
+    web_site = Column(String)
+    whitepaper = Column(String)
+    block_site = Column(String)
+    twitter_url = Column(String)
+    intro = Column(String)
+
+    def __init__(self, *args, **kw):
+        super(UpbitInfo, self).__init__(*args, **kw)
+
+    def get_id(self):
+        return self.id
+
+    def to_dict(self):
+        d = {}
+        d["coin_name"] = self.market.replace("KRW-", "")
+        d["market"] = self.market
+        d["korean_name"] = self.korean_name
+        d["eng_name"] = self.eng_name
+        d["limit_amount_max"] = self.limit_amount_max
+        d["limit_amount_min"] = self.limit_amount_min
+        d["limit_cost_max"] = self.limit_cost_max
+        d["limit_cost_min"] = self.limit_cost_min
+        d["limit_price_max"] = self.limit_price_max
+        d["limit_price_min"] = self.limit_price_min
+        d["maker"] = self.maker
+        d["taker"] = self.taker
+        d["percentage"] = self.percentage
+        d["precision_amount"] = self.precision_amount
+        d["precision_price"] = self.precision_price
+        d["tierBased"] = self.tierBased
+
+        d["birth"] = self.birth
+        d["total_markets"] = self.total_markets
+        d["num_exchanges"] = self.num_exchanges
+        d["period_block_creation"] = self.period_block_creation
+        d["mine_reward_unit"] = self.mine_reward_unit
+        d["total_limit"] = self.total_limit
+        d["consensus_protocol"] = self.consensus_protocol
+        d["web_site"] = self.web_site
+        d["whitepaper"] = self.whitepaper
+        d["block_site"] = self.block_site
+        d["twitter_url"] = self.twitter_url
+
+        d["intro"] = self.intro
+
+        return d
+
 if __name__ == "__main__":
     if not buy_sell_engine.dialect.has_table(buy_sell_engine, "BUY_SELL"):
         BuySell.__table__.create(bind=buy_sell_engine)
         print("BUY_SELL Table Created")
 
-    if not model_engine.dialect.has_table(model_engine, "MODEL"):
-        Model.__table__.create(bind=model_engine)
+    if not trade_engine.dialect.has_table(trade_engine, "MODEL"):
+        Model.__table__.create(bind=trade_engine)
+        print("MODEL Table Created")
+
+    if not trade_engine.dialect.has_table(trade_engine, "UPBIT_INFO"):
+        UpbitInfo.__table__.create(bind=trade_engine)
         print("MODEL Table Created")
 
     if not user_engine.dialect.has_table(user_engine, "USER"):
         User.__table__.create(bind=user_engine)
         print("USER Table Created")
+

@@ -395,7 +395,7 @@ def main(coin_names):
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
-    
+
     model = model_session.query(Model).filter(Model.model_type == 'GB').first()
 
     if model:

@@ -139,3 +139,5 @@ MYSQL_HOST = config['MYSQL']['mysql_host']
 NAVER_MYSQL_ID = config['MYSQL_NAVER']['mysql_id']
 NAVER_MYSQL_PASSWORD = config['MYSQL_NAVER']['mysql_password']
 NAVER_MYSQL_HOST = config['MYSQL_NAVER']['mysql_host']
+
+S3_BUCKET_NAME = 'invest-thinkonweb'
