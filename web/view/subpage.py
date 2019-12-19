@@ -2,17 +2,14 @@ import locale
 from flask import Blueprint, render_template, request, jsonify
 import sys, os
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(os.path.join(PROJECT_HOME, "/"))
 
 from codes.upbit.upbit_api import Upbit
 from codes.upbit.recorder.upbit_info import UpbitInfo
-from web.db.database import BuySell, get_order_book_class, upbit_info_session, naver_order_book_session, \
-    buy_sell_session, model_session, Model
+from web.db.database import BuySell, get_order_book_class, naver_order_book_session, buy_sell_session, Model, \
+    trade_db_session
 from common.global_variables import *
 from common.utils import *
 
@@ -29,7 +26,7 @@ def _markets():
 
 @subpage_blueprint.route('/market_data', methods=["POST"])
 def _market_data():
-    upbit_info_results = upbit_info_session.query(UpbitInfo).all()
+    upbit_info_results = trade_db_session.query(UpbitInfo).all()
 
     market_lst = []
     for upbit_info in upbit_info_results:
@@ -63,7 +60,7 @@ def _models():
 
 @subpage_blueprint.route('/model_data', methods=["POST"])
 def _model_data(return_type="json"):
-    models = model_session.query(Model).all()
+    models = trade_db_session.query(Model).all()
 
     model_lst = []
     for model in models:

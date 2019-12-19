@@ -75,7 +75,7 @@ def get_db_right_time_coin_names():
 
 
 def evaluate_coin_by_model(x, model_type="GB"):
-    model = load_model(model_type=model_type)
+    model = load_model(model_type=model_type, for_buy=True)
 
     if model and x is not None:
         y_prediction = model.predict_proba(x)

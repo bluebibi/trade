@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 import warnings
 
 from codes.upbit.recorder.upbit_selenium import get_coin_info
+from web.db.database import trade_db_session, UpbitInfo
 
 warnings.filterwarnings("ignore")
 
@@ -14,20 +15,8 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-engine = create_engine(
-    'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
-    echo=False, connect_args={'check_same_thread': False}
-)
-Base = declarative_base()
-
 ccxt_upbit = ccxt.upbit()
 
-
-
-
-Base.metadata.create_all(engine)
-db_session = sessionmaker(bind=engine)
-db_session = db_session()
 
 def get_market_info(quote='KRW'):
     upbit_markets = ccxt_upbit.load_markets()
@@ -36,7 +25,7 @@ def get_market_info(quote='KRW'):
         if '/{0}'.format(quote) in symbol:
             print(symbol)
             market_name = market['info']['market']
-            q = db_session.query(UpbitInfo).filter(UpbitInfo.market == market_name)
+            q = trade_db_session.query(UpbitInfo).filter(UpbitInfo.market == market_name)
             m = q.first()
 
             if m is None:
@@ -75,8 +64,8 @@ def get_market_info(quote='KRW'):
 
                 upbit_info.intro = info["intro"] if "intro" in info else None
 
-                db_session.add(upbit_info)
-                db_session.commit()
+                trade_db_session.add(upbit_info)
+                trade_db_session.commit()
             else:
                 m.market = market['info']['market']
                 coin_name = market['info']['market'].replace("KRW-", "")
@@ -111,7 +100,7 @@ def get_market_info(quote='KRW'):
                 m.twitter_url = info["twitter_url"] if "twitter_url" in info else None
                 m.intro = info["intro"] if "intro" in info else None
 
-                db_session.commit()
+                trade_db_session.commit()
 
     return markets_krw
 

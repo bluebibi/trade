@@ -8,7 +8,7 @@ sys.path.append(PROJECT_HOME)
 
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, CoinStatus, WEB_DEBUG
 from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
-from web.db.database import User, BuySell, user_session, buy_sell_session
+from web.db.database import User, BuySell, buy_sell_session, trade_db_session
 from web.login_manager import login_manager
 import logging
 from web.view.subpage import subpage_blueprint
@@ -44,7 +44,7 @@ def create_application():
     # create a user
     with application.app_context():
         email = "yh21.han@gmail.com"
-        q = user_session.query(User).filter(User.email == email)
+        q = trade_db_session.query(User).filter(User.email == email)
         user = q.first()
         if user is None:
             add_user(
@@ -60,8 +60,8 @@ def add_user(name, email, password):
     admin.email = email
     admin.set_password(password)
     admin.is_admin = True
-    user_session.add(admin)
-    user_session.commit()
+    trade_db_session.add(admin)
+    trade_db_session.commit()
 
 
 @application.route('/')

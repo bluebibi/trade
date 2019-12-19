@@ -5,8 +5,6 @@ import sys, os
 
 from sklearn.metrics import f1_score
 
-from web.db.database import model_session, Model
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -20,6 +18,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from common.global_variables import *
 import matplotlib.pyplot as plt
 from common.utils import *
+from web.db.database import Model, trade_db_session
 
 from codes.predict.model_rnn import LSTM
 import numpy as np
@@ -344,7 +343,7 @@ def main(coin_names):
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
 
-    model = model_session.query(Model).filter(Model.model_type == 'XGBOOST').first()
+    model = trade_db_session.query(Model).filter(Model.model_type == 'XGBOOST').first()
 
     if model:
         model.model_filename = model_filename
@@ -357,7 +356,7 @@ def main(coin_names):
         model.feature_size = INPUT_SIZE
         model.best_score = best_f1_score
 
-        model_session.commit()
+        trade_db_session.commit()
     else:
         model = Model(
             model_type="XGBOOST",
@@ -371,8 +370,8 @@ def main(coin_names):
             feature_size=INPUT_SIZE,
             best_score=best_f1_score
         )
-        model_session.add(model)
-        model_session.commit()
+        trade_db_session.add(model)
+        trade_db_session.commit()
 
     if VERBOSE:
         logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
@@ -396,7 +395,7 @@ def main(coin_names):
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
 
-    model = model_session.query(Model).filter(Model.model_type == 'GB').first()
+    model = trade_db_session.query(Model).filter(Model.model_type == 'GB').first()
 
     if model:
         model.model_filename = model_filename
@@ -409,7 +408,7 @@ def main(coin_names):
         model.feature_size = INPUT_SIZE
         model.best_score = best_f1_score
 
-        model_session.commit()
+        trade_db_session.commit()
     else:
         model = Model(
             model_type="GB",
@@ -423,8 +422,8 @@ def main(coin_names):
             feature_size=INPUT_SIZE,
             best_score=best_f1_score
         )
-        model_session.add(model)
-        model_session.commit()
+        trade_db_session.add(model)
+        trade_db_session.commit()
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))

@@ -29,7 +29,7 @@ class CoinStatus(Enum):
 ######################
 trade_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
-        ), encoding='utf-8')
+        ), encoding='utf-8', pool_recycle=500, pool_size=5, max_overflow=20, echo=False, echo_pool=True)
 
 trade_db_session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=trade_engine)
@@ -47,30 +47,18 @@ naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/reco
 naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
 
-######################
-user_engine = create_engine('sqlite:///{0}/web/db/user.db'.format(PROJECT_HOME))
-user_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=user_engine))
-
-
-######################
-upbit_info_engine = create_engine(
-    'sqlite:///{0}/web/db/upbit_info.db'.format(PROJECT_HOME),
-    echo=False, connect_args={'check_same_thread': False}
-)
-upbit_info_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=upbit_info_engine))
-
 class Model(Base):
     __tablename__ = 'MODEL'
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    model_type = Column(String)
-    model_filename = Column(String)
+    model_type = Column(String(16))
+    model_filename = Column(String(32))
     window_size = Column(Integer)
     future_target_size = Column(Integer)
     up_rate = Column(Float)
     feature_size = Column(Integer)
-    datetime = Column(String)
+    datetime = Column(String(32))
     one_rate = Column(Float)
     train_size = Column(Integer)
     best_score = Column(Float)
@@ -325,9 +313,9 @@ class UpbitInfo(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    market = Column(String)
-    korean_name = Column(String)
-    eng_name = Column(String)
+    market = Column(String(16))
+    korean_name = Column(String(16))
+    eng_name = Column(String(16))
     limit_amount_max = Column(Float)
     limit_amount_min = Column(Float)
     limit_cost_max = Column(Float)
@@ -341,18 +329,18 @@ class UpbitInfo(Base):
     precision_price = Column(Float)
     tierBased = Column(Boolean)
 
-    birth = Column(String)
-    total_markets = Column(String)
-    num_exchanges = Column(String)
-    period_block_creation = Column(String)
-    mine_reward_unit = Column(String)
-    total_limit = Column(String)
-    consensus_protocol = Column(String)
-    web_site = Column(String)
-    whitepaper = Column(String)
-    block_site = Column(String)
-    twitter_url = Column(String)
-    intro = Column(String)
+    birth = Column(String(64))
+    total_markets = Column(String(64))
+    num_exchanges = Column(String(64))
+    period_block_creation = Column(String(64))
+    mine_reward_unit = Column(String(64))
+    total_limit = Column(String(64))
+    consensus_protocol = Column(String(64))
+    web_site = Column(String(256))
+    whitepaper = Column(String(256))
+    block_site = Column(String(256))
+    twitter_url = Column(String(256))
+    intro = Column(String(1024))
 
     def __init__(self, *args, **kw):
         super(UpbitInfo, self).__init__(*args, **kw)
@@ -395,6 +383,7 @@ class UpbitInfo(Base):
 
         return d
 
+
 if __name__ == "__main__":
     if not buy_sell_engine.dialect.has_table(buy_sell_engine, "BUY_SELL"):
         BuySell.__table__.create(bind=buy_sell_engine)
@@ -406,9 +395,9 @@ if __name__ == "__main__":
 
     if not trade_engine.dialect.has_table(trade_engine, "UPBIT_INFO"):
         UpbitInfo.__table__.create(bind=trade_engine)
-        print("MODEL Table Created")
+        print("UPBIT_NFO Table Created")
 
-    if not user_engine.dialect.has_table(user_engine, "USER"):
-        User.__table__.create(bind=user_engine)
+    if not trade_engine.dialect.has_table(trade_engine, "USER"):
+        User.__table__.create(bind=trade_engine)
         print("USER Table Created")
 
