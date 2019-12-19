@@ -123,7 +123,13 @@ class UpbitOrderBookRecorder:
             base_datetime = base_datetime - dt.timedelta(minutes=10)
             base_datetime_str = dt.datetime.strftime(base_datetime, fmt.replace("T", " "))
             order_book_class = get_order_book_class(coin_name)
-            exist = db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
+            try:
+                exist = db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
+            except MultipleResultsFound as e:
+                SLACK.send_message(str(e))
+                SLACK.send_message(coin_name, base_datetime_str)
+                exist = True
+
             if exist:
                 missing_base_datetime_str_lst.append(base_datetime_str)
                 break
