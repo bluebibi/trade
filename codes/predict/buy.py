@@ -147,9 +147,9 @@ def main():
     target_coin_names = set(right_time_coin_info) - set(already_coin_ticker_names) - set(BANNED_BUY_COIN_LIST)
 
     logger.info("*** Right Time Coins: {0}, Already Coins: {1}, Banned Coins: {2}, Target Coins: {3} ***".format(
-        len(right_time_coin_info.keys()),
-        len(already_coin_ticker_names),
-        len(BANNED_BUY_COIN_LIST),
+        right_time_coin_info.keys(),
+        already_coin_ticker_names,
+        BANNED_BUY_COIN_LIST,
         target_coin_names
     ))
 
