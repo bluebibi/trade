@@ -147,9 +147,9 @@ def main():
     target_coin_names = set(right_time_coin_info) - set(already_coin_ticker_names) - set(BANNED_BUY_COIN_LIST)
 
     logger.info("*** Right Time Coins: {0}, Already Coins: {1}, Banned Coins: {2}, Target Coins: {3} ***".format(
-        right_time_coin_info.keys(),
-        already_coin_ticker_names,
-        BANNED_BUY_COIN_LIST,
+        len(right_time_coin_info.keys()),
+        len(already_coin_ticker_names),
+        len(BANNED_BUY_COIN_LIST),
         target_coin_names
     ))
 
@@ -209,21 +209,21 @@ def main():
                         trades_coin_ticker_name = q.all()
 
                         is_insert = True
-                        min_buy_base_rise = sys.maxsize
+                        min_buy_base_price = sys.maxsize
 
                         if trades_coin_ticker_name:
                             for trade in trades_coin_ticker_name:
-                                if current_time_str in trade.buy_datetime and trade.buy_base_price < min_buy_base_rise:
-                                    min_buy_base_rise = trade.buy_base_price
+                                if current_time_str in trade.buy_datetime and trade.buy_base_price < min_buy_base_price:
+                                    min_buy_base_price = trade.buy_base_price
 
                             logger.info("LAST CHECK: prompt_rising_rate: {0}, coin_ticker_name:{1}, min_buy_base_price:{2}, buy_price:{3}".format(
                                 prompt_rising_rate,
                                 coin_ticker_name,
-                                min_buy_base_rise,
+                                min_buy_base_price,
                                 buy_price
                             ))
 
-                            if buy_price >= min_buy_base_rise:
+                            if buy_price >= min_buy_base_price:
                                 is_insert = False
 
                         if is_insert:
