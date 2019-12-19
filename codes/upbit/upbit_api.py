@@ -159,7 +159,7 @@ def _call_public_api(url, **kwargs):
             contents = resp.json()
 
             if contents and 'error' in contents and contents['error']['message'] == 'Too many API requests.':
-                logger.info("Too many API requests.")
+                logger.info("Too many API requests. URL: {0}, KWARGS: {1}".format(url, kwargs))
                 time.sleep(0.1)
             else:
                 break
