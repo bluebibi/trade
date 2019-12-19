@@ -127,7 +127,7 @@ class UpbitOrderBookRecorder:
                 exist = db_session.query(order_book_class).filter_by(base_datetime=base_datetime_str).scalar() is not None
             except MultipleResultsFound as e:
                 SLACK.send_message(str(e))
-                SLACK.send_message(coin_name, base_datetime_str)
+                SLACK.send_message("{0} - {1}".format(coin_name, base_datetime_str))
                 exist = True
 
             if exist:
