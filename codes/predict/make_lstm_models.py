@@ -135,6 +135,97 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
+def make_gboost_model(x_normalized, y_up, total_size):
+    coin_model_start_time = time.time()
+
+    X = x_normalized.reshape(total_size, -1)
+    y = y_up
+
+    param_grid = {
+        'learning_rate': [0.01, 0.05, 0.1],
+        'max_depth': np.linspace(1, 8, 4, endpoint=True),
+        'n_estimators': [32, 64, 128],
+        'max_features': list(range(int(x_normalized.shape[1] / 2), x_normalized.shape[1], 2)),
+    }
+
+    gb_model = GradientBoostingClassifier()
+
+    clf = GridSearchCV(
+        gb_model,
+        param_grid,
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
+        refit=True,
+        verbose=True
+    )
+
+    clf.fit(X, y)
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+
+    msg_str = "GradientBoostingClassifier - make_gboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(coin_model_elapsed_time_str, clf.best_score_)
+    logger.info(msg_str)
+    logger.info(clf.best_params_)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+
+    return clf.best_estimator_, clf.best_score_
+
+
+def make_lstm_model(coin_name, x_normalized_original, y_up_original, total_size, one_rate):
+    coin_model_start_time = time.time()
+
+    lstm_model = LSTM(input_size=INPUT_SIZE).to(DEVICE)
+    auc = EpochScoring(scoring='roc_auc', lower_is_better=False)
+    early_stopping = EarlyStopping(patience=15)
+
+    param_grid = {
+        'module': [lstm_model],
+        'max_epochs': [500],
+        'lr': [0.01, 0.05, 0.1],
+        'module__bias': [True, False],
+        'module__dropout': [0.0, 0.25, 0.5],
+        'optimizer': [torch.optim.Adam],
+        'device': [DEVICE],
+        'callbacks': [[auc, early_stopping]]
+    }
+
+    X = x_normalized_original.numpy()
+    y = y_up_original.numpy().astype(np.int64)
+
+    net = NeuralNetClassifier(
+        lstm_model,
+        max_epochs=10,
+        # Shuffle training data on each epoch
+        iterator_train__shuffle=True,
+        optimizer=torch.optim.Adam,
+        device=DEVICE
+    )
+
+    clf = GridSearchCV(
+        net,
+        param_grid,
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
+        refit=True,
+        verbose=True
+    )
+
+    clf.fit(X, y)
+
+    logger.info(clf.best_estimator_)
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+
+    msg_str = "{0}: LSTMClassifier - make_lstm_model - Elapsed Time: {1}\n".format(coin_name, coin_model_elapsed_time_str)
+    logger.info(msg_str)
+    logger.info(clf.best_params_)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+
+    return clf.best_estimator_
+
+
 def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate):
     if VERBOSE:
         logger.info("[[[Gradient Boosting]]]")
@@ -147,42 +238,7 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         best_f1_score = f1_score(y_test, y_pred)
     else:
         gc.collect()
-        coin_model_start_time = time.time()
-
-        X = x_normalized.reshape(global_total_size, -1)
-        y = y_up
-
-        param_grid = {
-            'learning_rate': [0.01, 0.05, 0.1],
-            'max_depth': np.linspace(1, 8, 4, endpoint=True),
-            'n_estimators': [32, 64, 128],
-            'max_features': list(range(int(x_normalized.shape[1] / 2), x_normalized.shape[1], 2)),
-        }
-
-        gb_model = GradientBoostingClassifier()
-
-        clf = GridSearchCV(
-            gb_model,
-            param_grid,
-            cv=StratifiedKFold(n_splits=5, shuffle=True),
-            scoring='f1',
-            refit=True,
-            verbose=True
-        )
-
-        clf.fit(X, y)
-
-        coin_model_elapsed_time = time.time() - coin_model_start_time
-        coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
-
-        msg_str = "GradientBoostingClassifier - make_gboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(
-            coin_model_elapsed_time_str, clf.best_score_)
-        logger.info(msg_str)
-        logger.info(clf.best_params_)
-        if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
-
-        best_model = clf.best_estimator_
-        best_f1_score = clf.best_score_
+        best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
 
     model_filename = save_model(best_model, model_type="GB")
 
@@ -220,7 +276,6 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         trade_db_session.add(model)
         trade_db_session.commit()
 
-
 def xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate):
     if VERBOSE:
         logger.info("[[[XGBoost]]]")
@@ -233,43 +288,7 @@ def xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_tes
         best_f1_score = f1_score(y_test, y_pred)
     else:
         gc.collect()
-        coin_model_start_time = time.time()
-
-        X = x_normalized.reshape(global_total_size, -1)
-        y = y_up
-
-        param_grid = {
-            'objective': ['binary:logistic'],
-            'max_depth': [4, 6, 8],
-            'min_child_weight': [9, 11],
-            'subsample': [0.8, 0.9],
-            'colsample_bytree': [0.7],
-            'n_estimators': [50, 100, 200]
-        }
-        xgb_model = xgb.XGBClassifier()
-
-        clf = GridSearchCV(
-            xgb_model,
-            param_grid,
-            cv=StratifiedKFold(n_splits=5, shuffle=True),
-            scoring='f1',
-            refit=True,
-            verbose=True
-        )
-
-        clf.fit(X, y)
-
-        coin_model_elapsed_time = time.time() - coin_model_start_time
-        coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
-
-        msg_str = "XGBoostClassifier - make_xgboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(
-            coin_model_elapsed_time_str, clf.best_score_)
-        logger.info(msg_str)
-        logger.info(clf.best_params_)
-        if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
-
-        best_model = clf.best_estimator_
-        best_f1_score = clf.best_score_
+        best_model, best_f1_score = make_xgboost_model(x_normalized, y_up, global_total_size)
 
     model_filename = save_model(best_model, model_type="XGBOOST")
 
@@ -311,6 +330,44 @@ def xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_tes
         logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
 
 
+def make_xgboost_model(x_normalized, y_up, total_size):
+    coin_model_start_time = time.time()
+
+    X = x_normalized.reshape(total_size, -1)
+    y = y_up
+
+    param_grid = {
+        'objective': ['binary:logistic'],
+        'max_depth': [4, 6, 8],
+        'min_child_weight': [9, 11],
+        'subsample': [0.8, 0.9],
+        'colsample_bytree': [0.7],
+        'n_estimators': [50, 100, 200]
+    }
+    xgb_model = xgb.XGBClassifier()
+
+    clf = GridSearchCV(
+        xgb_model,
+        param_grid,
+        cv=StratifiedKFold(n_splits=5, shuffle=True),
+        scoring='f1',
+        refit=True,
+        verbose=True
+    )
+
+    clf.fit(X, y)
+
+    coin_model_elapsed_time = time.time() - coin_model_start_time
+    coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
+
+    msg_str = "XGBoostClassifier - make_xgboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(coin_model_elapsed_time_str, clf.best_score_)
+    logger.info(msg_str)
+    logger.info(clf.best_params_)
+    if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
+
+    return clf.best_estimator_, clf.best_score_
+
+
 def main(coin_names):
     start_time = time.time()
 
@@ -324,6 +381,10 @@ def main(coin_names):
         LOCAL_MODEL_SOURCE
     )
     logger.info(heading_msg)
+
+    now = dt.datetime.now(timezone('Asia/Seoul'))
+    now_str = now.strftime(fmt)
+    current_time_str = now_str.replace("T", " ")
 
     x_normalized_list = []
     y_up_list = []
@@ -364,19 +425,22 @@ def main(coin_names):
         ))
 
     ##### MAKE MODELS
+
     X_train, X_test, y_train, y_test = train_test_split(x_normalized, y_up, test_size=0.2, random_state=0)
 
     X_train = X_train.reshape(X_train.shape[0], -1)
     X_test = X_test.reshape(X_test.shape[0], -1)
 
-    ## GB
-    gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
-
     ## XGBOOST
     xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
 
+    ## GB
+
+
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+    if VERBOSE:
+        logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
 
     logger.info("####################################################################")
     logger.info("Elapsed Time: {0}".format(elapsed_time_str))

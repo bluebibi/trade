@@ -52,13 +52,13 @@ class Model(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    model_type = Column(String(16))
-    model_filename = Column(String(32))
+    model_type = Column(String(32))
+    model_filename = Column(String(256))
     window_size = Column(Integer)
     future_target_size = Column(Integer)
     up_rate = Column(Float)
     feature_size = Column(Integer)
-    datetime = Column(String(32))
+    datetime = Column(DateTime, index=True)
     one_rate = Column(Float)
     train_size = Column(Integer)
     best_score = Column(Float)
