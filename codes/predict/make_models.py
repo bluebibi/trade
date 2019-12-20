@@ -194,28 +194,28 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
 
     if model:
         model.model_filename = model_filename
-        model.one_rate = one_rate
+        model.one_rate = float(one_rate)
         model.train_size = model.train_size + global_total_size
         model.datetime = dt.datetime.strptime(current_time_str, fmt.replace("T", " "))
         model.window_size = WINDOW_SIZE
         model.future_target_size = FUTURE_TARGET_SIZE
         model.up_rate = UP_RATE
         model.feature_size = INPUT_SIZE
-        model.best_score = best_f1_score
+        model.best_score = float(best_f1_score)
 
         trade_db_session.commit()
     else:
         model = Model(
             model_type="GB",
             model_filename=model_filename,
-            one_rate=one_rate,
+            one_rate=float(one_rate),
             train_size=global_total_size,
             datetime=dt.datetime.strptime(current_time_str, fmt.replace("T", " ")),
             window_size=WINDOW_SIZE,
             future_target_size=FUTURE_TARGET_SIZE,
             up_rate=UP_RATE,
             feature_size=INPUT_SIZE,
-            best_score=best_f1_score
+            best_score=float(best_f1_score)
         )
         trade_db_session.add(model)
         trade_db_session.commit()
@@ -281,28 +281,28 @@ def xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_tes
 
     if model:
         model.model_filename = model_filename
-        model.one_rate = one_rate
+        model.one_rate = float(one_rate)
         model.train_size = model.train_size + global_total_size
         model.datetime = dt.datetime.strptime(current_time_str, fmt.replace("T", " "))
         model.window_size = WINDOW_SIZE
         model.future_target_size = FUTURE_TARGET_SIZE
         model.up_rate = UP_RATE
         model.feature_size = INPUT_SIZE
-        model.best_score = best_f1_score
+        model.best_score = float(best_f1_score)
 
         trade_db_session.commit()
     else:
         model = Model(
             model_type="XGBOOST",
             model_filename=model_filename,
-            one_rate=one_rate,
+            one_rate=float(one_rate),
             train_size=global_total_size,
             datetime=dt.datetime.strptime(current_time_str, fmt.replace("T", " ")),
             window_size=WINDOW_SIZE,
             future_target_size=FUTURE_TARGET_SIZE,
             up_rate=UP_RATE,
             feature_size=INPUT_SIZE,
-            best_score=best_f1_score
+            best_score=float(best_f1_score)
         )
         trade_db_session.add(model)
         trade_db_session.commit()
