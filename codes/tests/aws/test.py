@@ -12,4 +12,4 @@ filename = os.path.join(PROJECT_HOME, "codes", "tests", "aws", 'test.jpeg')
 bucket_name = 'invest-thinkonweb'
 
 s3 = boto3.client('s3')
-s3.download_file(bucket_name, 'test1.jpeg', filename)
+s3.download_file(bucket_name, 'test.jpeg', filename)
