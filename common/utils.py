@@ -116,15 +116,14 @@ def save_model(model, model_type):
     return file_name
 
 
-def load_model(model_type, for_buy=False):
+def load_model(model_type):
     file_name = os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type))
 
-    if not for_buy:
-        try:
-            s3 = boto3.client('s3')
-            s3.download_file(S3_BUCKET_NAME, '{0}.pkl'.format(model_type), file_name)
-        except ClientError as e:
-            print(e)
+    try:
+        s3 = boto3.client('s3')
+        s3.download_file(S3_BUCKET_NAME, '{0}.pkl'.format(model_type), file_name)
+    except ClientError as e:
+        print(e)
 
     files = glob.glob(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, '{0}.pkl'.format(model_type)))
     if len(files) > 0:

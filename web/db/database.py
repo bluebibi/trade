@@ -51,7 +51,7 @@ class Model(Base):
     __tablename__ = 'MODEL'
     __table_args__ = {'extend_existing': True}
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     model_type = Column(String(16))
     model_filename = Column(String(32))
     window_size = Column(Integer)

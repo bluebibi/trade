@@ -22,7 +22,7 @@ application = Flask(__name__)
 
 logging.basicConfig(
     filename='logging.log',
-    level=logging.DEBUG
+    level=logging.INFO
 )
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
