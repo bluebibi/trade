@@ -5,8 +5,8 @@ import unittest
 import torch
 
 from common.global_variables import INPUT_SIZE, WINDOW_SIZE, DEVICE
-from codes.predict.model_cnn import CNN
-from codes.predict.model_rnn import LSTM
+from codes.tests.model.model_cnn import CNN
+from codes.tests.model.model_rnn import LSTM
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 
 idx = os.getcwd().index("trade")

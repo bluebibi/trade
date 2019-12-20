@@ -48,7 +48,7 @@ class LSTM(nn.Module):
 
 
 if __name__ == "__main__":
-    upbit_order_book_data = UpbitOrderBookBasedData("ADA")
+    upbit_order_book_data = UpbitOrderBookBasedData("QTUM")
     x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
 
     print(x_normalized_original.shape, y_up_original.shape, one_rate, total_size)
@@ -84,3 +84,5 @@ if __name__ == "__main__":
     # gs.fit(X=X, y=y)
 
     net.fit(X=X, y=y)
+    predicted_y = net.predict(X=X)
+    print(predicted_y)

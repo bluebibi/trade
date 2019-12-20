@@ -13,14 +13,14 @@ import xgboost as xgb
 from pytz import timezone
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring, EarlyStopping
-from sklearn.model_selection import StratifiedKFold, GridSearchCV, StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import StratifiedKFold, GridSearchCV, train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from common.global_variables import *
 import matplotlib.pyplot as plt
 from common.utils import *
 from web.db.database import Model, trade_db_session
 
-from codes.predict.model_rnn import LSTM
+from codes.tests.model.model_rnn import LSTM
 import numpy as np
 import os
 from common.logger import get_logger

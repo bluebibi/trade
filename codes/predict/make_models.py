@@ -11,16 +11,13 @@ sys.path.append(PROJECT_HOME)
 
 import xgboost as xgb
 from pytz import timezone
-from skorch import NeuralNetClassifier
-from skorch.callbacks import EpochScoring, EarlyStopping
-from sklearn.model_selection import StratifiedKFold, GridSearchCV, StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import StratifiedKFold, GridSearchCV, train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from common.global_variables import *
 import matplotlib.pyplot as plt
 from common.utils import *
 from web.db.database import Model, trade_db_session
 
-from codes.predict.model_rnn import LSTM
 import numpy as np
 import os
 from common.logger import get_logger
@@ -135,11 +132,11 @@ def post_validation_processing(valid_losses, avg_valid_losses, valid_accuracy_li
     return valid_loss, valid_accuracy
 
 
-def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate):
+def make_model(model_type, x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate):
     if VERBOSE:
-        logger.info("[[[Gradient Boosting]]]")
+        logger.info("[[[{0}]]]".format(model_type))
 
-    model = load_model(model_type="GB")
+    model = load_model(model_type=model_type)
     if model:
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
@@ -152,19 +149,33 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         X = x_normalized.reshape(global_total_size, -1)
         y = y_up
 
-        param_grid = {
-            'learning_rate': [0.01, 0.05, 0.1],
-            'max_depth': np.linspace(1, 8, 4, endpoint=True),
-            'n_estimators': [32, 64, 128],
-            'max_features': list(range(int(x_normalized.shape[1] / 2), x_normalized.shape[1], 2)),
-        }
+        if model_type == "GB":
+            param_grid = {
+                'learning_rate': [0.01, 0.05, 0.1],
+                'max_depth': np.linspace(1, 8, 4, endpoint=True),
+                'n_estimators': [32, 64, 128],
+                'max_features': list(range(int(x_normalized.shape[1] / 2), x_normalized.shape[1], 2)),
+            }
 
-        gb_model = GradientBoostingClassifier()
+            model_classifier = GradientBoostingClassifier()
+        elif model_type == "XGBOOST":
+            param_grid = {
+                'objective': ['binary:logistic'],
+                'max_depth': [4, 6, 8],
+                'min_child_weight': [9, 11],
+                'subsample': [0.8, 0.9],
+                'colsample_bytree': [0.7],
+                'n_estimators': [50, 100, 200]
+            }
+            model_classifier = xgb.XGBClassifier()
+        else:
+            param_grid = {}
+            model_classifier = None
 
         clf = GridSearchCV(
-            gb_model,
+            model_classifier,
             param_grid,
-            cv=StratifiedKFold(n_splits=5, shuffle=True),
+            cv=StratifiedKFold(n_splits=4, shuffle=True),
             scoring='f1',
             refit=True,
             verbose=True
@@ -175,8 +186,9 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         coin_model_elapsed_time = time.time() - coin_model_start_time
         coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
 
-        msg_str = "GradientBoostingClassifier - make_gboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(
-            coin_model_elapsed_time_str, clf.best_score_)
+        msg_str = "{0}} - make_model - Elapsed Time: {1}, Best Score: {2}\n".format(
+            model_type, coin_model_elapsed_time_str, clf.best_score_
+        )
         logger.info(msg_str)
         logger.info(clf.best_params_)
         if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
@@ -184,13 +196,13 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         best_model = clf.best_estimator_
         best_f1_score = clf.best_score_
 
-    model_filename = save_model(best_model, model_type="GB")
+    model_filename = save_model(best_model, model_type=model_type)
 
     now = dt.datetime.now(timezone('Asia/Seoul'))
     now_str = now.strftime(fmt)
     current_time_str = now_str.replace("T", " ")
 
-    model = trade_db_session.query(Model).filter(Model.model_type == 'GB').first()
+    model = trade_db_session.query(Model).filter(Model.model_type == model_type).first()
 
     if model:
         model.model_filename = model_filename
@@ -206,7 +218,7 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         trade_db_session.commit()
     else:
         model = Model(
-            model_type="GB",
+            model_type=model_type,
             model_filename=model_filename,
             one_rate=float(one_rate),
             train_size=global_total_size,
@@ -220,95 +232,10 @@ def gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_
         trade_db_session.add(model)
         trade_db_session.commit()
 
-
-def xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate):
     if VERBOSE:
-        logger.info("[[[XGBoost]]]")
-
-    model = load_model(model_type="XGBOOST")
-    if model:
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        best_model = model
-        best_f1_score = f1_score(y_test, y_pred)
-    else:
-        gc.collect()
-        coin_model_start_time = time.time()
-
-        X = x_normalized.reshape(global_total_size, -1)
-        y = y_up
-
-        param_grid = {
-            'objective': ['binary:logistic'],
-            'max_depth': [4, 6, 8],
-            'min_child_weight': [9, 11],
-            'subsample': [0.8, 0.9],
-            'colsample_bytree': [0.7],
-            'n_estimators': [50, 100, 200]
-        }
-        xgb_model = xgb.XGBClassifier()
-
-        clf = GridSearchCV(
-            xgb_model,
-            param_grid,
-            cv=StratifiedKFold(n_splits=5, shuffle=True),
-            scoring='f1',
-            refit=True,
-            verbose=True
-        )
-
-        clf.fit(X, y)
-
-        coin_model_elapsed_time = time.time() - coin_model_start_time
-        coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
-
-        msg_str = "XGBoostClassifier - make_xgboost_model - Elapsed Time: {0}, Best Score: {1}\n".format(
-            coin_model_elapsed_time_str, clf.best_score_)
+        msg_str = "TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score)
         logger.info(msg_str)
-        logger.info(clf.best_params_)
-        if PUSH_SLACK_MESSAGE: SLACK.send_message("me", msg_str)
-
-        best_model = clf.best_estimator_
-        best_f1_score = clf.best_score_
-
-    model_filename = save_model(best_model, model_type="XGBOOST")
-
-    now = dt.datetime.now(timezone('Asia/Seoul'))
-    now_str = now.strftime(fmt)
-    current_time_str = now_str.replace("T", " ")
-
-    model = trade_db_session.query(Model).filter(Model.model_type == 'XGBOOST').first()
-
-    if model:
-        model.model_filename = model_filename
-        model.one_rate = float(one_rate)
-        model.train_size = model.train_size + global_total_size
-        model.datetime = dt.datetime.strptime(current_time_str, fmt.replace("T", " "))
-        model.window_size = WINDOW_SIZE
-        model.future_target_size = FUTURE_TARGET_SIZE
-        model.up_rate = UP_RATE
-        model.feature_size = INPUT_SIZE
-        model.best_score = float(best_f1_score)
-
-        trade_db_session.commit()
-    else:
-        model = Model(
-            model_type="XGBOOST",
-            model_filename=model_filename,
-            one_rate=float(one_rate),
-            train_size=global_total_size,
-            datetime=dt.datetime.strptime(current_time_str, fmt.replace("T", " ")),
-            window_size=WINDOW_SIZE,
-            future_target_size=FUTURE_TARGET_SIZE,
-            up_rate=UP_RATE,
-            feature_size=INPUT_SIZE,
-            best_score=float(best_f1_score)
-        )
-        trade_db_session.add(model)
-        trade_db_session.commit()
-
-    if VERBOSE:
-        logger.info("TRAINED_SIZE: {0}, BEST_SCORE: {1}\n".format(model.train_size, model.best_score))
+        SLACK.send_message("me", msg_str)
 
 
 def main(coin_names):
@@ -370,10 +297,10 @@ def main(coin_names):
     X_test = X_test.reshape(X_test.shape[0], -1)
 
     ## GB
-    gb_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
+    make_model("GB", x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
 
     ## XGBOOST
-    xgboost_model(x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
+    make_model("XGBOOST", x_normalized, y_up, global_total_size, X_train, y_train, X_test, y_test, one_rate)
 
     elapsed_time = time.time() - start_time
     elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -396,4 +323,4 @@ if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
     while True:
-        main(coin_names=upbit.get_all_coin_names(parts=5))
+        main(coin_names=upbit.get_all_coin_names(parts=1))

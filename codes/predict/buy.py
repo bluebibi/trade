@@ -9,7 +9,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from web.db.database import BuySell, get_order_book_class, naver_order_book_session, buy_sell_session
-from codes.predict.model_rnn import LSTM
+from codes.tests.model.model_rnn import LSTM
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import *
 from common.logger import get_logger
