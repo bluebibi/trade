@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from common.utils import *
 from web.db.database import Model, trade_db_session
 
-from codes.tests.model.model_rnn import LSTM
+from codes.tests.model.model_lstm import LSTM
 import numpy as np
 import os
 from common.logger import get_logger

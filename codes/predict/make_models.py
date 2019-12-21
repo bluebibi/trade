@@ -186,7 +186,7 @@ def make_model(model_type, x_normalized, y_up, global_total_size, X_train, y_tra
         coin_model_elapsed_time = time.time() - coin_model_start_time
         coin_model_elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(coin_model_elapsed_time))
 
-        msg_str = "{0}} - make_model - Elapsed Time: {1}, Best Score: {2}\n".format(
+        msg_str = "{0} - make_model - Elapsed Time: {1}, Best Score: {2}\n".format(
             model_type, coin_model_elapsed_time_str, clf.best_score_
         )
         logger.info(msg_str)

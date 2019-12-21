@@ -30,15 +30,14 @@ class LSTM(nn.Module):
         self.fc_layer = nn.Sequential(
             nn.Linear(self.hidden_size, 128),
             nn.LeakyReLU(),
-            nn.Dropout2d(dropout),
-            nn.Linear(128, 1)
+            nn.Linear(128, self.output_size)
         )
 
     def forward(self, x):
         out, _ = self.lstm(input=x)
-        out = self.fc_layer(out)
         out = out[:, -1, :]
-        out = F.sigmoid(out)
+        out = self.fc_layer(out)
+        out = torch.sigmoid(out)
         return out
 
     # def init_hidden(self, x):
@@ -49,15 +48,44 @@ class LSTM(nn.Module):
 
 if __name__ == "__main__":
     upbit_order_book_data = UpbitOrderBookBasedData("QTUM")
-    x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
 
-    print(x_normalized_original.shape, y_up_original.shape, one_rate, total_size)
+    # x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
+    # print(x_normalized_original.shape, y_up_original.shape, one_rate, total_size)
+    #
+    # X_train_normalized, y_up_train, one_rate_train, train_size, \
+    # X_test_normalized, y_up_test, one_rate_test, test_size = upbit_order_book_data.get_dataset(split=True)
+    # print(X_train_normalized.shape, y_up_train.shape, one_rate_train, train_size)
+    # print(X_test_normalized.shape, y_up_test.shape, one_rate_test, test_size)
 
-    for y in y_up_original:
-        print(y, end=",")
-    print()
+    # for y in y_up_train:
+    #     print(y, end=",")
+    # print()
 
-    lstm_model = LSTM(input_size=63, bias=True, dropout=0.5).to(DEVICE)
+    X_train_normalized = np.zeros(shape=(10, 36, 63))
+    y_up_train = np.zeros(shape=(10,))
+
+    X_train_normalized[:5, :, :] = 0.0
+    y_up_train[:5] = 0.0
+
+    X_train_normalized[5:, :, :] = 1.0
+    y_up_train[5:] = 1.0
+
+
+
+    X_test = np.zeros(shape=(10, 36, 63))
+    y_up_test = np.zeros(shape=(10,))
+
+    X_test[:5, :, :] = 0.0
+    y_up_test[:5] = 0.0
+
+    X_test[5:, :, :] = 1.0
+    y_up_test[5:] = 1.0
+
+
+    print(X_train_normalized, y_up_train)
+    print(X_test, y_up_test)
+
+    lstm_model = LSTM(input_size=63, bias=True, dropout=0.1).to(DEVICE)
     net = NeuralNetClassifier(
         lstm_model,
         max_epochs=10,
@@ -66,11 +94,15 @@ if __name__ == "__main__":
         optimizer=torch.optim.Adam,
         device=DEVICE,
         criterion=torch.nn.BCELoss,
-        lr=0.05
+        lr=0.05,
+        batch_size=2
     )
 
-    X = torch.tensor(x_normalized_original, dtype=torch.float)
-    y = torch.tensor(y_up_original, dtype=torch.float)
+    X = torch.tensor(X_train_normalized, dtype=torch.float)
+    y = torch.tensor(y_up_train, dtype=torch.float)
+
+    X_test = torch.tensor(X_test, dtype=torch.float)
+    y_test = torch.tensor(y_up_test, dtype=torch.float)
 
     # print(net.get_params().keys())
     #
@@ -84,5 +116,5 @@ if __name__ == "__main__":
     # gs.fit(X=X, y=y)
 
     net.fit(X=X, y=y)
-    predicted_y = net.predict(X=X)
+    predicted_y = net.predict(X=X_test)
     print(predicted_y)

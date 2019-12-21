@@ -114,18 +114,9 @@ class UpbitOrderBookBasedData:
         df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
         df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
 
-        min_max_scaler = MinMaxScaler()
-        data_normalized = min_max_scaler.fit_transform(df.values)
+        X, y_up, one_rate, total_size = self.build_timeseries(data=df.values)
 
-        with open(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name), 'wb') as f:
-            pickle.dump(min_max_scaler, f)
-
-        x, x_normalized, y, y_up, one_rate, total_size = self.build_timeseries(
-            data=df.values,
-            data_normalized=data_normalized
-        )
-
-        return x, x_normalized, y, y_up, one_rate, total_size
+        return X, y_up, one_rate, total_size
 
     def get_rl_dataset(self):
         x, x_normalized, _, _, _, total_size = self._get_dataset()
@@ -142,74 +133,98 @@ class UpbitOrderBookBasedData:
 
     def get_dataset(self, split=True):
         gc.collect()
-        x, x_normalized, y, y_up, one_rate, total_size = self._get_dataset()
+        X, y_up, one_rate, total_size = self._get_dataset()
+
+        window_size = X.shape[1]
+        input_size = X.shape[2]
 
         # Imbalanced Preprocessing - Start
         if one_rate < 0.25:
             try:
-                x_samp, y_up_samp = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
-                    x_normalized.reshape((x_normalized.shape[0], x_normalized.shape[1] * x_normalized.shape[2])),
+                X_samples, y_up_samples = RandomUnderSampler(sampling_strategy=0.75).fit_sample(
+                    X.reshape((X.shape[0], window_size * input_size)),
                     y_up
                 )
-                x_normalized = x_samp.reshape(x_samp.shape[0], x_normalized.shape[1], x_normalized.shape[2])
-                y_up = y_up_samp
+                X_samples, y_up_samples = shuffle(X_samples, y_up_samples)
 
-                x_normalized, y_up = shuffle(x_normalized, y_up)
+                X = X_samples
+                y_up = y_up_samples
 
-                total_size = len(x_normalized)
+                total_size = len(X_samples)
                 one_rate = sum(y_up) / total_size
             except ValueError:
                 logger.info("{0} - {1}".format(self.coin_name, "RandomUnderSampler - ValueError"))
         # Imbalanced Preprocessing - End
+
+        min_max_scaler = MinMaxScaler()
 
         if split:
             indices = list(range(total_size))
             np.random.shuffle(indices)
 
             train_indices = list(set(indices[:int(total_size * 0.8)]))
-            validation_indices = list(set(range(total_size)) - set(train_indices))
+            test_indices = list(set(range(total_size)) - set(train_indices))
 
-            x_train_normalized = x_normalized[train_indices]
-            x_valid_normalized = x_normalized[validation_indices]
+            X_train = X[train_indices]
+            X_test = X[test_indices]
 
             y_up_train = y_up[train_indices]
-            y_up_valid = y_up[validation_indices]
+            y_up_test = y_up[test_indices]
 
             one_rate_train = sum(y_up_train) / y_up_train.shape[0]
-            one_rate_valid = sum(y_up_valid) / y_up_valid.shape[0]
+            one_rate_test = sum(y_up_test) / y_up_test.shape[0]
 
-            train_size = x_train_normalized.shape[0]
-            valid_size = x_valid_normalized.shape[0]
+            train_size = X_train.shape[0]
+            test_size = X_test.shape[0]
 
-            return x_train_normalized, y_up_train, one_rate_train, train_size, \
-                   x_valid_normalized, y_up_valid, one_rate_valid, valid_size
+            X_train_normalized = min_max_scaler.fit_transform(X_train)
+            X_test_normalized = min_max_scaler.transform(X_test)
+
+            with open(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name), 'wb') as f:
+                pickle.dump(min_max_scaler, f)
+
+            X_train_normalized = np.reshape(X_train_normalized, newshape=(
+                X_train_normalized.shape[0], window_size, input_size
+            ))
+            X_test_normalized = np.reshape(X_test_normalized, newshape=(
+                X_test_normalized.shape[0], window_size, input_size
+            ))
+            return X_train_normalized, y_up_train, one_rate_train, train_size, \
+                   X_test_normalized, y_up_test, one_rate_test, test_size
         else:
-            return x_normalized, y_up, one_rate, total_size
+            X_normalized = min_max_scaler.fit_transform(X)
+
+            X_normalized = np.reshape(X_normalized, newshape=(
+                X_normalized.shape[0], window_size, input_size
+            ))
+
+            with open(os.path.join(PROJECT_HOME, LOCAL_MODEL_SOURCE, "SCALERS", self.coin_name), 'wb') as f:
+                pickle.dump(min_max_scaler, f)
+
+            return X_normalized, y_up, one_rate, total_size
 
     @staticmethod
-    def build_timeseries(data, data_normalized):
+    def build_timeseries(data):
         future_target = FUTURE_TARGET_SIZE - 1
 
         dim_0 = data.shape[0] - WINDOW_SIZE - future_target
         dim_1 = data.shape[1]
 
-        x = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
-        x_normalized = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
+        X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
 
         y = np.zeros(dim_0,)
         y_up = np.zeros(dim_0,)
 
         for i in range(dim_0):
-            x[i] = data[i: i + WINDOW_SIZE]
-            x_normalized[i] = data_normalized[i: i + WINDOW_SIZE]
+            X[i] = data[i: i + WINDOW_SIZE]
 
         count_one = 0
         for i in range(dim_0):
             ask_price_lst = []
             ask_size_lst = []
             for w in range(0, 30, 2):
-                ask_price_lst.append(x[i][-1][1 + w].item())
-                ask_size_lst.append(x[i][-1][2 + w].item())
+                ask_price_lst.append(X[i][-1][1 + w].item())
+                ask_size_lst.append(X[i][-1][2 + w].item())
 
             invest_krw = get_invest_krw()
 
@@ -244,7 +259,7 @@ class UpbitOrderBookBasedData:
                 y_up[i] = 1
                 count_one += 1
 
-        return x, x_normalized, y, y_up, count_one / dim_0, dim_0
+        return X, y_up, count_one / dim_0, dim_0
 
 
 def get_data_loader(x_normalized, y_up, batch_size, shuffle=True):

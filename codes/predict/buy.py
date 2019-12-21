@@ -9,7 +9,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from web.db.database import BuySell, get_order_book_class, naver_order_book_session, buy_sell_session
-from codes.tests.model.model_rnn import LSTM
+from codes.tests.model.model_lstm import LSTM
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from common.utils import *
 from common.logger import get_logger
@@ -183,9 +183,10 @@ def main():
                     "xgboost_prob": float(xgboost_prob)
                 }
                 buy_try_coin_ticker_names.append("KRW-" + coin_name)
-                logger.info(msg_str)
             else:
                 msg_str += " - "
+
+            logger.info(msg_str)
 
         if buy_try_coin_ticker_names:
             for coin_ticker_name in buy_try_coin_ticker_names:

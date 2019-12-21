@@ -257,7 +257,7 @@ class UpBitAPITestCase(unittest.TestCase):
         data_normalized = min_max_scaler.fit_transform(df.values)
         data_normalized = torch.from_numpy(data_normalized).to(DEVICE)
 
-        x, x_normalized, y, y_up, one_rate, total_size = order_book_based_data.build_timeseries(
+        x, y_up, one_rate, total_size = order_book_based_data.build_timeseries(
             data=data,
             data_normalized=data_normalized,
             window_size=WINDOW_SIZE,
