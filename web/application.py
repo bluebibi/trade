@@ -162,7 +162,7 @@ def unauthorized(e):
 
 
 if __name__ == "__main__":
-    logging.info("Flask Web Server Started!!!")
+    #logging.info("Flask Web Server Started!!!")
     application = create_application()
     application.run(host="0.0.0.0", port="8080")
     # application.run(host="localhost", port="8080", ssl_context=ssl_context)
