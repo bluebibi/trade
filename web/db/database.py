@@ -29,7 +29,7 @@ class CoinStatus(Enum):
 ######################
 trade_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/trade'.format(
             MYSQL_ID, MYSQL_PASSWORD, MYSQL_HOST
-        ), encoding='utf-8', pool_recycle=500, pool_size=5, max_overflow=20, echo=False, echo_pool=True)
+        ), encoding='utf-8')
 
 trade_db_session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=trade_engine)
@@ -43,7 +43,7 @@ buy_sell_session = scoped_session(sessionmaker(autocommit=False, autoflush=False
 ######################
 naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/record_order_book?use_pure=True'.format(
             NAVER_MYSQL_ID, NAVER_MYSQL_PASSWORD, NAVER_MYSQL_HOST
-        ), encoding='utf-8', pool_recycle=500, pool_size=5, max_overflow=20, echo=False, echo_pool=True)
+        ), encoding='utf-8')
 naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
 
