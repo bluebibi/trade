@@ -10,7 +10,7 @@ from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, C
 from common.utils import convert_unit_2, coin_status_to_hangul, elapsed_time_str
 from web.db.database import User, BuySell, buy_sell_session, trade_db_session
 from web.login_manager import login_manager
-import logging
+# import logging
 from web.view.subpage import subpage_blueprint
 from flask import jsonify
 
@@ -20,10 +20,10 @@ warnings.filterwarnings('ignore')
 
 application = Flask(__name__)
 
-logging.basicConfig(
-    filename='logging.log',
-    level=logging.INFO
-)
+# logging.basicConfig(
+#     filename='logging.log',
+#     level=logging.INFO
+# )
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
