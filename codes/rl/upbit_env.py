@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import random
 import sys,os
 
@@ -11,28 +14,32 @@ import gym
 from gym import spaces
 import numpy as np
 from sklearn import preprocessing
+import changefinder
 
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import *
 
+
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-BUYER_ACTIONS = {
-    0: "HOLD",
-    1: "MARKET_BUY"
-}
 
-SELLER_ACTIONS = {
-    0: "HOLD",
-    1: "MARKET_SELL"
-}
+class BuyerAction(enum.Enum):
+    HOLD = 0,
+    MARKET_BUY = 1
+
+
+class SellerAction(enum.Enum):
+    HOLD = 0,
+    MARKET_SELL = 1
 
 
 class EnvironmentType(enum.Enum):
-    TRAINING = 0
-    VALIDATION = 1
-    LIVE = 2
+    TRAIN_VALID = 0
+    LIVE = 1
+
+
+BUY_AMOUNT = 100000
 
 
 class UpbitEnvironment(gym.Env):
@@ -40,21 +47,21 @@ class UpbitEnvironment(gym.Env):
     scaler = preprocessing.MinMaxScaler()
     viewer = None
 
-    def __init__(self, coin_name, env_type=EnvironmentType.TRAINING, serial=True):
+    def __init__(self, coin_name, env_type=EnvironmentType.TRAIN_VALID, serial=True):
         super(UpbitEnvironment, self).__init__()
 
         self.coin_name = coin_name
-        self.buyer_action_space = spaces.Discrete(len(BUYER_ACTIONS))
-        self.seller_action_space = spaces.Discrete(len(SELLER_ACTIONS))
+        self.buyer_action_space = spaces.Discrete(len(BuyerAction))
+        self.seller_action_space = spaces.Discrete(len(SellerAction))
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(WINDOW_SIZE, 14), dtype=np.float16
         )
         self.env_type = env_type
         self.serial = serial
 
-        upbit_order_book_data = UpbitOrderBookBasedData(self.coin_name)
-        self.x, self.x_train_normalized, self.train_size, self.x_valid_normalized, self.valid_size =\
-            upbit_order_book_data.get_rl_dataset()
+        if self.env_type is EnvironmentType.TRAIN_VALID:
+            upbit_order_book_data = UpbitOrderBookBasedData(self.coin_name)
+            self.x_train_normalized, self.train_size, self.x_valid_normalized, self.valid_size = upbit_order_book_data.get_rl_dataset()
 
         self.balance = None
 
@@ -69,13 +76,16 @@ class UpbitEnvironment(gym.Env):
 
         self.current_x = None
 
-        init_str = "[COIN NAME: {0}] INIT - OBSERVATION SPACE: {1}, ACTION SPACE: {2}, TRAIN_SIZE: {3}" \
-                   ", VALID_SIZE: {4}, WINDOW_SIZE: {5}".format(
+        self.train = True
+
+        init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}\nRAW_TRAIN_DATA_SHAPE: {4}" \
+                   "\nRAW_VALID_DATA_SHAPE: {5}\nWINDOW_SIZE: {6}\n".format(
             self.coin_name,
             self.observation_space,
-            self.action_space,
-            self.train_size,
-            self.valid_size,
+            self.buyer_action_space,
+            self.seller_action_space,
+            self.x_train_normalized.shape,
+            self.x_valid_normalized.shape,
             WINDOW_SIZE
         )
 
@@ -85,14 +95,16 @@ class UpbitEnvironment(gym.Env):
     def _reset_session(self):
         self.current_step = 0
 
-        if self.env_type == EnvironmentType.TRAINING:
-            self.data = self.x_train_normalized
-            self.data_size = self.train_size
-        elif self.env_type == EnvironmentType.VALIDATION:
-            self.data = self.x_valid_normalized
-            self.data_size = self.valid_size
+        if self.env_type == EnvironmentType.TRAIN_VALID:
+            if self.train:
+                self.data = self.x_train_normalized
+                self.data_size = self.train_size
+            else:
+                self.data = self.x_valid_normalized
+                self.data_size = self.valid_size
         else:
-            raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
+            pass
+            # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
 
         if self.serial:
             self.steps_left = self.data_size - 1
@@ -117,15 +129,16 @@ class UpbitEnvironment(gym.Env):
 
         self.trades = []
 
-        reset_str = "[COIN NAME: {0}] RESET - ENV_TYPE: {1}, CURRENT_STEPS: {2}, STEPS_LEFT: {3}, INITIAL_NET_WORTH: {4}" \
-                    ", INITIAL_BALANCE: {5}, ACCOUNT_HISTORY: {6}".format(
+        reset_str = "[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nCURRENT_STEPS: {2}\nSTEPS_LEFT: {3}\nINITIAL_NET_WORTH: {4}" \
+                    "\nINITIAL_BALANCE: {5}\nACCOUNT_HISTORY: {6}\nBUY_AMOUNT: {7}won\n".format(
             self.coin_name,
             self.env_type,
             self.current_step,
             self.steps_left,
             self.net_worth,
             self.balance,
-            self.account_history.shape
+            self.account_history.shape,
+            BUY_AMOUNT
         )
 
         print(reset_str)
@@ -163,13 +176,22 @@ class UpbitEnvironment(gym.Env):
         pass
 
     def _next_observation(self):
-        scaled_history = self.scaler.fit_transform(self.account_history)
-        obs = np.append(self.data[self.current_step], np.transpose(scaled_history), axis=1)
-        self.current_x = self.x[self.current_step]
+        mean_price = (self.data[self.current_step][:, 0] + self.data[self.current_step][:, 6]) / 2
+
+        cf = changefinder.ChangeFinderARIMA()
+        change_index = [cf.update(p) for p in mean_price]
+
+        mean_price = np.expand_dims(mean_price, axis=1)
+        change_index = np.expand_dims(change_index, axis=1)
+
+        aux = np.append(mean_price, change_index, axis=1)
+        obs = np.append(self.data[self.current_step], aux, axis=1)
+        self.current_x = self.data[self.current_step]
 
         self.current_step += 1
 
-        assert obs.shape == self.observation_space.shape
+        assert obs.shape == self.observation_space.shape, \
+               "obs.shape: {0}, self.observation_space.shape: {1}".format(obs.shape, self.observation_space.shape)
 
         return obs
 
@@ -189,13 +211,13 @@ class UpbitEnvironment(gym.Env):
         cost = 0
         sales = 0
 
-        if action in [0, 3, 6, 9]:
+        if action in [BuyerAction.HOLD, SellerAction.HOLD]:
             last_ask_price = self.current_x[-1][1]
             last_bid_price = self.current_x[-1][61]
             calc_price = (last_ask_price + last_bid_price) / 2.0
 
-        elif action in [1, 4, 7, 10]:
-            buy_amount = BUY_AMOUNT[action]
+        elif action is BuyerAction.MARKET_BUY:
+            buy_amount = BUY_AMOUNT
 
             if self.env_type == EnvironmentType.LIVE:
                 _, fee, calc_price, coin_bought = 0.0, 0.0, 0.0, 0.0
@@ -218,8 +240,8 @@ class UpbitEnvironment(gym.Env):
                 'type': "buy"
             })
 
-        elif action in [2, 5, 8, 11]:
-            sell_amount = SELL_AMOUNT[action]
+        elif action is SellerAction.MARKET_SELL:
+            sell_amount = 10
 
             if self.env_type == EnvironmentType.LIVE:
                 _, calc_price, fee, calc_krw_sum = 0.0, 0.0, 0.0, 0.0
@@ -286,16 +308,15 @@ class UpbitEnvironment(gym.Env):
 
 class RandomPolicy:
     def action(self, observation):
-        return random.randint(0, len(ACTIONS))
+        return random.randint(0, 1)
 
 
 def main():
-    upbit_env = UpbitEnvironment(coin_name="ADA", env_type=EnvironmentType.TRAINING, serial=False)
+    upbit_env = UpbitEnvironment(coin_name="ARK", env_type=EnvironmentType.TRAIN_VALID, serial=True)
     policy = RandomPolicy()
 
     observation = upbit_env.reset()
     print("observation", observation)
-    print("x", upbit_env.x)
 
     MAX_EPIOSDES = 10
 
