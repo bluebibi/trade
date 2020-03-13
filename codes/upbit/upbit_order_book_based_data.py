@@ -109,27 +109,33 @@ class UpbitOrderBookBasedData:
         else:
             return None
 
-    def _get_dataset(self):
+    def _get_dataset(self, for_rl=False):
         queryset = naver_order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
         df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
-        df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
-
-        X, y_up, one_rate, total_size = self.build_timeseries(data=df.values)
-
-        return X, y_up, one_rate, total_size
+        #df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
+        df = df.filter(["ask_price_0", "ask_size_0", "ask_price_1", "ask_size_1", "ask_price_2", "ask_size_2", "bid_price_0", "bid_size_0", "bid_price_1", "bid_size_1", "bid_price_2", "bid_size_2"], axis=1)
+        if for_rl:
+            X = self.build_timeseries_for_rl(data=df.values)
+            return X
+        else:
+            X, y_up, one_rate, total_size = self.build_timeseries(data=df.values)
+            return X, y_up, one_rate, total_size
 
     def get_rl_dataset(self):
-        x, x_normalized, _, _, _, total_size = self._get_dataset()
+        x_normalized = self._get_dataset(for_rl=True)
+
+        total_size = x_normalized.shape[0]
 
         indices = list(range(total_size))
         train_indices = list(set(indices[:int(total_size * 0.8)]))
         valid_indices = list(set(range(total_size)) - set(train_indices))
         x_train_normalized = x_normalized[train_indices]
         x_valid_normalized = x_normalized[valid_indices]
-        train_size = x_train_normalized.size(0)
-        valid_size = x_valid_normalized.size(0)
 
-        return x, x_train_normalized, train_size, x_valid_normalized, valid_size
+        train_size = x_train_normalized.shape[0]
+        valid_size = x_valid_normalized.shape[0]
+
+        return x_train_normalized, train_size, x_valid_normalized, valid_size
 
     def get_dataset(self, split=True):
         gc.collect()
@@ -202,6 +208,23 @@ class UpbitOrderBookBasedData:
                 pickle.dump(min_max_scaler, f)
 
             return X_normalized, y_up, one_rate, total_size
+
+
+    @staticmethod
+    def build_timeseries_for_rl(data):
+
+        dim_0 = data.shape[0] - WINDOW_SIZE
+        dim_1 = data.shape[1]
+
+        X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
+
+        for i in range(dim_0):
+            X[i] = data[i: i + WINDOW_SIZE]
+
+        for i in range(dim_0):
+            X[i] = X[i] / X[i][0]
+
+        return X
 
     @staticmethod
     def build_timeseries(data):
@@ -279,14 +302,17 @@ def get_data_loader(x_normalized, y_up, batch_size, shuffle=True):
 
 
 def main():
-    upbit_orderbook_based_data = UpbitOrderBookBasedData("MEDX")
+    upbit_orderbook_based_data = UpbitOrderBookBasedData("NPXS")
+    x_train_normalized, train_size, x_valid_normalized, valid_size = upbit_orderbook_based_data.get_rl_dataset()
+
+    print(x_train_normalized.shape, train_size, x_valid_normalized.shape, valid_size)
 
     #upbit_orderbook_based_data.get_data_imbalance_processed()
 
-    x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
-    x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_dataset()
-
-    print(x_train_normalized_original, y_up_train_original, one_rate_train, train_size)
+    # x_train_normalized_original, y_up_train_original, one_rate_train, train_size, \
+    # x_valid_normalized_original, y_up_valid_original, one_rate_valid, valid_size = upbit_orderbook_based_data.get_dataset()
+    #
+    # print(x_train_normalized_original, y_up_train_original, one_rate_train, train_size)
 
 
 if __name__ == "__main__":

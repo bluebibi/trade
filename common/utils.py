@@ -16,6 +16,16 @@ sys.path.append(PROJECT_HOME)
 from common.global_variables import CoinStatus, fmt, LOCAL_MODEL_SOURCE, S3_BUCKET_NAME
 
 
+def convert_unit_1(unit):
+    if unit:
+        if not isinstance(unit, float):
+            unit = float(unit)
+        converted_unit = math.floor(unit * 10) / 10
+        return converted_unit
+    else:
+        return unit
+
+
 def convert_unit_2(unit):
     if unit:
         if not isinstance(unit, float):
@@ -31,6 +41,16 @@ def convert_unit_4(unit):
         if not isinstance(unit, float):
             unit = float(unit)
         converted_unit = math.floor(unit * 10000) / 10000
+        return converted_unit
+    else:
+        return unit
+
+
+def convert_unit_8(unit):
+    if unit:
+        if not isinstance(unit, float):
+            unit = float(unit)
+        converted_unit = math.floor(unit * 100000000) / 100000000
         return converted_unit
     else:
         return unit

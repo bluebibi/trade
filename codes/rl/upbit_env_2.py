@@ -1,31 +1,53 @@
 import random
-import sys,os
+import sys, os
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
+from codes.upbit.upbit_api import Upbit
+
+from common.global_variables import *
+
 import enum
+
 from typing import Tuple
+
 import gym
 from gym import spaces
 import numpy as np
 from sklearn import preprocessing
-
 from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
-from codes.upbit.upbit_api import Upbit
-from common.global_variables import *
 
 upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
 
-BUYER_ACTIONS = {
+ACTIONS = {
     0: "HOLD",
-    1: "MARKET_BUY"
+    1: ("MARKET_BUY", 0.25),
+    2: ("MARKET_SELL", 0.25),
+    3: "HOLD",
+    4: ("MARKET_BUY", 0.5),
+    5: ("MARKET_SELL", 0.5),
+    6: "HOLD",
+    7: ("MARKET_BUY", 0.75),
+    8: ("MARKET_SELL", 0.75),
+    9: "HOLD",
+    10: ("MARKET_BUY", 1.0),
+    11: ("MARKET_SELL", 1.0),
 }
 
-SELLER_ACTIONS = {
-    0: "HOLD",
-    1: "MARKET_SELL"
+BUY_AMOUNT = {
+    1: ACTIONS[1][1],
+    4: ACTIONS[4][1],
+    7: ACTIONS[7][1],
+    10: ACTIONS[10][1]
+}
+
+SELL_AMOUNT = {
+    2: ACTIONS[2][1],
+    5: ACTIONS[5][1],
+    8: ACTIONS[8][1],
+    11: ACTIONS[11][1]
 }
 
 
@@ -44,10 +66,9 @@ class UpbitEnvironment(gym.Env):
         super(UpbitEnvironment, self).__init__()
 
         self.coin_name = coin_name
-        self.buyer_action_space = spaces.Discrete(len(BUYER_ACTIONS))
-        self.seller_action_space = spaces.Discrete(len(SELLER_ACTIONS))
+        self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Box(
-            low=0, high=1, shape=(WINDOW_SIZE, 14), dtype=np.float16
+            low=0, high=1, shape=(WINDOW_SIZE, 130), dtype=np.float16
         )
         self.env_type = env_type
         self.serial = serial
