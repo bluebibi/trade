@@ -215,19 +215,26 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list):
 
     plt.clf()
 
-    fig, ax_lst = plt.subplots(1, 3, figsize=(10, 30), gridspec_kw={'hspace': 0.35})
+    plt.figure(figsize=(20, 10))
 
-    ax_lst[0][0].plot(range(len(total_profit_list)), total_profit_list)
-    ax_lst[0][0].set_title('TOTAL_PROFIT', fontweight="bold", size=10)
-    ax_lst[0][0].set_xlabel('STEPS', size=10)
+    plt.subplot(221)
+    plt.plot(range(len(buyer_loss_list)), buyer_loss_list)
+    plt.title('BUYER LOSS', fontweight="bold", size=10)
+    plt.xlabel('STEPS', size=10)
+    plt.grid()
 
-    ax_lst[0][1].plot(range(len(buyer_loss_list)), buyer_loss_list)
-    ax_lst[0][1].set_title('BUYER LOSS', fontweight="bold", size=10)
-    ax_lst[0][1].set_xlabel('STEPS', size=10)
+    plt.subplot(222)
+    plt.plot(range(len(seller_loss_list)), seller_loss_list)
+    plt.title('SELLER LOSS', fontweight="bold", size=10)
+    plt.xlabel('STEPS', size=10)
+    plt.grid()
 
-    ax_lst[0][2].plot(range(len(seller_loss_list)), seller_loss_list)
-    ax_lst[0][2].set_title('SELLER LOSS', fontweight="bold", size=10)
-    ax_lst[0][1].set_xlabel('STEPS', size=10)
+    plt.subplot(212)
+    plt.plot(range(len(total_profit_list)), total_profit_list)
+    plt.title('TOTAL_PROFIT', fontweight="bold", size=10)
+    plt.xlabel('STEPS', size=10)
+    plt.grid()
+
 
     plt.savefig(f)
     plt.close('all')
