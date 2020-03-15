@@ -1,5 +1,6 @@
 import sys,os
 
+from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH
 from db.database import naver_order_book_session, get_order_book_class
 
 idx = os.getcwd().index("trade")
@@ -122,7 +123,7 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic
     print(print_str, end=" ")
 
 
-def print_after_step(env, action, observation, reward, done, buyer_policy, seller_policy):
+def print_after_step(env, action, observation, reward, done, buyer_policy, seller_policy, epsilon):
     if env.status is EnvironmentStatus.TRYING_BUY:
         if action is 0 or action is BuyerAction.BUY_HOLD:
             action_str = colored("  BUY HOLD [HOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, HOLD_COINS: {2:>8.2f})]".format(
@@ -146,11 +147,12 @@ def print_after_step(env, action, observation, reward, done, buyer_policy, selle
         else:
             raise ValueError("print_after_step: action value: {0}".format(action))
 
-    print_str = "\n==> ACTION: {0:}, OBSERVATION:{1}, REWARD: {2:7}, BUYER_MEMORY: {3:6} (PENDING: {4:1}), SELLER_MEMORY: {5:6}".format(
+    print_str = "\n==> ACTION: {0:}, OBSERVATION:{1}, REWARD: {2:7}, BUYER_MEMORY: {3:6} (PENDING: {4:1}), SELLER_MEMORY: {5:6}, EPSILON: {6:4.3f}%".format(
         action_str, observation.shape, reward,
         buyer_policy.buyer_memory.size(),
         1 if buyer_policy.pending_buyer_transition else 0,
-        seller_policy.seller_memory.size()
+        seller_policy.seller_memory.size(),
+        epsilon * 100
     )
     print(print_str, end="\n\n")
 
@@ -207,36 +209,41 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
 
     return sold_coin_krw, sold_coin_unit_price, sold_coin_quantity, commission_fee
 
-def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list):
-    f = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance.png')
-
-    if os.path.exists(f):
-        os.remove(f)
+def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list):
+    if os.path.exists(PERFORMANCE_FIGURE_PATH):
+        os.remove(PERFORMANCE_FIGURE_PATH)
 
     plt.clf()
 
     plt.figure(figsize=(20, 10))
 
-    plt.subplot(221)
+    plt.subplot(321)
+    plt.plot(range(len(market_buy_list)), market_buy_list)
+    plt.title('MARKET BUYS', fontweight="bold", size=10)
+    plt.grid()
+
+    plt.subplot(322)
+    plt.plot(range(len(market_sell_list)), market_sell_list)
+    plt.title('MARKET SELLS', fontweight="bold", size=10)
+    plt.grid()
+
+    plt.subplot(323)
     plt.plot(range(len(buyer_loss_list)), buyer_loss_list)
     plt.title('BUYER LOSS', fontweight="bold", size=10)
-    plt.xlabel('STEPS', size=10)
     plt.grid()
 
-    plt.subplot(222)
+    plt.subplot(324)
     plt.plot(range(len(seller_loss_list)), seller_loss_list)
     plt.title('SELLER LOSS', fontweight="bold", size=10)
-    plt.xlabel('STEPS', size=10)
     plt.grid()
 
-    plt.subplot(212)
+    plt.subplot(313)
     plt.plot(range(len(total_profit_list)), total_profit_list)
     plt.title('TOTAL_PROFIT', fontweight="bold", size=10)
     plt.xlabel('STEPS', size=10)
     plt.grid()
 
-
-    plt.savefig(f)
+    plt.savefig(PERFORMANCE_FIGURE_PATH)
     plt.close('all')
 
 if __name__ == "__main__":

@@ -1,11 +1,19 @@
+import os
+
+idx = os.getcwd().index("trade")
+PROJECT_HOME = os.getcwd()[:idx] + "trade"
+
 BUY_AMOUNT = 100000
 MAX_EPISODES = 10
 GAMMA = 0.98
 LEARNING_RATE = 0.001
-
+EPSILON_START = 0.25
 REPLAY_MEMORY_THRESHOLD_FOR_TRAIN = 20
 TRAIN_INTERVAL = 10
 TRAIN_BATCH_SIZE = 20
 TRAIN_REPEATS = 5
-QNET_COPY_TO_TARGET_QNET_INVERVAL = 100
+QNET_COPY_TO_TARGET_QNET_INTERVAL = 100
 
+PERFORMANCE_FIGURE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance.png')
+BUYER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'buyer_model_parameters.pth')
+SELLER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'seller_model_parameters.pth')

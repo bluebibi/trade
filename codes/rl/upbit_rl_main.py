@@ -2,7 +2,7 @@ import warnings
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, MAX_EPISODES, \
-    REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INVERVAL
+    REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -264,17 +264,22 @@ def main():
     total_profit_list = []
     buyer_loss_list = []
     seller_loss_list = []
+    market_buy_list = []
+    market_sell_list = []
 
     for episode in range(MAX_EPISODES):
         done = False
         num_steps = 0
         observation, info_dic = env.reset()
-        epsilon = max(0.001, 0.1 - 0.01 * (episode / 1000))
         buyer_loss = 0.0
         seller_loss = 0.0
+        market_buys = 0
+        market_sells = 0
 
         while not done:
+            epsilon = max(0.001, EPSILON_START - 0.001 * (num_steps / 100))
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
+
             if env.status is EnvironmentStatus.TRYING_BUY:
                 action = buyer_policy.sample_action(observation, info_dic, epsilon)
 
@@ -284,6 +289,7 @@ def main():
                     action = 1
                     buyer_policy.pending_buyer_transition = [observation, action, None, None, None]
                     next_env_state = EnvironmentStatus.TRYING_SELL
+                    market_buys += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -308,6 +314,7 @@ def main():
                     action = 1
                     seller_policy.seller_memory.put((observation, action, reward, next_observation, done_mask))
                     next_env_state = EnvironmentStatus.TRYING_BUY
+                    market_sells += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -318,7 +325,7 @@ def main():
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
             num_steps += 1
-            print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy)
+            print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0:
@@ -327,14 +334,20 @@ def main():
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     seller_loss = seller_policy.train()
 
+            # TARGET Q Network 으로 Q Network 파라미터 Copy
+            if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
+                buyer_policy.qnet_copy_to_target_qnet()
+                buyer_policy.save_model()
+                seller_policy.qnet_copy_to_target_qnet()
+                seller_policy.save_model()
+
+            # 성능 그래프 그리기
             total_profit_list.append(env.total_profit)
             buyer_loss_list.append(buyer_loss)
             seller_loss_list.append(seller_loss)
-            draw_performance(total_profit_list, buyer_loss_list, seller_loss_list)
-
-            if num_steps % QNET_COPY_TO_TARGET_QNET_INVERVAL == 0:
-                buyer_policy.qnet_copy_to_target_qnet()
-                seller_policy.qnet_copy_to_target_qnet()
+            market_buy_list.append(market_buys)
+            market_sell_list.append(market_sells)
+            draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list)
 
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation

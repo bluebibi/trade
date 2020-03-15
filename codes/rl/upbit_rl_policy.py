@@ -4,7 +4,8 @@ import numpy as np
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from torch import optim
 
-from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE, TRAIN_REPEATS
+from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE, TRAIN_REPEATS, BUYER_MODEL_SAVE_PATH, \
+    SELLER_MODEL_SAVE_PATH
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -31,6 +32,7 @@ else:
     device = torch.device("cpu")
     print("GPU not available, CPU used")
 
+
 class DeepBuyerPolicy:
     def __init__(self):
         self.q = QNet()
@@ -47,6 +49,14 @@ class DeepBuyerPolicy:
             return BuyerAction.BUY_HOLD
 
     def qnet_copy_to_target_qnet(self):
+        self.q_target.load_state_dict(self.q.state_dict())
+
+    def save_model(self):
+        torch.save(self.q.model.state_dict(), BUYER_MODEL_SAVE_PATH)
+
+    def load_model(self):
+        self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH))
+        self.q.eval()
         self.q_target.load_state_dict(self.q.state_dict())
 
     def train(self):
@@ -84,6 +94,14 @@ class DeepSellerPolicy:
             return SellerAction.SELL_HOLD
 
     def qnet_copy_to_target_qnet(self):
+        self.q_target.load_state_dict(self.q.state_dict())
+
+    def save_model(self):
+        torch.save(self.q.model.state_dict(), SELLER_MODEL_SAVE_PATH)
+
+    def load_model(self):
+        self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH))
+        self.q.eval()
         self.q_target.load_state_dict(self.q.state_dict())
 
     def train(self):
