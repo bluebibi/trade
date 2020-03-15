@@ -341,6 +341,9 @@ def main():
             info_dic = next_info_dic
             env.status = next_env_state
 
+            if env.balance <= 0.0:
+                done = True
+
 
 if __name__ == "__main__":
     main()
