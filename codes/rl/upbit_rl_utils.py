@@ -94,10 +94,10 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic
     if num_steps == 0:
         print("[COIN_NAME: {0}] EPISODES & STEPS".format(coin_name))
 
-    print_str = "[{0:>2d}/{1}-{2:>5d}, Balance: {3:>7}, TOTAL_PROFIT: {4:>6}, " \
+    print_str = "[{0}/{1:>2d}/{2:>4d}, Balance: {3:>7}, TOTAL_PROFIT: {4:>6}, " \
                 "HOLD_COIN_KRW: {5:>7d} (COIN_PRICE: {6:>8.2f}, HOLD_COINS: {7:>8.2f}), {8:>12}] ".format(
-        episode,
         max_episodes,
+        episode,
         num_steps,
         env.balance,
         env.total_profit,
