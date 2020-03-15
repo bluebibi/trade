@@ -5,13 +5,24 @@ from sklearn.model_selection import GridSearchCV
 from skorch import NeuralNetClassifier
 from skorch.tests.conftest import F
 from common.global_variables import *
-from codes.upbit.upbit_order_book_based_data import UpbitOrderBookBasedData
+import matplotlib.pyplot as plt
+
 import warnings
 warnings.filterwarnings("ignore")
 
+# torch.cuda.is_available() checks and returns a Boolean True if a GPU is available, else it'll return False
+is_cuda = torch.cuda.is_available()
+
+# If we have a GPU available, we'll set our device to GPU. We'll use this device variable later in our code.
+if is_cuda:
+    device = torch.device("cuda")
+    print("GPU is available")
+else:
+    device = torch.device("cpu")
+    print("GPU not available, CPU used")
 
 class LSTM(nn.Module):
-    def __init__(self, bias=True, dropout=0.25, input_size=63, hidden_size=256, output_size=1, num_layers=3):
+    def __init__(self, bias=True, dropout=0.25, input_size=63, hidden_size=256, output_size=2, num_layers=3):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -28,93 +39,104 @@ class LSTM(nn.Module):
         )
 
         self.fc_layer = nn.Sequential(
-            nn.Linear(self.hidden_size, 128),
+            nn.Linear(self.hidden_size, 64),
             nn.LeakyReLU(),
-            nn.Linear(128, self.output_size)
+            nn.Linear(64, self.output_size)
         )
 
     def forward(self, x):
-        out, _ = self.lstm(input=x)
+        batch_size = x.size(0)
+        hidden = self.init_hidden(batch_size)
+
+        out, _ = self.lstm(x, hidden)
         out = out[:, -1, :]
         out = self.fc_layer(out)
         out = torch.sigmoid(out)
         return out
 
-    # def init_hidden(self, x):
-    #     hidden = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-    #     cell = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-    #     return hidden, cell
+    def init_hidden(self, batch_size):
+        return (torch.zeros(self.num_layers, batch_size, self.hidden_size),
+                torch.zeros(self.num_layers, batch_size, self.hidden_size))
 
 
 if __name__ == "__main__":
-    upbit_order_book_data = UpbitOrderBookBasedData("QTUM")
+    train_batch_size = 100
+    seq_len = 64
+    feature_size = 16
 
-    # x_normalized_original, y_up_original, one_rate, total_size = upbit_order_book_data.get_dataset(split=False)
-    # print(x_normalized_original.shape, y_up_original.shape, one_rate, total_size)
-    #
-    # X_train_normalized, y_up_train, one_rate_train, train_size, \
-    # X_test_normalized, y_up_test, one_rate_test, test_size = upbit_order_book_data.get_dataset(split=True)
-    # print(X_train_normalized.shape, y_up_train.shape, one_rate_train, train_size)
-    # print(X_test_normalized.shape, y_up_test.shape, one_rate_test, test_size)
+    X_train = np.zeros(shape=(train_batch_size, seq_len, feature_size))
+    y_up_train = np.zeros(shape=(train_batch_size, 2))
 
-    # for y in y_up_train:
-    #     print(y, end=",")
-    # print()
+    for idx in range(train_batch_size):
+        if idx % 2:
+            X_train[idx, :, :] = 0.0
+            y_up_train[idx] = [0.0, 1.0]
+        else:
+            X_train[idx, :, :] = 1.0
+            y_up_train[idx] = [1.0, 0.0]
 
-    X_train_normalized = np.zeros(shape=(10, 36, 63))
-    y_up_train = np.zeros(shape=(10,))
+    test_batch_size = 20
+    X_test = np.zeros(shape=(test_batch_size, seq_len, feature_size))
+    y_up_test = np.zeros(shape=(test_batch_size, 2))
 
-    X_train_normalized[:5, :, :] = 0.0
-    y_up_train[:5] = 0.0
+    for idx in range(test_batch_size):
+        if idx % 2:
+            X_test[idx, :, :] = 0.0
+            y_up_test[idx] = [0.0, 1.0]
+        else:
+            X_test[idx, :, :] = 1.0
+            y_up_test[idx] = [1.0, 0.0]
 
-    X_train_normalized[5:, :, :] = 1.0
-    y_up_train[5:] = 1.0
+    # print(X_train, y_up_train)
+    # print(X_test, y_up_test)
 
+    print(X_train.shape, y_up_train.shape)
+    print(X_test.shape, y_up_test.shape)
 
+    X_train = torch.Tensor(X_train)
+    y_up_train = torch.Tensor(y_up_train)
 
-    X_test = np.zeros(shape=(10, 36, 63))
-    y_up_test = np.zeros(shape=(10,))
+    X_test = torch.Tensor(X_test)
+    y_up_test = torch.Tensor(y_up_test)
 
-    X_test[:5, :, :] = 0.0
-    y_up_test[:5] = 0.0
+    MAX_EPOCHS = 10
+    learning_rate = 0.001
 
-    X_test[5:, :, :] = 1.0
-    y_up_test[5:] = 1.0
+    model = LSTM(input_size=feature_size, bias=True, dropout=0.5).to(DEVICE)
+    loss_fn = torch.nn.BCELoss()
+    optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    hist = np.zeros(MAX_EPOCHS)
 
-    print(X_train_normalized, y_up_train)
-    print(X_test, y_up_test)
+    for t in range(MAX_EPOCHS):
+        #model.hidden = model.init_hidden(X_train.size()[0])
 
-    lstm_model = LSTM(input_size=63, bias=True, dropout=0.1).to(DEVICE)
-    net = NeuralNetClassifier(
-        lstm_model,
-        max_epochs=10,
-        # Shuffle training data on each epoch
-        iterator_train__shuffle=True,
-        optimizer=torch.optim.Adam,
-        device=DEVICE,
-        criterion=torch.nn.BCELoss,
-        lr=0.05,
-        batch_size=2
-    )
+        # Forward pass
+        y_pred = model(X_train)
 
-    X = torch.tensor(X_train_normalized, dtype=torch.float)
-    y = torch.tensor(y_up_train, dtype=torch.float)
+        loss = loss_fn(y_pred, y_up_train)
+        print("Epoch ", t, "MSE: ", loss.item())
 
-    X_test = torch.tensor(X_test, dtype=torch.float)
-    y_test = torch.tensor(y_up_test, dtype=torch.float)
+        hist[t] = loss.item()
 
-    # print(net.get_params().keys())
-    #
-    # param_grid = {
-    #     'lr': [0.01, 0.05, 0.1],
-    #     'module__bias': [True, False],
-    #     'module__dropout': [0.0, 0.25, 0.5]
-    # }
-    #
-    # gs = GridSearchCV(net, param_grid, refit=True, cv=5, scoring='f1')
-    # gs.fit(X=X, y=y)
+        # Zero out gradient, else they will accumulate between epochs
+        optimiser.zero_grad()
 
-    net.fit(X=X, y=y)
-    predicted_y = net.predict(X=X_test)
-    print(predicted_y)
+        # Backward pass
+        loss.backward()
+
+        # Update parameters
+        optimiser.step()
+
+    plt.plot(y_pred.detach().numpy(), label="Preds")
+    plt.plot(y_up_train.detach().numpy(), label="Data")
+    plt.legend()
+    plt.show()
+
+    plt.plot(hist, label="Training loss")
+    plt.legend()
+    plt.show()
+
+    y_test_pred = model(X_test)
+
+    print(y_test_pred)

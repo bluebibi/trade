@@ -40,15 +40,15 @@ class LSTM(nn.Module):
         out = torch.sigmoid(out)
         return out
 
-    # def init_hidden(self, x):
-    #     hidden = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-    #     cell = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
-    #     return hidden, cell
+    def init_hidden(self, x):
+        hidden = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
+        cell = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(DEVICE)
+        return hidden, cell
 
 
 if __name__ == "__main__":
     X_train_normalized = np.zeros(shape=(10, 36, 63))
-    y_up_train = np.zeros(shape=(10,))
+    y_up_train = np.zeros(shape=(10, 1))
 
     X_train_normalized[:5, :, :] = 0.0
     y_up_train[:5] = 0.0
@@ -56,10 +56,8 @@ if __name__ == "__main__":
     X_train_normalized[5:, :, :] = 1.0
     y_up_train[5:] = 1.0
 
-
-
     X_test = np.zeros(shape=(10, 36, 63))
-    y_up_test = np.zeros(shape=(10,))
+    y_up_test = np.zeros(shape=(10, 1))
 
     X_test[:5, :, :] = 0.0
     y_up_test[:5] = 0.0
@@ -73,8 +71,19 @@ if __name__ == "__main__":
     X_test = torch.tensor(X_test, dtype=torch.float)
     y_test = torch.tensor(y_up_test, dtype=torch.float)
 
+    lstm = LSTM(input_size=63, hidden_size=256, num_layers=2, bias=True, dropout=0.35)
 
-    lstm = nn.LSTM(input_size=63, hidden_size=256, num_layers=2, bias=True, batch_first=True, dropout=0.35)
+    net = NeuralNetClassifier(
+        lstm,
+        max_epochs=10,
+        # Shuffle training data on each epoch
+        iterator_train__shuffle=True,
+        optimizer=torch.optim.Adam,
+        device=DEVICE,
+        criterion=torch.nn.BCELoss,
+        lr=0.05,
+        batch_size=2
+    )
 
     net.fit(X=X, y=y)
     predicted_y = net.predict(X=X_test)

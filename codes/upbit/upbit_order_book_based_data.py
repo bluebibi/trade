@@ -2,6 +2,7 @@ import gc
 import pickle
 import sqlite3
 
+import changefinder
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import MinMaxScaler
@@ -10,6 +11,8 @@ import numpy as np
 import sys, os
 
 from sklearn.utils import shuffle
+
+from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, pp, get_buying_price_by_order_book
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -112,30 +115,52 @@ class UpbitOrderBookBasedData:
     def _get_dataset(self, for_rl=False):
         queryset = naver_order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
         df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
-        #df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
-        df = df.filter(["ask_price_0", "ask_size_0", "ask_price_1", "ask_size_1", "ask_price_2", "ask_size_2", "bid_price_0", "bid_size_0", "bid_price_1", "bid_size_1", "bid_price_2", "bid_size_2"], axis=1)
-        if for_rl:
-            X = self.build_timeseries_for_rl(data=df.values)
-            return X
-        else:
-            X, y_up, one_rate, total_size = self.build_timeseries(data=df.values)
-            return X, y_up, one_rate, total_size
+        df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
+
+        X, y_up, one_rate, total_size = self.build_timeseries(data=df.values)
+        return X, y_up, one_rate, total_size
 
     def get_rl_dataset(self):
-        x_normalized = self._get_dataset(for_rl=True)
+        queryset = naver_order_book_session.query(self.order_book_class).order_by(self.order_book_class.base_datetime.asc())
+        df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
 
-        total_size = x_normalized.shape[0]
+        #df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
+        base_datetime_df = df.filter(["base_datetime"], axis=1)
+
+        df = df.filter([
+             "daily_base_timestamp",
+             "ask_price_0", "ask_size_0", "ask_price_1", "ask_size_1", "ask_price_2", "ask_size_2", "ask_price_3", "ask_size_3", "ask_price_4", "ask_size_4",
+             "bid_price_0", "bid_size_0", "bid_price_1", "bid_size_1", "bid_price_2", "bid_size_2", "bid_price_3", "bid_size_3", "bid_price_4", "bid_size_4"], axis=1)
+
+        base_datetime_data = pd.to_datetime(base_datetime_df["base_datetime"])
+        data = df.values
+
+        dim_0 = data.shape[0] - WINDOW_SIZE + 1
+        dim_1 = data.shape[1]
+
+        base_datetime_X = []
+        X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
+
+        for i in range(dim_0):
+            X[i] = data[i: i + WINDOW_SIZE]
+            base_datetime_X.append(str(base_datetime_data[i + WINDOW_SIZE - 1]))
+
+        base_datetime_X = np.asarray(base_datetime_X)
+
+        total_size = X.shape[0]
 
         indices = list(range(total_size))
         train_indices = list(set(indices[:int(total_size * 0.8)]))
         valid_indices = list(set(range(total_size)) - set(train_indices))
-        x_train_normalized = x_normalized[train_indices]
-        x_valid_normalized = x_normalized[valid_indices]
+        x_train = X[train_indices]
+        x_train_base_datetime = base_datetime_X[train_indices]
+        x_valid = X[valid_indices]
+        x_valid_base_datetime = base_datetime_X[valid_indices]
 
-        train_size = x_train_normalized.shape[0]
-        valid_size = x_valid_normalized.shape[0]
+        train_size = x_train.shape[0]
+        valid_size = x_valid.shape[0]
 
-        return x_train_normalized, train_size, x_valid_normalized, valid_size
+        return x_train, x_train_base_datetime, train_size, x_valid, x_valid_base_datetime, valid_size
 
     def get_dataset(self, split=True):
         gc.collect()
@@ -209,22 +234,6 @@ class UpbitOrderBookBasedData:
 
             return X_normalized, y_up, one_rate, total_size
 
-
-    @staticmethod
-    def build_timeseries_for_rl(data):
-
-        dim_0 = data.shape[0] - WINDOW_SIZE
-        dim_1 = data.shape[1]
-
-        X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
-
-        for i in range(dim_0):
-            X[i] = data[i: i + WINDOW_SIZE]
-
-        for i in range(dim_0):
-            X[i] = X[i] / X[i][0]
-
-        return X
 
     @staticmethod
     def build_timeseries(data):
