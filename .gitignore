@@ -29,3 +29,4 @@ codes/tests/temp/
 *.log
 *.pkl
 *.png
+*.pth
