@@ -52,11 +52,10 @@ class DeepBuyerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.model.state_dict(), BUYER_MODEL_SAVE_PATH)
+        torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH)
 
     def load_model(self):
         self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH))
-        self.q.eval()
         self.q_target.load_state_dict(self.q.state_dict())
 
     def train(self):
@@ -97,11 +96,10 @@ class DeepSellerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.model.state_dict(), SELLER_MODEL_SAVE_PATH)
+        torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH)
 
     def load_model(self):
         self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH))
-        self.q.eval()
         self.q_target.load_state_dict(self.q.state_dict())
 
     def train(self):
@@ -125,7 +123,7 @@ class DeepSellerPolicy:
 
 
 class QNet(nn.Module):
-    def __init__(self, bias=True, dropout=0.0, input_size=21, hidden_size=256, output_size=2, num_layers=1):
+    def __init__(self, bias=True, input_size=21, hidden_size=256, output_size=2, num_layers=1):
         super(QNet, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -137,8 +135,7 @@ class QNet(nn.Module):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             batch_first=True,
-            bias=bias,
-            dropout=dropout
+            bias=bias
         )
 
         self.fc_layer = nn.Sequential(
