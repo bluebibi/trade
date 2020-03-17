@@ -220,13 +220,13 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
 
     plt.subplot(321)
     plt.plot(range(len(market_buy_list)), market_buy_list)
-    plt.plot(range(len(market_buy_from_model_list)), market_buy_from_model_list)
+    plt.plot(range(len(market_buy_from_model_list)), market_buy_from_model_list, linestyle="--")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.grid()
 
     plt.subplot(322)
     plt.plot(range(len(market_sell_list)), market_sell_list)
-    plt.plot(range(len(market_sell_from_model_list)), market_sell_from_model_list)
+    plt.plot(range(len(market_sell_from_model_list)), market_sell_from_model_list, linestyle="--")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.grid()
 
