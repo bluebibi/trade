@@ -15,5 +15,5 @@ TRAIN_REPEATS = 5
 QNET_COPY_TO_TARGET_QNET_INTERVAL = 100
 
 PERFORMANCE_FIGURE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance.png')
-BUYER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'buyer_model_parameters.pth')
-SELLER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'seller_model_parameters.pth')
+BUYER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'parameters_buyer_model.pth')
+SELLER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'parameters_seller_model.pth')
