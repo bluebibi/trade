@@ -211,6 +211,7 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
 
 def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                      market_buy_from_model_list, market_sell_from_model_list,
+                     market_profitable_buy_list, market_profitable_sell_list,
                      market_profitable_buy_from_model_list, market_profitable_sell_from_model_list):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
@@ -222,7 +223,8 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
     plt.subplot(321)
     plt.plot(range(len(market_buy_list)), market_buy_list, label="Buys")
     plt.plot(range(len(market_buy_from_model_list)), market_buy_from_model_list, linestyle="--", label="Buys by model")
-    plt.plot(range(len(market_profitable_buy_from_model_list)), market_profitable_buy_from_model_list, linestyle="-.", label="Profitable buys by model")
+    plt.plot(range(len(market_profitable_buy_list)), market_profitable_buy_list, linestyle="-.", label="Profitable buys")
+    plt.plot(range(len(market_profitable_buy_from_model_list)), market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.legend()
     plt.grid()
@@ -230,7 +232,8 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
     plt.subplot(322)
     plt.plot(range(len(market_sell_list)), market_sell_list, label="Sells")
     plt.plot(range(len(market_sell_from_model_list)), market_sell_from_model_list, linestyle="--", label="Sells by model")
-    plt.plot(range(len(market_profitable_sell_from_model_list)), market_profitable_sell_from_model_list, linestyle="-.", label="Profitable sells by model")
+    plt.plot(range(len(market_profitable_sell_list)), market_profitable_sell_list, linestyle="-.", label="Profitable sells")
+    plt.plot(range(len(market_profitable_sell_from_model_list)), market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.legend()
     plt.grid()

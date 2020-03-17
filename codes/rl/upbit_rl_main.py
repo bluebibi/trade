@@ -262,6 +262,9 @@ def main():
     seller_loss_list = []
     market_buy_list = []
     market_sell_list = []
+    market_profitable_buy_list = []
+    market_profitable_sell_list = []
+
     market_buy_from_model_list = []
     market_sell_from_model_list = []
     market_profitable_buy_from_model_list = []
@@ -275,6 +278,9 @@ def main():
         seller_loss = 0.0
         market_buys = 0
         market_sells = 0
+        market_profitable_buys = 0
+        market_profitable_sells = 0
+
         market_buys_from_model = 0
         market_sells_from_model = 0
         market_profitable_buys_from_model = 0
@@ -283,9 +289,10 @@ def main():
         while not done:
             epsilon = max(0.001, EPSILON_START - 0.005 * (num_steps / 100))
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
+            from_buy_model = 0
 
             if env.status is EnvironmentStatus.TRYING_BUY:
-                action, from_model = buyer_policy.sample_action(observation, info_dic, epsilon)
+                action, from_buy_model = buyer_policy.sample_action(observation, info_dic, epsilon)
 
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
@@ -293,8 +300,10 @@ def main():
                     action = 1
                     buyer_policy.pending_buyer_transition = [observation, action, None, None, None]
                     next_env_state = EnvironmentStatus.TRYING_SELL
+
                     market_buys += 1
-                    if from_model:
+
+                    if from_buy_model:
                         market_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
@@ -303,7 +312,7 @@ def main():
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
             elif env.status is EnvironmentStatus.TRYING_SELL:
-                action, from_model = seller_policy.sample_action(observation, info_dic, epsilon)
+                action, from_sell_model = seller_policy.sample_action(observation, info_dic, epsilon)
 
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
@@ -322,11 +331,17 @@ def main():
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
                     market_sells += 1
-                    if from_model:
+
+                    if from_sell_model:
                         market_sells_from_model += 1
-                        if reward > 0.0:
-                            market_profitable_buys_from_model += 1
+
+                    if reward > 0.0:
+                        market_profitable_sells += 1
+                        market_profitable_buys += 1
+                        if from_sell_model:
                             market_profitable_sells_from_model += 1
+                            if from_buy_model:
+                                market_profitable_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -361,12 +376,15 @@ def main():
             market_sell_list.append(market_sells)
             market_buy_from_model_list.append(market_buys_from_model)
             market_sell_from_model_list.append(market_sells_from_model)
+            market_profitable_buy_list.append(market_profitable_buys)
+            market_profitable_sell_list.append(market_profitable_sells)
             market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
             market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
             if num_steps % 2 == 0:
                 draw_performance(
                     total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                     market_buy_from_model_list, market_sell_from_model_list,
+                    market_profitable_buy_list, market_profitable_sell_list,
                     market_profitable_buy_from_model_list, market_profitable_sell_from_model_list
                 )
 
