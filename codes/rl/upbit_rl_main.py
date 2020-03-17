@@ -276,7 +276,7 @@ def main():
         market_sells_from_model = 0
 
         while not done:
-            epsilon = max(0.001, EPSILON_START - 0.01 * (num_steps / 100))
+            epsilon = max(0.001, EPSILON_START - 0.005 * (num_steps / 100))
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:

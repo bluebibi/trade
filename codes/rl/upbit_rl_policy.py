@@ -4,7 +4,7 @@ import numpy as np
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from torch import optim
 
-from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE, TRAIN_REPEATS, BUYER_MODEL_SAVE_PATH, \
+from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, BUYER_MODEL_SAVE_PATH, \
     SELLER_MODEL_SAVE_PATH
 
 warnings.filterwarnings("ignore")
@@ -62,7 +62,8 @@ class DeepBuyerPolicy:
     def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
-            s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(TRAIN_BATCH_SIZE)
+            train_batch_size = self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100
+            s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1)
@@ -107,7 +108,8 @@ class DeepSellerPolicy:
     def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
-            s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(TRAIN_BATCH_SIZE)
+            train_batch_size = self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100
+            s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1)
