@@ -43,10 +43,11 @@ class DeepBuyerPolicy:
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
     def sample_action(self, observation, info_dic, epsilon):
-        if self.q.sample_action(observation, epsilon):  # 1
-            return BuyerAction.MARKET_BUY
+        action, from_model = self.q.sample_action(observation, epsilon)
+        if action:  # 1
+            return BuyerAction.MARKET_BUY, from_model
         else:
-            return BuyerAction.BUY_HOLD
+            return BuyerAction.BUY_HOLD, from_model
 
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
@@ -87,10 +88,11 @@ class DeepSellerPolicy:
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
     def sample_action(self, observation, info_dic, epsilon):
-        if self.q.sample_action(observation, epsilon):  # 1
-            return SellerAction.MARKET_SELL
+        action, from_model = self.q.sample_action(observation, epsilon)
+        if action:  # 1
+            return SellerAction.MARKET_SELL, from_model
         else:
-            return SellerAction.SELL_HOLD
+            return SellerAction.SELL_HOLD, from_model
 
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
@@ -162,12 +164,14 @@ class QNet(nn.Module):
     def sample_action(self, x, epsilon):
         coin = random.random()
         if coin < epsilon:
-            return random.randint(0, 1)
+            from_model = 0
+            return random.randint(0, 1), from_model
         else:
+            from_model = 1
             if not isinstance(x, torch.Tensor):
                 x = torch.unsqueeze(torch.Tensor(x), dim=0)
             out = self.forward(x)
-            return out.argmax().item()
+            return out.argmax().item(), from_model
 
 
 class ReplayBuffer:

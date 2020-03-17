@@ -88,9 +88,11 @@ class UpbitEnvironment(gym.Env):
         self.hold_coin_krw = 0
         self.hold_coin_quantity = 0.0
         self.hold_coin_unit_price = 0.0
+
         self.just_bought_coin_krw = None
         self.just_bought_coin_quantity = None
         self.just_bought_coin_unit_price = None
+
         self.just_sold_coin_krw = None
         self.just_sold_coin_quantity = None
         self.just_sold_coin_unit_price = None
@@ -131,8 +133,6 @@ class UpbitEnvironment(gym.Env):
             self.hold_coin_quantity,
             BUY_AMOUNT,
             observation.shape,
-            info_dic["base_ask_price"],
-            info_dic["base_bid_price"],
             info_dic["change_index"],
             info_dic["coin_unit_price"],
             info_dic["coin_quantity"],
@@ -152,7 +152,7 @@ class UpbitEnvironment(gym.Env):
 
     def step_with_info_dic(self, action, info_dic):
         reward = None
-        next_observation = next_info_dic = None
+        next_observation = next_info_dic = next_env_status = base_data = None
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
@@ -198,7 +198,7 @@ class UpbitEnvironment(gym.Env):
 
         done = True if self.steps_left == 0 else False
         if not done:
-            next_observation, next_info_dic = self._next_observation(next_env_status)
+            next_observation, next_info_dic = self._next_observation(next_env_status=next_env_status)
 
         self.current_step += 1
         self.steps_left -= 1
@@ -214,27 +214,24 @@ class UpbitEnvironment(gym.Env):
             coin_krw, coin_unit_price, coin_quantity, commission_fee = get_buying_price_by_order_book(
                 BUY_AMOUNT, order_book_list
             )
+            base_data = current_x[0]
         else:
             coin_krw, coin_unit_price, coin_quantity, commission_fee = get_selling_price_by_order_book(
                 self.hold_coin_quantity, order_book_list
             )
+            base_data = self.data[self.current_step - 1][-1]
 
-        base_ask_price = 0.0
-        base_bid_price = 0.0
-        mean_price_list = []
-        for j in range(WINDOW_SIZE):
-            mean_price = (current_x[j][1] + current_x[j][11]) / 2
-            mean_price_list.append(mean_price)
-            if j == 0:
-                base_ask_price = current_x[j][1]
-                base_bid_price = current_x[j][11]
+        # mean_price_list = []
+        # for j in range(WINDOW_SIZE):
+        #     mean_price = (current_x[j][1] + current_x[j][11]) / 2
+        #     mean_price_list.append(mean_price)
+        #
+        # cf = changefinder.ChangeFinderARIMA()
+        # c = [cf.update(p) for p in mean_price_list]
+        #
+        # change_index = c[-1]
 
-        cf = changefinder.ChangeFinderARIMA()
-        c = [cf.update(p) for p in mean_price_list]
-
-        change_index = c[-1]
-
-        current_x = current_x / current_x[0]
+        current_x = current_x / base_data
 
         assert current_x.shape == self.observation_space.shape, \
                "current_x.shape: {0}, self.observation_space.shape: {1}".format(current_x.shape, self.observation_space.shape)
@@ -242,9 +239,7 @@ class UpbitEnvironment(gym.Env):
         assert type(coin_krw) is type(10), "Type mismatch"
 
         info_dic = {
-            "base_ask_price": base_ask_price,
-            "base_bid_price": base_bid_price,
-            "change_index": change_index,
+            "change_index": 0.0,
             "coin_krw": coin_krw,
             "coin_unit_price": coin_unit_price,
             "coin_quantity": coin_quantity,
@@ -266,6 +261,8 @@ def main():
     seller_loss_list = []
     market_buy_list = []
     market_sell_list = []
+    market_buy_from_model_list = []
+    market_sell_from_model_list = []
 
     for episode in range(MAX_EPISODES):
         done = False
@@ -275,13 +272,15 @@ def main():
         seller_loss = 0.0
         market_buys = 0
         market_sells = 0
+        market_buys_from_model = 0
+        market_sells_from_model = 0
 
         while not done:
-            epsilon = max(0.001, EPSILON_START - 0.001 * (num_steps / 100))
+            epsilon = max(0.001, EPSILON_START - 0.01 * (num_steps / 100))
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:
-                action = buyer_policy.sample_action(observation, info_dic, epsilon)
+                action, from_model = buyer_policy.sample_action(observation, info_dic, epsilon)
 
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
@@ -290,6 +289,8 @@ def main():
                     buyer_policy.pending_buyer_transition = [observation, action, None, None, None]
                     next_env_state = EnvironmentStatus.TRYING_SELL
                     market_buys += 1
+                    if from_model:
+                        market_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -297,7 +298,7 @@ def main():
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
             elif env.status is EnvironmentStatus.TRYING_SELL:
-                action = seller_policy.sample_action(observation, info_dic, epsilon)
+                action, from_model = seller_policy.sample_action(observation, info_dic, epsilon)
 
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
@@ -315,6 +316,8 @@ def main():
                     seller_policy.seller_memory.put((observation, action, reward, next_observation, done_mask))
                     next_env_state = EnvironmentStatus.TRYING_BUY
                     market_sells += 1
+                    if from_model:
+                        market_sells_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -347,7 +350,13 @@ def main():
             seller_loss_list.append(seller_loss)
             market_buy_list.append(market_buys)
             market_sell_list.append(market_sells)
-            draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list)
+            market_buy_from_model_list.append(market_buys_from_model)
+            market_sell_from_model_list.append(market_sells_from_model)
+            if num_steps % 2 == 0:
+                draw_performance(
+                    total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
+                    market_buy_from_model_list, market_sell_from_model_list
+                )
 
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation

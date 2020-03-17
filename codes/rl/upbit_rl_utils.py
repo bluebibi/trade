@@ -209,7 +209,8 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
 
     return sold_coin_krw, sold_coin_unit_price, sold_coin_quantity, commission_fee
 
-def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list):
+def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
+                     market_buy_from_model_list, market_sell_from_model_list):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
@@ -219,11 +220,13 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
 
     plt.subplot(321)
     plt.plot(range(len(market_buy_list)), market_buy_list)
+    plt.plot(range(len(market_buy_from_model_list)), market_buy_from_model_list)
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.grid()
 
     plt.subplot(322)
     plt.plot(range(len(market_sell_list)), market_sell_list)
+    plt.plot(range(len(market_sell_from_model_list)), market_sell_from_model_list)
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.grid()
 
@@ -245,6 +248,7 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
 
     plt.savefig(PERFORMANCE_FIGURE_PATH)
     plt.close('all')
+
 
 if __name__ == "__main__":
     UPBIT = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
