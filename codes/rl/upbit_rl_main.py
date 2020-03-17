@@ -380,7 +380,8 @@ def main():
             market_profitable_sell_list.append(market_profitable_sells)
             market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
             market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
-            if num_steps % 2 == 0:
+
+            if num_steps % 10 == 0:
                 draw_performance(
                     total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                     market_buy_from_model_list, market_sell_from_model_list,
