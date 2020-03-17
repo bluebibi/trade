@@ -286,10 +286,11 @@ def main():
         market_profitable_buys_from_model = 0
         market_profitable_sells_from_model = 0
 
+        from_buy_model = 0
+
         while not done:
-            epsilon = max(0.001, EPSILON_START - 0.005 * (num_steps / 100))
+            epsilon = max(0.001, EPSILON_START - 0.002 * (num_steps / 100))
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
-            from_buy_model = 0
 
             if env.status is EnvironmentStatus.TRYING_BUY:
                 action, from_buy_model = buyer_policy.sample_action(observation, info_dic, epsilon)
@@ -352,7 +353,8 @@ def main():
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
             num_steps += 1
-            print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
+            if not done:
+                print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0:
