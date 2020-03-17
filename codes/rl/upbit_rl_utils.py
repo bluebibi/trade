@@ -1,12 +1,11 @@
 import sys,os
 
-from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH
-from db.database import naver_order_book_session, get_order_book_class
-
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
+from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH
+from db.database import naver_order_book_session, get_order_book_class
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, WINDOW_SIZE
 from common.utils import convert_unit_4, convert_unit_8, convert_unit_2
