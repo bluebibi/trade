@@ -196,12 +196,13 @@ class UpbitEnvironment(gym.Env):
                 reward = float(profit)
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
-        done = True if self.steps_left == 0 else False
-        if not done:
+        if self.steps_left == 0 or self.balance <= 0.0:
+            done = True
+        else:
+            done = False
             next_observation, next_info_dic = self._next_observation(next_env_status=next_env_status)
-
-        self.current_step += 1
-        self.steps_left -= 1
+            self.current_step += 1
+            self.steps_left -= 1
 
         return next_observation, reward, done, next_info_dic
 
@@ -263,6 +264,8 @@ def main():
     market_sell_list = []
     market_buy_from_model_list = []
     market_sell_from_model_list = []
+    market_profitable_buy_from_model_list = []
+    market_profitable_sell_from_model_list = []
 
     for episode in range(MAX_EPISODES):
         done = False
@@ -274,6 +277,8 @@ def main():
         market_sells = 0
         market_buys_from_model = 0
         market_sells_from_model = 0
+        market_profitable_buys_from_model = 0
+        market_profitable_sells_from_model = 0
 
         while not done:
             epsilon = max(0.001, EPSILON_START - 0.005 * (num_steps / 100))
@@ -315,9 +320,13 @@ def main():
                     action = 1
                     seller_policy.seller_memory.put((observation, action, reward, next_observation, done_mask))
                     next_env_state = EnvironmentStatus.TRYING_BUY
+
                     market_sells += 1
                     if from_model:
                         market_sells_from_model += 1
+                        if reward > 0.0:
+                            market_profitable_buys_from_model += 1
+                            market_profitable_sells_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
@@ -352,10 +361,13 @@ def main():
             market_sell_list.append(market_sells)
             market_buy_from_model_list.append(market_buys_from_model)
             market_sell_from_model_list.append(market_sells_from_model)
+            market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
+            market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
             if num_steps % 2 == 0:
                 draw_performance(
                     total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
-                    market_buy_from_model_list, market_sell_from_model_list
+                    market_buy_from_model_list, market_sell_from_model_list,
+                    market_profitable_buy_from_model_list, market_profitable_sell_from_model_list
                 )
 
             # 다음 스텝 수행을 위한 사전 준비
