@@ -1,11 +1,14 @@
 import warnings
 
+import boto3
 import numpy as np
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from torch import optim
 
-from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, BUYER_MODEL_SAVE_PATH, \
-    SELLER_MODEL_SAVE_PATH
+from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
+    BUYER_MODEL_SAVE_PATH, \
+    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME
+from common.global_variables import WINDOW_SIZE
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -32,14 +35,14 @@ else:
     device = torch.device("cpu")
     print("GPU not available, CPU used")
 
+s3 = boto3.client('s3')
 
 class DeepBuyerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        if os.path.exists(BUYER_MODEL_SAVE_PATH):
-            self.load_model()
-            print("LOADED BY EXISTING BUYER POLICY MODEL!!!")
+        self.load_model()
+
         self.q_target.load_state_dict(self.q.state_dict())
 
         self.buyer_memory = ReplayBuffer(buffer_capacity=100000)
@@ -57,10 +60,20 @@ class DeepBuyerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH)
+        torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
+        s3.upload_file(
+            BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
+            "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+        )
 
     def load_model(self):
-        self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH))
+        s3.download_file(
+            S3_BUCKET_NAME,
+            "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
+            BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+        )
+        self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        print("LOADED BY EXISTING BUYER POLICY MODEL!!!\n")
 
     def train(self):
         loss_lst = []
@@ -87,9 +100,8 @@ class DeepSellerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        if os.path.exists(SELLER_MODEL_SAVE_PATH):
-            self.load_model()
-            print("LOADED BY EXISTING SELLER POLICY MODEL!!!")
+        self.load_model()
+
         self.q_target.load_state_dict(self.q.state_dict())
 
         self.seller_memory = ReplayBuffer(buffer_capacity=100000)
@@ -106,10 +118,20 @@ class DeepSellerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH)
+        torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
+        s3.upload_file(
+            SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
+            "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+        )
 
     def load_model(self):
-        self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH))
+        s3.download_file(
+            S3_BUCKET_NAME,
+            "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
+            SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+        )
+        self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        print("LOADED BY EXISTING SELLER POLICY MODEL!!!\n")
 
     def train(self):
         loss_lst = []
