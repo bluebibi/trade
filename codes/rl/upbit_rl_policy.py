@@ -41,9 +41,7 @@ class DeepBuyerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        #self.load_model()
-
-        self.q_target.load_state_dict(self.q.state_dict())
+        self.load_model()
 
         self.buyer_memory = ReplayBuffer(buffer_capacity=100000)
         self.pending_buyer_transition = None
@@ -73,6 +71,7 @@ class DeepBuyerPolicy:
             BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
         )
         self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        self.qnet_copy_to_target_qnet()
         print("LOADED BY EXISTING BUYER POLICY MODEL!!!\n")
 
     def train(self):
@@ -100,9 +99,7 @@ class DeepSellerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        #self.load_model()
-
-        self.q_target.load_state_dict(self.q.state_dict())
+        self.load_model()
 
         self.seller_memory = ReplayBuffer(buffer_capacity=100000)
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
@@ -131,6 +128,7 @@ class DeepSellerPolicy:
             SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
         )
         self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        self.qnet_copy_to_target_qnet()
         print("LOADED BY EXISTING SELLER POLICY MODEL!!!\n")
 
     def train(self):

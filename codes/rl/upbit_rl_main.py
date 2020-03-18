@@ -359,8 +359,10 @@ def main(coin_name):
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+                    buyer_policy.load_model()
                     buyer_loss = buyer_policy.train()
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+                    seller_policy.load_model()
                     seller_loss = seller_policy.train()
 
                 # AWS S3로 모델 저장
