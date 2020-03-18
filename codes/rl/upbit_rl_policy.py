@@ -7,7 +7,7 @@ from torch import optim
 
 from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
     BUYER_MODEL_SAVE_PATH, \
-    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME
+    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE
 from common.global_variables import WINDOW_SIZE
 
 warnings.filterwarnings("ignore")
@@ -77,7 +77,10 @@ class DeepBuyerPolicy:
     def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
-            train_batch_size = min(512, int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100))
+            train_batch_size = min(
+                TRAIN_BATCH_MIN_SIZE,
+                int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
+            )
             s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
@@ -134,7 +137,10 @@ class DeepSellerPolicy:
     def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
-            train_batch_size = min(512, int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100))
+            train_batch_size = min(
+                TRAIN_BATCH_MIN_SIZE,
+                int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
+            )
             s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
