@@ -134,7 +134,7 @@ class DeepSellerPolicy:
     def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
-            train_batch_size = int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
+            train_batch_size = min(512, int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100))
             s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
