@@ -41,7 +41,7 @@ class DeepBuyerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        #self.load_model()
+        self.load_model()
 
         self.q_target.load_state_dict(self.q.state_dict())
 
@@ -100,7 +100,7 @@ class DeepSellerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        #self.load_model()
+        self.load_model()
 
         self.q_target.load_state_dict(self.q.state_dict())
 
