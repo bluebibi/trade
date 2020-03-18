@@ -361,14 +361,16 @@ def main(coin_name):
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     buyer_policy.load_model()
                     buyer_loss = buyer_policy.train()
+                    buyer_policy.save_model()
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     seller_policy.load_model()
                     seller_loss = seller_policy.train()
-
-                # AWS S3로 모델 저장
-                if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
-                    buyer_policy.save_model()
                     seller_policy.save_model()
+
+                # # AWS S3로 모델 저장
+                # if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
+                #     buyer_policy.save_model()
+                #     seller_policy.save_model()
 
             # TARGET Q Network 으로 Q Network 파라미터 Copy
             if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
