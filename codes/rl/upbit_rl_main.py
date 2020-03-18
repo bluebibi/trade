@@ -74,14 +74,11 @@ class UpbitEnvironment(gym.Env):
         self.train = True
         self.status = None
 
-        init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}\nRAW_TRAIN_DATA_SHAPE: {4}" \
-                   "\nRAW_VALID_DATA_SHAPE: {5}\nWINDOW_SIZE: {6}\n".format(
+        init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}\nWINDOW_SIZE: {4}\n".format(
             self.coin_name,
             self.observation_space,
             self.buyer_action_space,
             self.seller_action_space,
-            self.x_train.shape,
-            self.x_valid.shape,
             WINDOW_SIZE
         )
 
@@ -132,7 +129,7 @@ class UpbitEnvironment(gym.Env):
                     "\nINITIAL_BASE_BID_PRICE:{10}\nINITIAL_CHANGE_INDEX:{11}\nINITIAL_COIN_PRICE:{12}" \
                     "\nINITIAL_COIN_QUANTITY:{13}\nINITIAL_COMMISSION_FEE:{14}" \
                     "\nTRAIN_FIRST_DATETIME:{15}\nTRAIN_LAST_DATETIME:{16}\nVALIDATION_FIRST_DATETIME:{16}" \
-                    "\nVALIDATION_LAST_DATETIME:{15}\n".format(
+                    "\nVALIDATION_LAST_DATETIME:{15}\nRAW_TRAIN_DATA_SHAPE: {16}\nRAW_VALID_DATA_SHAPE: {17}".format(
             self.coin_name,
             self.env_type,
             self.current_step,
@@ -149,7 +146,9 @@ class UpbitEnvironment(gym.Env):
             self.x_train_base_datetime[0],
             self.x_train_base_datetime[-1],
             self.x_valid_base_datetime[0],
-            self.x_valid_base_datetime[-1]
+            self.x_valid_base_datetime[-1],
+            self.x_train.shape,
+            self.x_valid.shape,
         )
 
         print(reset_str)
