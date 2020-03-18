@@ -2,7 +2,8 @@ import warnings
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, MAX_EPISODES, \
-    REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START
+    REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
+    PERFORMANCE_GRAPH_DRAW_INTERVAL
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -383,7 +384,7 @@ def main():
             market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
             market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
 
-            if num_steps % 10 == 0:
+            if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0:
                 draw_performance(
                     total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                     market_buy_from_model_list, market_sell_from_model_list,
