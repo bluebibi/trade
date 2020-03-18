@@ -46,9 +46,12 @@ class UpbitEnvironment(gym.Env):
         self.env_type = env_type
         self.serial = serial
 
-        if self.env_type is EnvironmentType.TRAIN_VALID:
-            self.x_train, self.x_train_base_datetime, self.train_size, \
-            self.x_valid, self.x_valid_base_datetime,  self.valid_size = get_rl_dataset(self.coin_name)
+        self.x_train = None
+        self.x_train_base_datetime = None
+        self.train_size = None
+        self.x_valid = None
+        self.x_valid_base_datetime = None
+        self.valid_size = None
 
         self.balance = None
         self.total_profit = None
@@ -98,6 +101,10 @@ class UpbitEnvironment(gym.Env):
         self.just_sold_coin_krw = None
         self.just_sold_coin_quantity = None
         self.just_sold_coin_unit_price = None
+
+        if self.env_type is EnvironmentType.TRAIN_VALID:
+            self.x_train, self.x_train_base_datetime, self.train_size, \
+            self.x_valid, self.x_valid_base_datetime,  self.valid_size = get_rl_dataset(self.coin_name)
 
         self.status = EnvironmentStatus.TRYING_BUY
 
