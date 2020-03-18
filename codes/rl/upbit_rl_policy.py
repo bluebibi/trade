@@ -155,7 +155,7 @@ class DeepSellerPolicy:
 
 
 class QNet(nn.Module):
-    def __init__(self, bias=True, input_size=21, hidden_size=256, output_size=2, num_layers=1):
+    def __init__(self, bias=True, input_size=21, hidden_size=256, output_size=2, num_layers=3):
         super(QNet, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -171,7 +171,7 @@ class QNet(nn.Module):
         )
 
         self.fc_layer = nn.Sequential(
-            nn.Linear(self.hidden_size, 64),
+            nn.Linear(self.hidden_size, 128),
             nn.LeakyReLU(),
             nn.Linear(64, self.output_size)
         )
