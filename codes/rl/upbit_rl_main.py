@@ -150,7 +150,7 @@ class UpbitEnvironment(gym.Env):
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = -0.1
+                reward = 0.0
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -170,7 +170,7 @@ class UpbitEnvironment(gym.Env):
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = -0.1
+                reward = 0.0
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
@@ -187,7 +187,7 @@ class UpbitEnvironment(gym.Env):
                 self.just_sold_coin_quantity = info_dic["coin_quantity"]
                 self.just_sold_coin_unit_price = info_dic["coin_unit_price"]
 
-                reward = float(profit)
+                reward = float(profit) / 1000.0
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
         if self.steps_left == 0 or self.balance <= 0.0:
