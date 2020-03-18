@@ -89,12 +89,14 @@ def get_rl_dataset(coin_name):
 
     return x_train, x_train_base_datetime, train_size, x_valid, x_valid_base_datetime, valid_size
 
+
 def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic):
     if num_steps == 0:
         print("[COIN_NAME: {0}] EPISODES & STEPS".format(coin_name))
 
-    print_str = "[{0}/{1:>2d}/{2:>4d}, Balance: {3:>7}, TOTAL_PROFIT: {4:>6}, " \
-                "HOLD_COIN_KRW: {5:>7d} (COIN_PRICE: {6:>8.2f}, HOLD_COINS: {7:>8.2f}), {8:>12}] ".format(
+    print_str = "[{0}:{1}/{2:>2d}/{3:>4d}, Balance: {4:>7}, TOTAL_PROFIT: {5:>6}, " \
+                "HOLD_COIN_KRW: {6:>7d} (COIN_PRICE: {7:>8.2f}, HOLD_COINS: {8:>8.2f}), {9:>12}] ".format(
+        coin_name,
         max_episodes,
         episode,
         num_steps,

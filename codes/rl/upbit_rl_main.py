@@ -3,7 +3,8 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, MAX_EPISODES, \
     REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
-    PERFORMANCE_GRAPH_DRAW_INTERVAL
+    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL
+from codes.upbit.upbit_api import Upbit
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -251,9 +252,7 @@ class UpbitEnvironment(gym.Env):
         return current_x, info_dic
 
 
-def main():
-    coin_name = "ARK"
-
+def main(coin_name):
     env = UpbitEnvironment(coin_name=coin_name, env_type=EnvironmentType.TRAIN_VALID, serial=True)
     buyer_policy = DeepBuyerPolicy()
     seller_policy = DeepSellerPolicy()
@@ -358,18 +357,22 @@ def main():
                 print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
-            if num_steps % TRAIN_INTERVAL == 0:
+            if num_steps % TRAIN_INTERVAL == 0 or done:
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     buyer_loss = buyer_policy.train()
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     seller_loss = seller_policy.train()
 
+                # AWS S3로 모델 저장
+                if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
+                    buyer_policy.save_model()
+                    seller_policy.save_model()
+
             # TARGET Q Network 으로 Q Network 파라미터 Copy
             if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
                 buyer_policy.qnet_copy_to_target_qnet()
-                buyer_policy.save_model()
                 seller_policy.qnet_copy_to_target_qnet()
-                seller_policy.save_model()
+
 
             # 성능 그래프 그리기
             total_profit_list.append(env.total_profit)
@@ -384,7 +387,7 @@ def main():
             market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
             market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
 
-            if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0:
+            if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
                 draw_performance(
                     total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                     market_buy_from_model_list, market_sell_from_model_list,
@@ -402,4 +405,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+    coin_names = upbit.get_all_coin_names(parts=1)
+    for coin_name in coin_names:
+        main(coin_name)
