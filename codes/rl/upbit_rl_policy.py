@@ -41,7 +41,7 @@ class DeepBuyerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        self.load_model()
+        #self.load_model()
 
         self.q_target.load_state_dict(self.q.state_dict())
 
@@ -100,7 +100,7 @@ class DeepSellerPolicy:
     def __init__(self):
         self.q = QNet()
         self.q_target = QNet()
-        self.load_model()
+        #self.load_model()
 
         self.q_target.load_state_dict(self.q.state_dict())
 
@@ -173,7 +173,7 @@ class QNet(nn.Module):
         self.fc_layer = nn.Sequential(
             nn.Linear(self.hidden_size, 128),
             nn.LeakyReLU(),
-            nn.Linear(64, self.output_size)
+            nn.Linear(128, self.output_size)
         )
 
     def forward(self, x):
