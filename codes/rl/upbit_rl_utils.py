@@ -46,7 +46,7 @@ features = ["daily_base_timestamp",
         "bid_price_0", "bid_size_0", "bid_price_1", "bid_size_1", "bid_price_2", "bid_size_2", "bid_price_3",
         "bid_size_3", "bid_price_4", "bid_size_4"]
 
-def get_rl_dataset(coin_name):
+def get_rl_dataset(coin_name, train_valid_split=False):
     order_book_class = get_order_book_class(coin_name)
     queryset = naver_order_book_session.query(order_book_class).order_by(order_book_class.base_datetime.asc())
     df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
@@ -76,18 +76,21 @@ def get_rl_dataset(coin_name):
 
     total_size = X.shape[0]
 
-    indices = list(range(total_size))
-    train_indices = list(set(indices[:int(total_size * 0.8)]))
-    valid_indices = list(set(range(total_size)) - set(train_indices))
-    x_train = X[train_indices]
-    x_train_base_datetime = base_datetime_X[train_indices]
-    x_valid = X[valid_indices]
-    x_valid_base_datetime = base_datetime_X[valid_indices]
+    if train_valid_split:
+        indices = list(range(total_size))
+        train_indices = list(set(indices[:int(total_size * 0.8)]))
+        valid_indices = list(set(range(total_size)) - set(train_indices))
+        x_train = X[train_indices]
+        x_train_base_datetime = base_datetime_X[train_indices]
+        x_valid = X[valid_indices]
+        x_valid_base_datetime = base_datetime_X[valid_indices]
 
-    train_size = x_train.shape[0]
-    valid_size = x_valid.shape[0]
+        train_size = x_train.shape[0]
+        valid_size = x_valid.shape[0]
 
-    return x_train, x_train_base_datetime, train_size, x_valid, x_valid_base_datetime, valid_size
+        return x_train, x_train_base_datetime, train_size, x_valid, x_valid_base_datetime, valid_size
+    else:
+        return X, base_datetime_X, total_size
 
 
 def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic):

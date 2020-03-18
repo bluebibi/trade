@@ -46,9 +46,12 @@ class UpbitEnvironment(gym.Env):
         self.env_type = env_type
         self.serial = serial
 
+        # if self.env_type is EnvironmentType.TRAIN_VALID:
+        #     self.x_train, self.x_train_base_datetime, self.train_size, \
+        #     self.x_valid, self.x_valid_base_datetime,  self.valid_size = get_rl_dataset(self.coin_name, train_valid_split=True)
+
         if self.env_type is EnvironmentType.TRAIN_VALID:
-            self.x_train, self.x_train_base_datetime, self.train_size, \
-            self.x_valid, self.x_valid_base_datetime,  self.valid_size = get_rl_dataset(self.coin_name)
+            self.x, self.x_base_datetime, self.size = get_rl_dataset(self.coin_name, train_valid_split=False)
 
         self.balance = None
         self.total_profit = None
@@ -68,17 +71,15 @@ class UpbitEnvironment(gym.Env):
         self.steps_left = None
         self.account_history = None
 
-        self.train = True
         self.status = None
 
-        init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}\nRAW_TRAIN_DATA_SHAPE: {4}" \
-                   "\nRAW_VALID_DATA_SHAPE: {5}\nWINDOW_SIZE: {6}\n".format(
+        init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
+                   "\nRAW_DATA_SHAPE: {4}\nWINDOW_SIZE: {5}\n".format(
             self.coin_name,
             self.observation_space,
             self.buyer_action_space,
             self.seller_action_space,
-            self.x_train.shape,
-            self.x_valid.shape,
+            self.x.shape,
             WINDOW_SIZE
         )
 
@@ -102,14 +103,9 @@ class UpbitEnvironment(gym.Env):
         self.status = EnvironmentStatus.TRYING_BUY
 
         if self.env_type == EnvironmentType.TRAIN_VALID:
-            if self.train:
-                self.data = self.x_train
-                self.data_datetime = self.x_train_base_datetime
-                self.data_size = self.train_size
-            else:
-                self.data = self.x_valid
-                self.data_datetime = self.x_valid_base_datetime
-                self.data_size = self.valid_size
+            self.data = self.x
+            self.data_datetime = self.x_base_datetime
+            self.data_size = self.size
         else:
             pass
             # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
@@ -121,11 +117,9 @@ class UpbitEnvironment(gym.Env):
 
         reset_str = "[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nCURRENT_STEPS: {2}\nSTEPS_LEFT: {3}" \
                     "\nINITIAL_BALANCE: {4}\nINITIAL_TOTAL_PROFIT: {5}\nINITIAL_HOLD_COIN_QUANTITY: {6}" \
-                    "\nBUY_AMOUNT: {7}won\nINITIAL OBSERVATION: {8}\nINITIAL_BASE_ASK_PRICE:{9}" \
-                    "\nINITIAL_BASE_BID_PRICE:{10}\nINITIAL_CHANGE_INDEX:{11}\nINITIAL_COIN_PRICE:{12}" \
-                    "\nINITIAL_COIN_QUANTITY:{13}\nINITIAL_COMMISSION_FEE:{14}" \
-                    "\nTRAIN_FIRST_DATETIME:{15}\nTRAIN_LAST_DATETIME:{16}\nVALIDATION_FIRST_DATETIME:{16}" \
-                    "\nVALIDATION_LAST_DATETIME:{15}\n".format(
+                    "\nBUY_AMOUNT: {7}won\nINITIAL OBSERVATION: {8}\nINITIAL_CHANGE_INDEX:{9}\nINITIAL_COIN_PRICE:{10}" \
+                    "\nINITIAL_COIN_QUANTITY:{11}\nINITIAL_COMMISSION_FEE:{12}" \
+                    "\nFIRST_DATETIME:{13}\nLAST_DATETIME:{14}\n".format(
             self.coin_name,
             self.env_type,
             self.current_step,
@@ -139,10 +133,8 @@ class UpbitEnvironment(gym.Env):
             info_dic["coin_unit_price"],
             info_dic["coin_quantity"],
             info_dic["commission_fee"],
-            self.x_train_base_datetime[0],
-            self.x_train_base_datetime[-1],
-            self.x_valid_base_datetime[0],
-            self.x_valid_base_datetime[-1]
+            self.x_base_datetime[0],
+            self.x_base_datetime[-1]
         )
 
         print(reset_str)
