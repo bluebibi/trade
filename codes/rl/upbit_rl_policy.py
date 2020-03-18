@@ -146,13 +146,15 @@ class DeepSellerPolicy:
             s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
-            max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1)
+            max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
             loss = F.smooth_l1_loss(q_a, target)
             loss_lst.append(loss.item())
 
             self.optimizer.zero_grad()
             loss.backward()
+            for param in self.q.parameters():
+                param.grad.data.clamp_(-1, 1)
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
