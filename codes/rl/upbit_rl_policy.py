@@ -38,7 +38,9 @@ else:
 s3 = boto3.client('s3')
 
 class DeepBuyerPolicy:
-    def __init__(self):
+    def __init__(self, use_federated_learning=False):
+        self.use_federated_learning = use_federated_learning
+
         self.q = QNet()
         self.q_target = QNet()
         self.load_model()
@@ -59,20 +61,27 @@ class DeepBuyerPolicy:
 
     def save_model(self):
         torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
-        s3.upload_file(
-            BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
-            "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE))
-        )
+        if self.use_federated_learning:
+            s3.upload_file(
+                BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+            )
 
     def load_model(self):
-        s3.download_file(
-            S3_BUCKET_NAME,
-            "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
-            BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
-        )
-        self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        if self.use_federated_learning:
+            s3.download_file(
+                S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
+                BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+            )
+            self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            print("LOADED BY EXISTING BUYER POLICY MODEL FROM AWS S3!!!\n")
+        else:
+            if os.path.exists(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)):
+                self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+                print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+
         self.qnet_copy_to_target_qnet()
-        print("LOADED BY EXISTING BUYER POLICY MODEL!!!\n")
 
     def train(self):
         loss_lst = []
@@ -101,7 +110,9 @@ class DeepBuyerPolicy:
 
 
 class DeepSellerPolicy:
-    def __init__(self):
+    def __init__(self, use_federated_learning=False):
+        self.use_federated_learning = use_federated_learning
+
         self.q = QNet()
         self.q_target = QNet()
         self.load_model()
@@ -121,20 +132,28 @@ class DeepSellerPolicy:
 
     def save_model(self):
         torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
-        s3.upload_file(
-            SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
-            "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE))
-        )
+        if self.use_federated_learning:
+            s3.upload_file(
+                SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+            )
 
     def load_model(self):
-        s3.download_file(
-            S3_BUCKET_NAME,
-            "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
-            SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
-        )
-        self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+        if self.use_federated_learning:
+            s3.download_file(
+                S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
+                SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+            )
+            self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            print("LOADED BY EXISTING SELLER POLICY MODEL FROM AWS S3!!!\n")
+        else:
+            if os.path.exists(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)):
+                self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+                print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+
         self.qnet_copy_to_target_qnet()
-        print("LOADED BY EXISTING SELLER POLICY MODEL!!!\n")
+
 
     def train(self):
         loss_lst = []

@@ -93,16 +93,17 @@ def get_rl_dataset(coin_name, train_valid_split=False):
         return X, base_datetime_X, total_size
 
 
-def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic):
+def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_steps, info_dic):
     if num_steps == 0:
         print("[COIN_NAME: {0}] EPISODES & STEPS".format(coin_name))
 
-    print_str = "[{0}:{1}/{2:>2d}/{3:>4d}, Balance: {4:>7}, TOTAL_PROFIT: {5:>6}, " \
-                "HOLD_COIN_KRW: {6:>7d} (COIN_PRICE: {7:>8.2f}, HOLD_COINS: {8:>8.2f}), {9:>12}] ".format(
+    print_str = "[{0}:{1}/{2}:{3}/{4}, Balance: {5}, TOTAL_PROFIT: {6}, " \
+                "HOLD_COIN_KRW: {7:>7d} (COIN_PRICE: {8:>8.2f}, HOLD_COINS: {9:>8.2f}), {10:>12}] ".format(
         coin_name,
-        max_episodes,
         episode,
+        max_episodes,
         num_steps,
+        total_steps,
         env.balance,
         env.total_profit,
         env.hold_coin_krw,
@@ -112,14 +113,12 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, info_dic
     )
 
     if env.status is EnvironmentStatus.TRYING_BUY:
-        print_str += colored(" <<change_index:{0:8.2f}, buying_coin_unit_price:{1:8.2f}, buying_coin_quantity:{2:8.2f}>>".format(
-            info_dic["change_index"],
+        print_str += colored(" <<BUYING_COIN_UNIT_PRICE:{0:8.2f}, BUYING_COIN_QUANTITY:{1:8.2f}>>".format(
             info_dic["coin_unit_price"],
             info_dic["coin_quantity"]
         ), "cyan")
     else:
-        print_str += colored(" <<change_index:{0:8.2f}, selling_coin_unit_price:{1:8.2f}, selling_coin_quantity:{2:8.2f}>>".format(
-            info_dic["change_index"],
+        print_str += colored(" <<SELLING_COIN_UNIT_PRICE:{0:8.2f}, SELLING_COIN_QUANTITY:{1:8.2f}>>".format(
             info_dic["coin_unit_price"],
             env.hold_coin_quantity
         ), "yellow")

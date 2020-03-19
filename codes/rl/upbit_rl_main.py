@@ -69,6 +69,7 @@ class UpbitEnvironment(gym.Env):
 
         self.current_step = None
         self.steps_left = None
+        self.total_steps = None
         self.account_history = None
 
         self.status = None
@@ -112,6 +113,7 @@ class UpbitEnvironment(gym.Env):
 
         self.current_step = 0
         self.steps_left = self.data_size
+        self.total_steps = self.data_size
 
         observation, info_dic = self._next_observation(next_env_status=EnvironmentStatus.TRYING_BUY)
 
@@ -282,7 +284,7 @@ def main(coin_name):
 
         while not done:
             epsilon = max(0.001, EPSILON_START - 0.002 * (num_steps / 100))
-            print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, info_dic)
+            print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:
                 action, from_buy_model = buyer_policy.sample_action(observation, info_dic, epsilon)
