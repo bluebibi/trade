@@ -46,7 +46,7 @@ class DeepBuyerPolicy:
         self.q_target = QNet()
         self.load_model()
 
-        self.buyer_memory = PrioritizedReplayBuffer(capacity=100000)
+        self.buyer_memory = ReplayBuffer(buffer_capacity=100000)
         self.pending_buyer_transition = None
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
@@ -84,36 +84,25 @@ class DeepBuyerPolicy:
 
         self.qnet_copy_to_target_qnet()
 
-    def train(self, beta):
+    def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
             train_batch_size = min(
                 TRAIN_BATCH_MIN_SIZE,
                 int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
-            s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_memory(train_batch_size, beta=beta)
+            s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
-
-            weights = torch.FloatTensor(weights)
-            # loss = F.smooth_l1_loss(q_a, target) * weights
-
-            q_a = torch.squeeze(q_a, dim=1)
-            target = torch.squeeze(target, dim=1)
-            loss = (q_a - target).pow(2) * weights
-            prios = loss + 1e-5
-
-            loss = loss.mean()
+            loss = F.smooth_l1_loss(q_a, target)
             loss_lst.append(loss.item())
-
 
             self.optimizer.zero_grad()
             loss.backward()
             for param in self.q.parameters():
                 param.grad.data.clamp_(-1, 1)
-            self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
@@ -129,7 +118,7 @@ class DeepSellerPolicy:
         self.q_target = QNet()
         self.load_model()
 
-        self.seller_memory = PrioritizedReplayBuffer(capacity=100000)
+        self.seller_memory = ReplayBuffer(buffer_capacity=100000)
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
     def sample_action(self, observation, info_dic, epsilon):
@@ -166,35 +155,26 @@ class DeepSellerPolicy:
 
         self.qnet_copy_to_target_qnet()
 
-    def train(self, beta):
+
+    def train(self):
         loss_lst = []
         for i in range(TRAIN_REPEATS):
             train_batch_size = min(
                 TRAIN_BATCH_MIN_SIZE,
                 int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
-            s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_memory(train_batch_size, beta=beta)
+            s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
-
-            weights = torch.FloatTensor(weights)
-            # loss = F.smooth_l1_loss(q_a, target) * weights
-
-            q_a = torch.squeeze(q_a, dim=1)
-            target = torch.squeeze(target, dim=1)
-            loss = (q_a - target).pow(2) * weights
-            prios = loss + 1e-5
-
-            loss = loss.mean()
+            loss = F.smooth_l1_loss(q_a, target)
             loss_lst.append(loss.item())
 
             self.optimizer.zero_grad()
             loss.backward()
             for param in self.q.parameters():
                 param.grad.data.clamp_(-1, 1)
-            self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
@@ -252,42 +232,15 @@ class QNet(nn.Module):
             return out.argmax().item(), from_model
 
 
-class PrioritizedReplayBuffer:
-    def __init__(self, capacity, prob_alpha=0.6):
-        self.prob_alpha = prob_alpha
-        self.capacity = capacity
-        self.buffer = []
-        self.pos = 0
-        self.priorities = np.zeros((capacity,), dtype=np.float32)
+class ReplayBuffer:
+    def __init__(self, buffer_capacity):
+        self.buffer = collections.deque(maxlen=buffer_capacity)
 
     def put(self, transition):
-        max_priority = self.priorities.max() if self.buffer else 1.0
+        self.buffer.append(transition)
 
-        if len(self.buffer) < self.capacity:
-            self.buffer.append(transition)
-        else:
-            self.buffer[self.pos] = transition
-
-        self.priorities[self.pos] = max_priority
-        self.pos = (self.pos + 1) % self.capacity
-
-    def sample_memory(self, batch_size, beta=0.4):
-        if len(self.buffer) == self.capacity:
-            prios = self.priorities
-        else:
-            prios = self.priorities[:self.pos]
-
-        probs = prios ** self.prob_alpha
-        probs /= probs.sum()
-
-        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
-        mini_batch = [self.buffer[idx] for idx in indices]
-
-        total = len(self.buffer)
-        weights = (total * probs[indices]) ** (-beta)
-        weights /= weights.max()
-        weights = np.array(weights, dtype=np.float32)
-
+    def sample_memory(self, n):
+        mini_batch = random.sample(self.buffer, n)
         s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []
 
         for transition in mini_batch:
@@ -298,20 +251,20 @@ class PrioritizedReplayBuffer:
             s_prime_batch.append(s_prime)
             done_mask_batch.append([done_mask])
 
-        s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_ = \
-            torch.tensor(s_batch, dtype=torch.float), \
-            torch.tensor(a_batch), \
-            torch.tensor(r_batch), \
-            torch.tensor(s_prime_batch, dtype=torch.float), \
-            torch.tensor(done_mask_batch)
+        try:
+            s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_ = torch.tensor(s_batch, dtype=torch.float), torch.tensor(a_batch), \
+                   torch.tensor(r_batch), torch.tensor(s_prime_batch, dtype=torch.float), \
+                   torch.tensor(done_mask_batch)
+        except TypeError as e:
+            print(e)
+            print("s_batch", s_batch)
+            print("a_batch", s_batch)
+            print("r_batch", s_batch)
+            print("s_prime_batch", s_batch)
+            print("dpne_mask_batch", s_batch)
+            sys.exit(-1)
 
-        return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_, indices, weights
-
-    def update_priorities(self, batch_indices, batch_priorities):
-        # print(batch_indices, "!!!", batch_priorities, "!!!")
-
-        for idx, prio in zip(batch_indices, batch_priorities):
-            self.priorities[idx] = prio
+        return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_
 
     def size(self):
         return len(self.buffer)

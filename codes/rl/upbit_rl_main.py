@@ -264,6 +264,10 @@ def main(coin_name):
     market_profitable_buy_from_model_list = []
     market_profitable_sell_from_model_list = []
 
+    beta_start = 0.4
+    beta_frames = 1000
+    beta_by_frame = lambda frame_idx: min(1.0, beta_start + frame_idx * (1.0 - beta_start) / beta_frames)
+
     for episode in range(MAX_EPISODES):
         done = False
         num_steps = 0
@@ -352,13 +356,14 @@ def main(coin_name):
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
+                beta = beta_by_frame(episode)
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     #buyer_policy.load_model()
-                    buyer_loss = buyer_policy.train()
+                    buyer_loss = buyer_policy.train(beta)
                     #buyer_policy.save_model()
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     #seller_policy.load_model()
-                    seller_loss = seller_policy.train()
+                    seller_loss = seller_policy.train(beta)
                     #seller_policy.save_model()
 
                 # AWS S3로 모델 저장
