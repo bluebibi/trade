@@ -3,7 +3,7 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, MAX_EPISODES, \
     REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
-    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL
+    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, VERBOSE_STEP
 from codes.upbit.upbit_api import Upbit
 
 warnings.filterwarnings("ignore")
@@ -152,7 +152,7 @@ class UpbitEnvironment(gym.Env):
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = -1000.0
+                reward = -1.0
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -172,7 +172,7 @@ class UpbitEnvironment(gym.Env):
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = -1000.0
+                reward = -1.0
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
@@ -284,7 +284,7 @@ def main(coin_name):
 
         while not done:
             epsilon = max(0.001, EPSILON_START - 0.002 * (num_steps / 100))
-            print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
+            if VERBOSE_STEP: print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:
                 action, from_buy_model = buyer_policy.sample_action(observation, info_dic, epsilon)
@@ -348,23 +348,23 @@ def main(coin_name):
 
             num_steps += 1
             if not done:
-                print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
+                if VERBOSE_STEP: print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-                    buyer_policy.load_model()
+                    #buyer_policy.load_model()
                     buyer_loss = buyer_policy.train()
-                    buyer_policy.save_model()
+                    #buyer_policy.save_model()
                 if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-                    seller_policy.load_model()
+                    #seller_policy.load_model()
                     seller_loss = seller_policy.train()
-                    seller_policy.save_model()
+                    #seller_policy.save_model()
 
-                # # AWS S3로 모델 저장
-                # if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
-                #     buyer_policy.save_model()
-                #     seller_policy.save_model()
+                # AWS S3로 모델 저장
+                if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
+                    buyer_policy.save_model()
+                    seller_policy.save_model()
 
             # TARGET Q Network 으로 Q Network 파라미터 Copy
             if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
@@ -404,6 +404,6 @@ def main(coin_name):
 
 if __name__ == "__main__":
     upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
-    coin_names = upbit.get_all_coin_names(parts=1)
+    coin_names = upbit.get_all_coin_names()
     for coin_name in coin_names:
         main(coin_name)

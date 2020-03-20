@@ -100,7 +100,7 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
     print_str = "[{0}:{1}/{2}:{3}/{4}, Balance: {5}, TOTAL_PROFIT: {6}, " \
                 "HOLD_COIN_KRW: {7:>7d} (COIN_PRICE: {8:>8.2f}, HOLD_COINS: {9:>8.2f}), {10:>12}] ".format(
         coin_name,
-        episode,
+        episode+1,
         max_episodes,
         num_steps,
         total_steps,
