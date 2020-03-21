@@ -63,14 +63,24 @@ class PrioritizedReplayBuffer:
             s_prime_batch.append(s_prime)
             done_mask_batch.append([done_mask])
 
-        s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_ = \
-            torch.tensor(s_batch, dtype=torch.float), \
-            torch.tensor(a_batch), \
-            torch.tensor(r_batch), \
-            torch.tensor(s_prime_batch, dtype=torch.float), \
-            torch.tensor(done_mask_batch)
+        try:
+            s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_ = \
+                torch.tensor(s_batch, dtype=torch.float), \
+                torch.tensor(a_batch), \
+                torch.tensor(r_batch), \
+                torch.tensor(s_prime_batch, dtype=torch.float), \
+                torch.tensor(done_mask_batch)
 
-        return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_, indices, weights
+            return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_, indices, weights
+        except TypeError as e:
+            print(e)
+            print("s_batch", s_batch)
+            print("a_batch", s_batch)
+            print("r_batch", s_batch)
+            print("s_prime_batch", s_batch)
+            print("dpne_mask_batch", s_batch)
+            sys.exit(-1)
+
 
     def update_priorities(self, batch_indices, batch_priorities):
         # print(batch_indices, "!!!", batch_priorities, "!!!")
