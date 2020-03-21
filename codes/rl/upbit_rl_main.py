@@ -48,7 +48,8 @@ def main(coin_name, args):
     for episode in range(MAX_EPISODES):
         done = False
         num_steps = 0
-        observation, info_dic = env.reset()
+        epsilon = max(0.001, EPSILON_START - 0.01 * (episode / 100))
+        observation, info_dic = env.reset(epsilon)
         buyer_loss = 0.0
         seller_loss = 0.0
         market_buys = 0
@@ -64,7 +65,6 @@ def main(coin_name, args):
         from_buy_model = 0
 
         while not done:
-            epsilon = max(0.001, EPSILON_START - 0.002 * (num_steps / 100))
             if VERBOSE_STEP: print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:

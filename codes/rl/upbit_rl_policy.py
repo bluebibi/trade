@@ -164,7 +164,6 @@ class DeepBuyerPolicy:
                 loss = (q_a - target).pow(2).mean()
                 loss_lst.append(loss.item())
 
-
             self.optimizer.zero_grad()
             loss.backward()
             # for param in self.q.parameters():

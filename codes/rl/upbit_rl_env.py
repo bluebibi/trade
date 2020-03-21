@@ -49,8 +49,9 @@ class UpbitEnvironment(gym.Env):
         )
         self.env_type = env_type
 
-        if self.env_type is EnvironmentType.TRAIN_VALID:
-            self.x, self.x_base_datetime, self.size = self.get_rl_dataset(self.coin_name, self.args, train_valid_split=False)
+        self.data = None
+        self.data_datetime = None
+        self.data_size = None
 
         self.balance = None
         self.total_profit = None
@@ -74,18 +75,17 @@ class UpbitEnvironment(gym.Env):
         self.status = None
 
         init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
-                   "\nRAW_DATA_SHAPE: {4}\nWINDOW_SIZE: {5}\n".format(
+                   "\nWINDOW_SIZE: {4}\n".format(
             self.coin_name,
             self.observation_space,
             self.buyer_action_space,
             self.seller_action_space,
-            self.x.shape,
             WINDOW_SIZE
         )
 
         print(init_str)
 
-    def reset(self):
+    def reset(self, epsilon):
         self.balance = INITIAL_TOTAL_KRW
         self.total_profit = 0.0
         self.hold_coin_krw = 0
@@ -102,10 +102,8 @@ class UpbitEnvironment(gym.Env):
 
         self.status = EnvironmentStatus.TRYING_BUY
 
-        if self.env_type == EnvironmentType.TRAIN_VALID:
-            self.data = self.x
-            self.data_datetime = self.x_base_datetime
-            self.data_size = self.size
+        if self.env_type is EnvironmentType.TRAIN_VALID:
+            self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args, train_valid_split=False)
         else:
             pass
             # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
@@ -118,9 +116,8 @@ class UpbitEnvironment(gym.Env):
 
         reset_str = "[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nCURRENT_STEPS: {2}\nSTEPS_LEFT: {3}" \
                     "\nINITIAL_BALANCE: {4}\nINITIAL_TOTAL_PROFIT: {5}\nINITIAL_HOLD_COIN_QUANTITY: {6}" \
-                    "\nBUY_AMOUNT: {7}won\nINITIAL OBSERVATION: {8}\nINITIAL_CHANGE_INDEX:{9}\nINITIAL_COIN_PRICE:{10}" \
-                    "\nINITIAL_COIN_QUANTITY:{11}\nINITIAL_COMMISSION_FEE:{12}" \
-                    "\nFIRST_DATETIME:{13}\nLAST_DATETIME:{14}\n".format(
+                    "\nBUY_AMOUNT: {7}won\nOBSERVATION SHAPE: {8}\nFIRST_DATETIME:{9}\nLAST_DATETIME:{10}" \
+                    "\nEPSILON:{11:4.3f}%".format(
             self.coin_name,
             self.env_type,
             self.current_step,
@@ -130,12 +127,9 @@ class UpbitEnvironment(gym.Env):
             self.hold_coin_quantity,
             BUY_AMOUNT,
             observation.shape,
-            info_dic["change_index"],
-            info_dic["coin_unit_price"],
-            info_dic["coin_quantity"],
-            info_dic["commission_fee"],
-            self.x_base_datetime[0],
-            self.x_base_datetime[-1]
+            self.data_datetime[0],
+            self.data_datetime[-1],
+            epsilon * 100
         )
 
         print(reset_str)
