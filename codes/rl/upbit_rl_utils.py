@@ -199,7 +199,7 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
     plt.plot(range(len(market_profitable_buy_list)), market_profitable_buy_list, linestyle="-.", label="Profitable buys")
     plt.plot(range(len(market_profitable_buy_from_model_list)), market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.grid()
 
     plt.subplot(322)
@@ -210,7 +210,7 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
     plt.plot(range(len(market_profitable_sell_list)), market_profitable_sell_list, linestyle="-.", label="Profitable sells")
     plt.plot(range(len(market_profitable_sell_from_model_list)), market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.grid()
 
     plt.subplot(323)
