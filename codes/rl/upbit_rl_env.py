@@ -147,7 +147,7 @@ class UpbitEnvironment(gym.Env):
 
     def step_with_info_dic(self, action, info_dic):
         reward = None
-        next_observation = next_info_dic = next_env_status = base_data = None
+        next_observation = next_info_dic = next_env_status = None
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
@@ -193,6 +193,17 @@ class UpbitEnvironment(gym.Env):
 
         if self.steps_left == 0 or self.balance <= 0.0:
             done = True
+            next_info_dic = {
+                "change_index": 0.0,
+                "coin_krw": -1.0,
+                "coin_unit_price": -1.0,
+                "coin_quantity": -1.0,
+                "commission_fee": -1.0
+            }
+            if self.args.volume:
+                next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE))
+            else:
+                next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE_WITHOUT_VOLUME))
         else:
             done = False
             next_observation, next_info_dic = self._next_observation(next_env_status=next_env_status)

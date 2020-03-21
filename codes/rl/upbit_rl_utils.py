@@ -48,7 +48,7 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
         coin_name,
         episode+1,
         max_episodes,
-        num_steps,
+        num_steps+1,
         total_steps,
         env.balance,
         env.total_profit,

@@ -43,4 +43,4 @@ SELLER_MODEL_FILE_NAME = 'parameters_seller_model_{0}_W{1}_F{2}.pth'
 SELLER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', SELLER_MODEL_FILE_NAME)
 S3_BUCKET_NAME = 'invest-thinkonweb'
 
-VERBOSE_STEP =False
+VERBOSE_STEP = True
