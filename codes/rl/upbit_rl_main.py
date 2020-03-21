@@ -11,7 +11,8 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2
+from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2, \
+    SOURCE
 from codes.rl.upbit_rl_constants import MAX_EPISODES, \
     REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
     PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL
@@ -186,7 +187,8 @@ def main(coin_name, args):
             if env.balance <= 0.0:
                 done = True
 
-        pusher.send_message("me", "{0}, {1}/{2}, {3}/{4}:::::{5}".format(
+        pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
+            SOURCE,
             coin_name,
             episode, MAX_EPISODES,
             num_steps, env.total_steps,
