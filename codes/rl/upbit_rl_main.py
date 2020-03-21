@@ -15,7 +15,7 @@ from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, S
     SOURCE
 from codes.rl.upbit_rl_constants import MAX_EPISODES, \
     REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
-    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL
+    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, EPSILON_FINAL
 from codes.rl.upbit_rl_env import UpbitEnvironment
 from codes.upbit.upbit_api import Upbit
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
@@ -23,8 +23,15 @@ from codes.rl.upbit_rl_utils import print_before_step, print_after_step, Environ
     EnvironmentStatus, BuyerAction, SellerAction, draw_performance
 from common.slack import PushSlack
 import argparse
+import numpy as np
 
 pusher = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
+
+def linearly_decaying_epsilon(max_episodes, episode, warmup_episodes, max_epsilon, min_epsilon):
+    steps_left = max_episodes + warmup_episodes - episode
+    bonus = (max_epsilon - min_epsilon) * steps_left / max_episodes
+    bonus = np.clip(bonus, 0., max_epsilon - min_epsilon)
+    return min_epsilon + bonus, bonus
 
 def main(args):
     coin_name = args.coin
@@ -47,12 +54,18 @@ def main(args):
 
     beta_start = 0.4
     beta_frames = 1000
-    beta_by_frame = lambda frame_idx: min(1.0, beta_start + frame_idx * (1.0 - beta_start) / beta_frames)
+    beta_by_episode = lambda episode: min(1.0, beta_start + episode * (1.0 - beta_start) / beta_frames)
 
     for episode in range(MAX_EPISODES):
         done = False
         num_steps = 0
-        epsilon = max(0.001, EPSILON_START - 1.0 * (episode / 100))
+        epsilon = linearly_decaying_epsilon(
+            max_episodes=MAX_EPISODES,
+            episode=episode,
+            warmup_episodes=5,
+            max_epsilon=EPSILON_START,
+            min_epsilon=EPSILON_FINAL
+        )
         observation, info_dic = env.reset(
             episode, epsilon, buyer_policy, seller_policy
         )
@@ -139,7 +152,7 @@ def main(args):
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
-                beta = beta_by_frame(episode)
+                beta = beta_by_episode(episode)
                 if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                     #buyer_policy.load_model()
                     buyer_loss = buyer_policy.train(beta)
@@ -193,7 +206,7 @@ def main(args):
         pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
             SOURCE,
             coin_name,
-            episode, MAX_EPISODES,
+            episode + 1, MAX_EPISODES,
             num_steps, env.total_steps,
             0.0 if env.balance <= 0.0 else env.balance
         ))
