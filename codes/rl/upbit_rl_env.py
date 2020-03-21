@@ -130,7 +130,7 @@ class UpbitEnvironment:
 
     def step_with_info_dic(self, action, info_dic):
         reward = None
-        next_observation = next_info_dic = next_env_status = None
+        next_env_status = None
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:

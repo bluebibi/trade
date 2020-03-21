@@ -195,7 +195,7 @@ def main(args):
             coin_name,
             episode, MAX_EPISODES,
             num_steps, env.total_steps,
-            env.total_profit
+            0.0 if env.balance <= 0.0 else env.balance
         ))
 
 
