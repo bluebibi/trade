@@ -93,7 +93,7 @@ def main(args):
 
                 if action is BuyerAction.MARKET_BUY:
                     action = 1
-                    buyer_policy.pending_buyer_transition = [observation, action, None, None, None]
+                    buyer_policy.pending_buyer_transition = [observation, action, None, None, 0.0]
                     next_env_state = EnvironmentStatus.TRYING_SELL
 
                     market_buys += 1
@@ -116,13 +116,12 @@ def main(args):
 
                     buyer_policy.pending_buyer_transition[2] = reward
                     buyer_policy.pending_buyer_transition[3] = next_observation
-                    buyer_policy.pending_buyer_transition[4] = done_mask
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
                     buyer_policy.pending_buyer_transition = None
 
-                    done_mask = 0.0 if done else 1.0
+                    # done_mask = 0.0 if done else 1.0
                     action = 1
-                    seller_policy.seller_memory.put((observation, action, reward, next_observation, done_mask))
+                    seller_policy.seller_memory.put((observation, action, reward, next_observation, 0.0))
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
                     market_sells += 1
