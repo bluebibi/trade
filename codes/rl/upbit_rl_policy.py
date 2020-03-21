@@ -75,6 +75,7 @@ class DeepBuyerPolicy:
     def save_model(self):
         torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
+            self.args.coin,
             WINDOW_SIZE,
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
         ))
@@ -82,12 +83,14 @@ class DeepBuyerPolicy:
             s3.upload_file(
                 BUYER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ),
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ))
@@ -99,17 +102,20 @@ class DeepBuyerPolicy:
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )),
                 BUYER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )
             )
             self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
                 "LSTM" if self.args.lstm else "CNN",
+                self.args.coin,
                 WINDOW_SIZE,
                 SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )))
@@ -117,11 +123,13 @@ class DeepBuyerPolicy:
         else:
             if os.path.exists(BUYER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )):
                 self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )))
@@ -212,6 +220,7 @@ class DeepSellerPolicy:
     def save_model(self):
         torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
+            self.args.coin,
             WINDOW_SIZE,
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
         ))
@@ -219,12 +228,14 @@ class DeepSellerPolicy:
             s3.upload_file(
                 SELLER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ),
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ))
@@ -236,17 +247,20 @@ class DeepSellerPolicy:
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )),
                 SELLER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )
             )
             self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
                 "LSTM" if self.args.lstm else "CNN",
+                self.args.coin,
                 WINDOW_SIZE,
                 SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )))
@@ -254,11 +268,13 @@ class DeepSellerPolicy:
         else:
             if os.path.exists(SELLER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )):
                 self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
                     "LSTM" if self.args.lstm else "CNN",
+                    self.args.coin,
                     WINDOW_SIZE,
                     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )))

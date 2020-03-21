@@ -26,7 +26,8 @@ import argparse
 
 pusher = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
-def main(coin_name, args):
+def main(args):
+    coin_name = args.coin
     env = UpbitEnvironment(coin_name=coin_name, args=args, env_type=EnvironmentType.TRAIN_VALID)
     buyer_policy = DeepBuyerPolicy(args)
     seller_policy = DeepSellerPolicy(args)
@@ -200,7 +201,7 @@ def main(coin_name, args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -c=BTC
+    ## python upbit_rl_main.py -p -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
@@ -208,10 +209,10 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
-    parser.add_argument('-c', required=True, help="coin name")
+    parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
 
-    main(args.coin_name, args)
+    main(args)
 
     #upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
     #coin_names = upbit.get_all_coin_names()
