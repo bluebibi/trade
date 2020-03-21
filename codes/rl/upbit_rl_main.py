@@ -31,7 +31,7 @@ def linearly_decaying_epsilon(max_episodes, episode, warmup_episodes, max_epsilo
     steps_left = max_episodes + warmup_episodes - episode
     bonus = (max_epsilon - min_epsilon) * steps_left / max_episodes
     bonus = np.clip(bonus, 0., max_epsilon - min_epsilon)
-    return min_epsilon + bonus, bonus
+    return min_epsilon + bonus
 
 def main(args):
     coin_name = args.coin

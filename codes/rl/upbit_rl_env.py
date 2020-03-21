@@ -113,8 +113,8 @@ class UpbitEnvironment:
 
         reset_str = "\n[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nEPISODE/MAX_EPISODES: {2}/{3}\nCURRENT_STEPS/TOTAL_STEPS: {4}/{5}" \
                     "\nINITIAL_BALANCE: {6}\nINITIAL_TOTAL_PROFIT: {7}\nINITIAL_HOLD_COIN_QUANTITY: {8}" \
-                    "\nBUY_AMOUNT: {9} won\nOBSERVATION SHAPE: {10}\nFIRST_DATETIME:{11}\nLAST_DATETIME:{12}" \
-                    "\nREPLAY_MEMORY(BUYER/SELLER):{13}/{14}\nEPSILON:{15:4.3f}%".format(
+                    "\nBUY_AMOUNT: {9} won\nOBSERVATION SHAPE: {10}\nFIRST_DATETIME: {11}\nLAST_DATETIME: {12}" \
+                    "\nREPLAY_MEMORY(BUYER/SELLER): {13}/{14}\nEPSILON: {15:4.3f}%".format(
             self.coin_name, self.env_type, episode, MAX_EPISODES, self.current_step, self.steps_left,
             self.balance, self.total_profit, self.hold_coin_quantity,
             BUY_AMOUNT, observation.shape, self.data_datetime[0], self.data_datetime[-1],
