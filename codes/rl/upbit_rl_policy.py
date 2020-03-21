@@ -1,3 +1,4 @@
+import math
 import warnings
 
 import boto3
@@ -5,10 +6,7 @@ import numpy as np
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from torch import optim
 
-from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
-    BUYER_MODEL_SAVE_PATH, \
-    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE
-from common.global_variables import WINDOW_SIZE
+from codes.rl.upbit_rl_replay_buffer import PrioritizedReplayBuffer, ReplayBuffer
 
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
@@ -24,8 +22,11 @@ sys.path.append(PROJECT_HOME)
 from codes.rl.upbit_rl_utils import BuyerAction, SellerAction
 import torch.nn as nn
 import torch
-import collections
-import torch.nn.functional as F
+
+from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
+    BUYER_MODEL_SAVE_PATH, \
+    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE, \
+    REPLAY_MEMORY_SIZE, WINDOW_SIZE
 
 is_cuda = torch.cuda.is_available()
 if is_cuda:
@@ -39,14 +40,21 @@ s3 = boto3.client('s3')
 
 
 class DeepBuyerPolicy:
-    def __init__(self, use_federated_learning=False):
-        self.use_federated_learning = use_federated_learning
+    def __init__(self, args=None):
+        self.args = args
 
-        self.q = QNet()
-        self.q_target = QNet()
+        if self.args.lstm:
+            self.q = QNet_LSTM()
+            self.q_target = QNet_LSTM()
+        else:
+            self.q = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
+            self.q_target = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
         self.load_model()
 
-        self.buyer_memory = PrioritizedReplayBuffer(capacity=100000)
+        if self.args.per:
+            self.buyer_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
+        else:
+            self.buyer_memory = ReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
         self.pending_buyer_transition = None
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
@@ -61,25 +69,40 @@ class DeepBuyerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
-        if self.use_federated_learning:
+        torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(
+            "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+        ))
+        if self.args.federated:
             s3.upload_file(
-                BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+                BUYER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                ),
+                S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                ))
             )
 
     def load_model(self):
-        if self.use_federated_learning:
+        if self.args.federated:
             s3.download_file(
                 S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
+                "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                )),
                 BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
             )
-            self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
+                "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            )))
             print("LOADED BY EXISTING BUYER POLICY MODEL FROM AWS S3!!!\n")
         else:
-            if os.path.exists(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)):
-                self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            if os.path.exists(BUYER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            )):
+                self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                )))
                 print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
 
         self.qnet_copy_to_target_qnet()
@@ -91,29 +114,38 @@ class DeepBuyerPolicy:
                 TRAIN_BATCH_MIN_SIZE,
                 int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
-            s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_memory(train_batch_size, beta=beta)
+
+            if self.args.per:
+                s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_memory(train_batch_size, beta=beta)
+            else:
+                s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(train_batch_size)
+
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
 
-            weights = torch.FloatTensor(weights)
-            # loss = F.smooth_l1_loss(q_a, target) * weights
-
-            q_a = torch.squeeze(q_a, dim=1)
-            target = torch.squeeze(target, dim=1)
-            loss = (q_a - target).pow(2) * weights
-            prios = loss + 1e-5
-
-            loss = loss.mean()
-            loss_lst.append(loss.item())
+            if self.args.per:
+                weights = torch.FloatTensor(weights)
+                q_a = torch.squeeze(q_a, dim=1)
+                target = torch.squeeze(target, dim=1)
+                loss = (q_a - target).pow(2) * weights
+                prios = loss + 1e-5
+                loss = loss.mean()
+                loss_lst.append(loss.item())
+            else:
+                q_a = torch.squeeze(q_a, dim=1)
+                target = torch.squeeze(target, dim=1)
+                loss = (q_a - target).pow(2).mean()
+                loss_lst.append(loss.item())
 
 
             self.optimizer.zero_grad()
             loss.backward()
-            for param in self.q.parameters():
-                param.grad.data.clamp_(-1, 1)
-            self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
+            # for param in self.q.parameters():
+            #     param.grad.data.clamp_(-1, 1)
+            if self.args.per:
+                self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
@@ -122,14 +154,22 @@ class DeepBuyerPolicy:
 
 
 class DeepSellerPolicy:
-    def __init__(self, use_federated_learning=False):
-        self.use_federated_learning = use_federated_learning
+    def __init__(self, args=None):
+        self.args = args
 
-        self.q = QNet()
-        self.q_target = QNet()
+        if self.args.lstm:
+            self.q = QNet_LSTM()
+            self.q_target = QNet_LSTM()
+        else:
+            self.q = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
+            self.q_target = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
         self.load_model()
 
-        self.seller_memory = PrioritizedReplayBuffer(capacity=100000)
+        if self.args.per:
+            self.seller_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
+        else:
+            self.seller_memory = ReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
+
         self.optimizer = optim.Adam(self.q.parameters(), lr=LEARNING_RATE)
 
     def sample_action(self, observation, info_dic, epsilon):
@@ -143,25 +183,42 @@ class DeepSellerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self):
-        torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE))
-        if self.use_federated_learning:
+        torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(
+            "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+        ))
+        if self.args.federated:
             s3.upload_file(
-                SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE), S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE))
+                SELLER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                ),
+                S3_BUCKET_NAME,
+                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                ))
             )
 
     def load_model(self):
-        if self.use_federated_learning:
+        if self.args.federated:
             s3.download_file(
                 S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(WINDOW_SIZE)),
-                SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+                "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                )),
+                SELLER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                )
             )
-            self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
+                "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            )))
             print("LOADED BY EXISTING SELLER POLICY MODEL FROM AWS S3!!!\n")
         else:
-            if os.path.exists(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)):
-                self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(WINDOW_SIZE)))
+            if os.path.exists(SELLER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            )):
+                self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                )))
                 print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
 
         self.qnet_copy_to_target_qnet()
@@ -173,28 +230,37 @@ class DeepSellerPolicy:
                 TRAIN_BATCH_MIN_SIZE,
                 int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
-            s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_memory(train_batch_size, beta=beta)
+
+            if self.args.per:
+                s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_memory(train_batch_size, beta=beta)
+            else:
+                s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
+
             q_out = self.q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
 
-            weights = torch.FloatTensor(weights)
-            # loss = F.smooth_l1_loss(q_a, target) * weights
-
-            q_a = torch.squeeze(q_a, dim=1)
-            target = torch.squeeze(target, dim=1)
-            loss = (q_a - target).pow(2) * weights
-            prios = loss + 1e-5
-
-            loss = loss.mean()
-            loss_lst.append(loss.item())
+            if self.args.per:
+                weights = torch.FloatTensor(weights)
+                q_a = torch.squeeze(q_a, dim=1)
+                target = torch.squeeze(target, dim=1)
+                loss = (q_a - target).pow(2) * weights
+                prios = loss + 1e-5
+                loss = loss.mean()
+                loss_lst.append(loss.item())
+            else:
+                q_a = torch.squeeze(q_a, dim=1)
+                target = torch.squeeze(target, dim=1)
+                loss = (q_a - target).pow(2).mean()
+                loss_lst.append(loss.item())
 
             self.optimizer.zero_grad()
             loss.backward()
-            for param in self.q.parameters():
-                param.grad.data.clamp_(-1, 1)
-            self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
+            # for param in self.q.parameters():
+            #     param.grad.data.clamp_(-1, 1)
+            if self.args.per:
+                self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
@@ -202,9 +268,71 @@ class DeepSellerPolicy:
         return avg_loss
 
 
-class QNet(nn.Module):
+class QNet_CNN(nn.Module):
+    @staticmethod
+    def get_conv2d_size(w, h, kernel_size, padding_size, stride):
+        return math.floor((w - kernel_size + 2 * padding_size) / stride) + 1, math.floor(
+            (h - kernel_size + 2 * padding_size) / stride) + 1
+
+    @staticmethod
+    def get_pool2d_size(w, h, kernel_size, stride):
+        return math.floor((w - kernel_size) / stride) + 1, math.floor((h - kernel_size) / stride) + 1
+
+    def __init__(self, input_height, input_size=21, output_size=2):  #input_size=36, input_height=21
+        super(QNet_CNN, self).__init__()
+        self.output_size = output_size
+
+        self.layer = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3),   # [batch_size,1,28,28] -> [batch_size,16,24,24]
+            nn.BatchNorm2d(2),
+            nn.LeakyReLU(),
+            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3),  # [batch_size,16,24,24] -> [batch_size,32,20,20]
+            nn.BatchNorm2d(4),
+            nn.LeakyReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=1),                      # [batch_size,32,20,20] -> [batch_size,32,10,10]
+            nn.Conv2d(in_channels=4, out_channels=6, kernel_size=3),  # [batch_size,32,10,10] -> [batch_size,64,6,6]
+            nn.BatchNorm2d(6),
+            nn.LeakyReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=1)                       # [batch_size,64,6,6] -> [batch_size,64,3,3]
+        )
+
+        w, h = self.get_conv2d_size(w=input_size, h=input_height, kernel_size=3, padding_size=0, stride=1)
+        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
+        w, h = self.get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
+        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
+        w, h = self.get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
+
+        self.fc_layer = nn.Sequential(
+            nn.Linear(w * h * 6, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, self.output_size)
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(dim=1)
+        out = self.layer(x)
+        out = out.view(x.size(0), -1)
+        out = self.fc_layer(out)
+        return out.squeeze(dim=1)
+
+    def sample_action(self, x, epsilon):
+        coin = random.random()
+        if coin < epsilon:
+            from_model = 0
+            return random.randint(0, 1), from_model
+        else:
+            from_model = 1
+            if not isinstance(x, torch.Tensor):
+                x = torch.unsqueeze(torch.Tensor(x), dim=0)
+            out = self.forward(x)
+            return out.argmax().item(), from_model
+
+
+class QNet_LSTM(nn.Module):
     def __init__(self, bias=True, input_size=21, hidden_size=256, output_size=2, num_layers=3):
-        super(QNet, self).__init__()
+        super(QNet_LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -250,68 +378,3 @@ class QNet(nn.Module):
                 x = torch.unsqueeze(torch.Tensor(x), dim=0)
             out = self.forward(x)
             return out.argmax().item(), from_model
-
-
-class PrioritizedReplayBuffer:
-    def __init__(self, capacity, prob_alpha=0.6):
-        self.prob_alpha = prob_alpha
-        self.capacity = capacity
-        self.buffer = []
-        self.pos = 0
-        self.priorities = np.zeros((capacity,), dtype=np.float32)
-
-    def put(self, transition):
-        max_priority = self.priorities.max() if self.buffer else 1.0
-
-        if len(self.buffer) < self.capacity:
-            self.buffer.append(transition)
-        else:
-            self.buffer[self.pos] = transition
-
-        self.priorities[self.pos] = max_priority
-        self.pos = (self.pos + 1) % self.capacity
-
-    def sample_memory(self, batch_size, beta=0.4):
-        if len(self.buffer) == self.capacity:
-            prios = self.priorities
-        else:
-            prios = self.priorities[:self.pos]
-
-        probs = prios ** self.prob_alpha
-        probs /= probs.sum()
-
-        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
-        mini_batch = [self.buffer[idx] for idx in indices]
-
-        total = len(self.buffer)
-        weights = (total * probs[indices]) ** (-beta)
-        weights /= weights.max()
-        weights = np.array(weights, dtype=np.float32)
-
-        s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []
-
-        for transition in mini_batch:
-            s, a, r, s_prime, done_mask = transition
-            s_batch.append(s)
-            a_batch.append([a])
-            r_batch.append([r])
-            s_prime_batch.append(s_prime)
-            done_mask_batch.append([done_mask])
-
-        s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_ = \
-            torch.tensor(s_batch, dtype=torch.float), \
-            torch.tensor(a_batch), \
-            torch.tensor(r_batch), \
-            torch.tensor(s_prime_batch, dtype=torch.float), \
-            torch.tensor(done_mask_batch)
-
-        return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_, indices, weights
-
-    def update_priorities(self, batch_indices, batch_priorities):
-        # print(batch_indices, "!!!", batch_priorities, "!!!")
-
-        for idx, prio in zip(batch_indices, batch_priorities):
-            self.priorities[idx] = prio
-
-    def size(self):
-        return len(self.buffer)

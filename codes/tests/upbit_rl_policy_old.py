@@ -5,11 +5,6 @@ import numpy as np
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from torch import optim
 
-from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
-    BUYER_MODEL_SAVE_PATH, \
-    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE
-from common.global_variables import WINDOW_SIZE
-
 warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=ConvergenceWarning)
@@ -26,6 +21,12 @@ import torch.nn as nn
 import torch
 import collections
 import torch.nn.functional as F
+from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
+    BUYER_MODEL_SAVE_PATH, \
+    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE
+from common.global_variables import WINDOW_SIZE
+
+
 
 is_cuda = torch.cuda.is_available()
 if is_cuda:

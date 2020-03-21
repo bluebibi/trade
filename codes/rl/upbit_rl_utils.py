@@ -4,10 +4,10 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH
+from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, WINDOW_SIZE
 from web.db.database import naver_order_book_session, get_order_book_class
 from codes.upbit.upbit_api import Upbit
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, WINDOW_SIZE
+from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 from common.utils import convert_unit_4, convert_unit_8, convert_unit_2
 
 from termcolor import colored
@@ -215,13 +215,20 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
 def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
                      market_buy_from_model_list, market_sell_from_model_list,
                      market_profitable_buy_list, market_profitable_sell_list,
-                     market_profitable_buy_from_model_list, market_profitable_sell_from_model_list):
+                     market_profitable_buy_from_model_list, market_profitable_sell_from_model_list, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
     plt.clf()
 
     plt.figure(figsize=(20, 10))
+    title_str = "DQN "
+    if args.per:
+        title_str += "[Prioritized Experience Memory]"
+    else:
+        title_str += "[Experience Memory]"
+
+    plt.suptitle(title_str, fontsize=14)
 
     plt.subplot(321)
     plt.yscale('log', basey=2)
