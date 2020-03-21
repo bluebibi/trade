@@ -17,6 +17,7 @@ sys.path.append(PROJECT_HOME)
 import torch
 import collections
 
+
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, prob_alpha=0.6):
         self.prob_alpha = prob_alpha
@@ -26,7 +27,7 @@ class PrioritizedReplayBuffer:
         self.priorities = np.zeros((capacity,), dtype=np.float32)
 
     def put(self, transition):
-        max_priority = self.priorities.max() if self.buffer else 1.0
+        max_priority = self.priorities.max() / 2.0 if self.buffer else 1.0
 
         if len(self.buffer) < self.capacity:
             self.buffer.append(transition)
@@ -52,6 +53,7 @@ class PrioritizedReplayBuffer:
         weights = (total * probs[indices]) ** (-beta)
         weights /= weights.max()
         weights = np.array(weights, dtype=np.float32)
+        weights = torch.FloatTensor(weights)
 
         s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []
 

@@ -171,7 +171,7 @@ class UpbitEnvironment:
                 self.just_sold_coin_quantity = info_dic["coin_quantity"]
                 self.just_sold_coin_unit_price = info_dic["coin_unit_price"]
 
-                reward = float(profit) / 1000.0
+                reward = float(profit) / 30000.0
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
         if self.steps_left == 0 or self.balance <= 0.0:
