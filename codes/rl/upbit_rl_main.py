@@ -116,6 +116,7 @@ def main(args):
 
                     buyer_policy.pending_buyer_transition[2] = reward
                     buyer_policy.pending_buyer_transition[3] = next_observation
+                    # buyer_policy.pending_buyer_transition[4] = done_mask
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
                     buyer_policy.pending_buyer_transition = None
 
