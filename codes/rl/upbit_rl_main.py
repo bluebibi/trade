@@ -186,7 +186,7 @@ def main(coin_name, args):
             if env.balance <= 0.0:
                 done = True
 
-        pusher.send_message("me", "{0}-{1}/{2}-{3}/{4}:{5}".format(
+        pusher.send_message("me", "{0}, {1}/{2}, {3}/{4}:::::{5}".format(
             coin_name,
             episode, MAX_EPISODES,
             num_steps, env.total_steps,
