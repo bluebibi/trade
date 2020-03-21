@@ -186,7 +186,12 @@ def main(coin_name, args):
             if env.balance <= 0.0:
                 done = True
 
-        pusher.send_message("me", "{0}/{1}/{2}".format(coin_name, episode, env.total_profit))
+        pusher.send_message("me", "{0}-{1}/{2}-{3}/{4}:{4}".format(
+            coin_name,
+            episode, MAX_EPISODES,
+            num_steps, env.total_steps,
+            env.total_profit
+        ))
 
 
 if __name__ == "__main__":
