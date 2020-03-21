@@ -11,7 +11,6 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-import gym
 from gym import spaces
 import numpy as np
 import pandas as pd
@@ -21,18 +20,16 @@ import copy
 from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, get_buying_price_by_order_book, \
     get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, WINDOW_SIZE, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME
+    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES
 from web.db.database import naver_order_book_session, get_order_book_class
 
 
-class UpbitEnvironment(gym.Env):
+class UpbitEnvironment:
     metadata = {'render.modes': ['live', 'file', 'none']}
     scaler = preprocessing.MinMaxScaler()
     viewer = None
 
     def __init__(self, coin_name, args, env_type=EnvironmentType.TRAIN_VALID):
-        super(UpbitEnvironment, self).__init__()
-
         self.coin_name = coin_name
         self.args = args
 
@@ -85,7 +82,7 @@ class UpbitEnvironment(gym.Env):
 
         print(init_str)
 
-    def reset(self, epsilon):
+    def reset(self, episode, epsilon):
         self.balance = INITIAL_TOTAL_KRW
         self.total_profit = 0.0
         self.hold_coin_krw = 0
@@ -114,22 +111,13 @@ class UpbitEnvironment(gym.Env):
 
         observation, info_dic = self._next_observation(next_env_status=EnvironmentStatus.TRYING_BUY)
 
-        reset_str = "[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nCURRENT_STEPS: {2}\nSTEPS_LEFT: {3}" \
-                    "\nINITIAL_BALANCE: {4}\nINITIAL_TOTAL_PROFIT: {5}\nINITIAL_HOLD_COIN_QUANTITY: {6}" \
-                    "\nBUY_AMOUNT: {7}won\nOBSERVATION SHAPE: {8}\nFIRST_DATETIME:{9}\nLAST_DATETIME:{10}" \
-                    "\nEPSILON:{11:4.3f}%".format(
-            self.coin_name,
-            self.env_type,
-            self.current_step,
-            self.steps_left,
-            self.balance,
-            self.total_profit,
-            self.hold_coin_quantity,
-            BUY_AMOUNT,
-            observation.shape,
-            self.data_datetime[0],
-            self.data_datetime[-1],
-            epsilon * 100
+        reset_str = "\n[COIN NAME: {0}] RESET\nENV_TYPE: {1}\nEPISODE/MAX_EPISODES: {2}/{3}\nCURRENT_STEPS/TOTAL_STEPS: {4}/{5}" \
+                    "\nINITIAL_BALANCE: {6}\nINITIAL_TOTAL_PROFIT: {7}\nINITIAL_HOLD_COIN_QUANTITY: {8}" \
+                    "\nBUY_AMOUNT: {9} won\nOBSERVATION SHAPE: {10}\nFIRST_DATETIME:{11}\nLAST_DATETIME:{12}" \
+                    "\nEPSILON:{13:4.3f}%".format(
+            self.coin_name, self.env_type, episode, MAX_EPISODES, self.current_step, self.steps_left,
+            self.balance, self.total_profit, self.hold_coin_quantity,
+            BUY_AMOUNT, observation.shape, self.data_datetime[0], self.data_datetime[-1], epsilon * 100
         )
 
         print(reset_str)

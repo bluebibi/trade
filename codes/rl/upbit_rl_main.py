@@ -11,17 +11,19 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
+from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2
 from codes.rl.upbit_rl_constants import MAX_EPISODES, \
     REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
-    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, VERBOSE_STEP
+    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL
 from codes.rl.upbit_rl_env import UpbitEnvironment
 from codes.upbit.upbit_api import Upbit
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
 from codes.rl.upbit_rl_utils import print_before_step, print_after_step, EnvironmentType, \
     EnvironmentStatus, BuyerAction, SellerAction, draw_performance
-
+from common.slack import PushSlack
 import argparse
+
+pusher = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
 def main(coin_name, args):
     env = UpbitEnvironment(coin_name=coin_name, args=args, env_type=EnvironmentType.TRAIN_VALID)
@@ -48,8 +50,8 @@ def main(coin_name, args):
     for episode in range(MAX_EPISODES):
         done = False
         num_steps = 0
-        epsilon = max(0.001, EPSILON_START - 0.01 * (episode / 100))
-        observation, info_dic = env.reset(epsilon)
+        epsilon = max(0.001, EPSILON_START - 1.0 * (episode / 100))
+        observation, info_dic = env.reset(episode, epsilon)
         buyer_loss = 0.0
         seller_loss = 0.0
         market_buys = 0
@@ -65,7 +67,7 @@ def main(coin_name, args):
         from_buy_model = 0
 
         while not done:
-            if VERBOSE_STEP: print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
+            print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
             if env.status is EnvironmentStatus.TRYING_BUY:
                 action, from_buy_model = buyer_policy.sample_action(observation, info_dic, epsilon)
@@ -129,7 +131,7 @@ def main(coin_name, args):
 
             num_steps += 1
             if not done:
-                if VERBOSE_STEP: print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
+                print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
 
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
@@ -183,6 +185,8 @@ def main(coin_name, args):
 
             if env.balance <= 0.0:
                 done = True
+
+        pusher.send_message("me", "{0}/{1}/{2}".format(coin_name, episode, env.total_profit))
 
 
 if __name__ == "__main__":

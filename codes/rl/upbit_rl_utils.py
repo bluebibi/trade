@@ -4,7 +4,8 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME
+from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
+    VERBOSE_STEP
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
@@ -40,71 +41,74 @@ class EnvironmentStatus(enum.Enum):
 
 
 def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_steps, info_dic):
-    if num_steps == 0:
-        print("[COIN_NAME: {0}] EPISODES & STEPS".format(coin_name))
-
-    print_str = "[{0}:{1}/{2}:{3}/{4}, Balance: {5}, TOTAL_PROFIT: {6}, " \
+    if VERBOSE_STEP:
+        print_str = "[{0}:{1}/{2}:{3}/{4}, Balance: {5}, TOTAL_PROFIT: {6}, " \
                 "HOLD_COIN_KRW: {7:>7d} (COIN_PRICE: {8:>8.2f}, HOLD_COINS: {9:>8.2f}), {10:>12}] ".format(
-        coin_name,
-        episode+1,
-        max_episodes,
-        num_steps+1,
-        total_steps,
-        env.balance,
-        env.total_profit,
-        env.hold_coin_krw,
-        env.hold_coin_unit_price,
-        env.hold_coin_quantity,
-        colored("TRY BUYING", "cyan") if env.status is EnvironmentStatus.TRYING_BUY else colored("TRY SELLING", "yellow"),
-    )
+            coin_name,
+            episode+1,
+            max_episodes,
+            num_steps+1,
+            total_steps,
+            env.balance,
+            env.total_profit,
+            env.hold_coin_krw,
+            env.hold_coin_unit_price,
+            env.hold_coin_quantity,
+            colored("TRY BUYING", "cyan") if env.status is EnvironmentStatus.TRYING_BUY else colored("TRY SELLING", "yellow"),
+        )
 
-    if env.status is EnvironmentStatus.TRYING_BUY:
-        print_str += colored(" <<BUYING_COIN_UNIT_PRICE:{0:8.2f}, BUYING_COIN_QUANTITY:{1:8.2f}>>".format(
-            info_dic["coin_unit_price"],
-            info_dic["coin_quantity"]
-        ), "cyan")
+        if env.status is EnvironmentStatus.TRYING_BUY:
+            print_str += colored(" <<BUYING_COIN_UNIT_PRICE:{0:8.2f}, BUYING_COIN_QUANTITY:{1:8.2f}>>".format(
+                info_dic["coin_unit_price"],
+                info_dic["coin_quantity"]
+            ), "cyan")
+        else:
+            print_str += colored(" <<SELLING_COIN_UNIT_PRICE:{0:8.2f}, SELLING_COIN_QUANTITY:{1:8.2f}>>".format(
+                info_dic["coin_unit_price"],
+                env.hold_coin_quantity
+            ), "yellow")
     else:
-        print_str += colored(" <<SELLING_COIN_UNIT_PRICE:{0:8.2f}, SELLING_COIN_QUANTITY:{1:8.2f}>>".format(
-            info_dic["coin_unit_price"],
-            env.hold_coin_quantity
-        ), "yellow")
+        print_str = "{0} ".format(num_steps)
 
-    print(print_str, end=" ")
+    if num_steps % 100 == 0:
+        print(print_str, end=" ", flush=True)
 
 
 def print_after_step(env, action, observation, reward, done, buyer_policy, seller_policy, epsilon):
-    if env.status is EnvironmentStatus.TRYING_BUY:
-        if action is 0 or action is BuyerAction.BUY_HOLD:
-            action_str = colored("  BUY HOLD [HOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, HOLD_COINS: {2:>8.2f})]".format(
-                env.hold_coin_krw, env.hold_coin_unit_price, env.hold_coin_quantity
-            ), "magenta")
-        elif action is 1 or action is BuyerAction.MARKET_BUY:
-            action_str = colored(" MARKET_BUY [BOUGHT_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, BOUGHT_COINS: {2:>8.2f})]".format(
-                env.just_bought_coin_krw, env.just_bought_coin_unit_price, env.just_bought_coin_quantity
-            ), "red")
+    if VERBOSE_STEP:
+        if env.status is EnvironmentStatus.TRYING_BUY:
+            if action is 0 or action is BuyerAction.BUY_HOLD:
+                action_str = colored("  BUY HOLD [HOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, HOLD_COINS: {2:>8.2f})]".format(
+                    env.hold_coin_krw, env.hold_coin_unit_price, env.hold_coin_quantity
+                ), "magenta")
+            elif action is 1 or action is BuyerAction.MARKET_BUY:
+                action_str = colored(" MARKET_BUY [BOUGHT_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, BOUGHT_COINS: {2:>8.2f})]".format(
+                    env.just_bought_coin_krw, env.just_bought_coin_unit_price, env.just_bought_coin_quantity
+                ), "red")
+            else:
+                raise ValueError("print_after_step: action value: {0}".format(action))
         else:
-            raise ValueError("print_after_step: action value: {0}".format(action))
+            if action is 0 or action is SellerAction.SELL_HOLD:
+                action_str = colored("  SELL_HOLD [HOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, HOLD_COINS: {2:>8.2f})]".format(
+                    env.hold_coin_krw, env.hold_coin_unit_price, env.hold_coin_quantity
+                ), "green")
+            elif action is 1 or action is SellerAction.MARKET_SELL:
+                action_str = colored("MARKET_SELL [SOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, SOLD_COINS: {2:>8.2f}) || PROFIT: {3}]".format(
+                    env.just_sold_coin_krw, env.just_sold_coin_unit_price, env.just_sold_coin_quantity, env.just_sold_coin_krw - env.just_bought_coin_krw
+                ), "blue")
+            else:
+                raise ValueError("print_after_step: action value: {0}".format(action))
+
+        print_str = "\n==> ACTION: {0:}, OBSERVATION:{1}, REWARD: {2:7}, BUYER_MEMORY: {3:6} (PENDING: {4:1}), SELLER_MEMORY: {5:6}, EPSILON: {6:4.3f}%".format(
+            action_str, observation.shape, reward,
+            buyer_policy.buyer_memory.size(),
+            1 if buyer_policy.pending_buyer_transition else 0,
+            seller_policy.seller_memory.size(),
+            epsilon * 100
+        )
+        print(print_str, end="\n\n")
     else:
-        if action is 0 or action is SellerAction.SELL_HOLD:
-            action_str = colored("  SELL_HOLD [HOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, HOLD_COINS: {2:>8.2f})]".format(
-                env.hold_coin_krw, env.hold_coin_unit_price, env.hold_coin_quantity
-            ), "green")
-        elif action is 1 or action is SellerAction.MARKET_SELL:
-            action_str = colored("MARKET_SELL [SOLD_COIN_KRW: {0:7d} (COIN_PRICE: {1:>8.2f}, SOLD_COINS: {2:>8.2f}) || PROFIT: {3}]".format(
-                env.just_sold_coin_krw, env.just_sold_coin_unit_price, env.just_sold_coin_quantity, env.just_sold_coin_krw - env.just_bought_coin_krw
-            ), "blue")
-        else:
-            raise ValueError("print_after_step: action value: {0}".format(action))
-
-    print_str = "\n==> ACTION: {0:}, OBSERVATION:{1}, REWARD: {2:7}, BUYER_MEMORY: {3:6} (PENDING: {4:1}), SELLER_MEMORY: {5:6}, EPSILON: {6:4.3f}%".format(
-        action_str, observation.shape, reward,
-        buyer_policy.buyer_memory.size(),
-        1 if buyer_policy.pending_buyer_transition else 0,
-        seller_policy.seller_memory.size(),
-        epsilon * 100
-    )
-    print(print_str, end="\n\n")
-
+        pass
 
 def array_2d_to_dict_list_order_book(arr_data):
     order_book = dict()
