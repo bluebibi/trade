@@ -52,7 +52,9 @@ def main(coin_name, args):
         done = False
         num_steps = 0
         epsilon = max(0.001, EPSILON_START - 1.0 * (episode / 100))
-        observation, info_dic = env.reset(episode, epsilon)
+        observation, info_dic = env.reset(
+            episode, epsilon, buyer_policy, seller_policy
+        )
         buyer_loss = 0.0
         seller_loss = 0.0
         market_buys = 0
@@ -197,16 +199,21 @@ def main(coin_name, args):
 
 
 if __name__ == "__main__":
+    ##
+    ## python upbit_rl_main.py -p -c=BTC
+    ##
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-p', '--per', action='store_true', help="use prioritized experience memory")
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
-
+    parser.add_argument('-c', required=True, help="coin name")
     args = parser.parse_args()
 
-    upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
-    coin_names = upbit.get_all_coin_names()
-    for coin_name in coin_names:
-        main(coin_name, args)
+    main(args.coin_name, args)
+
+    #upbit = Upbit(CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt)
+    #coin_names = upbit.get_all_coin_names()
+    # for coin_name in coin_names:
+    #     main(coin_name, args)
