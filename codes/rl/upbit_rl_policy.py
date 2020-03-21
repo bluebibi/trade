@@ -24,9 +24,8 @@ import torch.nn as nn
 import torch
 
 from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
-    BUYER_MODEL_SAVE_PATH, \
-    SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, TRAIN_BATCH_MIN_SIZE, \
-    REPLAY_MEMORY_SIZE, WINDOW_SIZE
+    BUYER_MODEL_SAVE_PATH, SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, \
+    TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, WINDOW_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME
 
 is_cuda = torch.cuda.is_available()
 if is_cuda:
@@ -43,12 +42,17 @@ class DeepBuyerPolicy:
     def __init__(self, args=None):
         self.args = args
 
-        if self.args.lstm:
-            self.q = QNet_LSTM()
-            self.q_target = QNet_LSTM()
+        if self.args.volume:
+            self.input_size = SIZE_OF_FEATURE
         else:
-            self.q = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
-            self.q_target = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
+            self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
+
+        if self.args.lstm:
+            self.q = QNet_LSTM(input_size=self.input_size)
+            self.q_target = QNet_LSTM(input_size=self.input_size)
+        else:
+            self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
+            self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
         self.load_model()
 
         if self.args.per:
@@ -70,16 +74,22 @@ class DeepBuyerPolicy:
 
     def save_model(self):
         torch.save(self.q.state_dict(), BUYER_MODEL_SAVE_PATH.format(
-            "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            "LSTM" if self.args.lstm else "CNN",
+            WINDOW_SIZE,
+            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
         ))
         if self.args.federated:
             s3.upload_file(
                 BUYER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ),
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ))
             )
 
@@ -88,20 +98,32 @@ class DeepBuyerPolicy:
             s3.download_file(
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(BUYER_MODEL_FILE_NAME.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )),
-                BUYER_MODEL_SAVE_PATH.format(WINDOW_SIZE)
+                BUYER_MODEL_SAVE_PATH.format(
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
+                )
             )
             self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
-                "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                "LSTM" if self.args.lstm else "CNN",
+                WINDOW_SIZE,
+                SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )))
             print("LOADED BY EXISTING BUYER POLICY MODEL FROM AWS S3!!!\n")
         else:
             if os.path.exists(BUYER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )):
                 self.q.load_state_dict(torch.load(BUYER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )))
                 print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
 
@@ -116,7 +138,9 @@ class DeepBuyerPolicy:
             )
 
             if self.args.per:
-                s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_memory(train_batch_size, beta=beta)
+                s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_priority_memory(
+                    train_batch_size, beta=beta
+                )
             else:
                 s, a, r, s_prime, done_mask = self.buyer_memory.sample_memory(train_batch_size)
 
@@ -157,12 +181,17 @@ class DeepSellerPolicy:
     def __init__(self, args=None):
         self.args = args
 
-        if self.args.lstm:
-            self.q = QNet_LSTM()
-            self.q_target = QNet_LSTM()
+        if self.args.volume:
+            self.input_size = SIZE_OF_FEATURE
         else:
-            self.q = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
-            self.q_target = QNet_CNN(input_size=21, input_height=WINDOW_SIZE)
+            self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
+
+        if self.args.lstm:
+            self.q = QNet_LSTM(input_size=self.input_size)
+            self.q_target = QNet_LSTM(input_size=self.input_size)
+        else:
+            self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
+            self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
         self.load_model()
 
         if self.args.per:
@@ -184,16 +213,22 @@ class DeepSellerPolicy:
 
     def save_model(self):
         torch.save(self.q.state_dict(), SELLER_MODEL_SAVE_PATH.format(
-            "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+            "LSTM" if self.args.lstm else "CNN",
+            WINDOW_SIZE,
+            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
         ))
         if self.args.federated:
             s3.upload_file(
                 SELLER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ),
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 ))
             )
 
@@ -202,22 +237,32 @@ class DeepSellerPolicy:
             s3.download_file(
                 S3_BUCKET_NAME,
                 "REINFORCEMENT_LEARNING/{0}".format(SELLER_MODEL_FILE_NAME.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )),
                 SELLER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )
             )
             self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
-                "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                "LSTM" if self.args.lstm else "CNN",
+                WINDOW_SIZE,
+                SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )))
             print("LOADED BY EXISTING SELLER POLICY MODEL FROM AWS S3!!!\n")
         else:
             if os.path.exists(SELLER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
             )):
                 self.q.load_state_dict(torch.load(SELLER_MODEL_SAVE_PATH.format(
-                    "LSTM" if self.args.lstm else "CNN", WINDOW_SIZE
+                    "LSTM" if self.args.lstm else "CNN",
+                    WINDOW_SIZE,
+                    SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME
                 )))
                 print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
 
@@ -232,7 +277,9 @@ class DeepSellerPolicy:
             )
 
             if self.args.per:
-                s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_memory(train_batch_size, beta=beta)
+                s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_priority_memory(
+                    train_batch_size, beta=beta
+                )
             else:
                 s, a, r, s_prime, done_mask = self.seller_memory.sample_memory(train_batch_size)
 
@@ -278,7 +325,7 @@ class QNet_CNN(nn.Module):
     def get_pool2d_size(w, h, kernel_size, stride):
         return math.floor((w - kernel_size) / stride) + 1, math.floor((h - kernel_size) / stride) + 1
 
-    def __init__(self, input_height, input_size=21, output_size=2):  #input_size=36, input_height=21
+    def __init__(self, input_height, input_size, output_size=2):  #input_size=36, input_height=21
         super(QNet_CNN, self).__init__()
         self.output_size = output_size
 
@@ -331,7 +378,7 @@ class QNet_CNN(nn.Module):
 
 
 class QNet_LSTM(nn.Module):
-    def __init__(self, bias=True, input_size=21, hidden_size=256, output_size=2, num_layers=3):
+    def __init__(self, input_size, hidden_size=256, output_size=2, num_layers=3, bias=True, ):
         super(QNet_LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size

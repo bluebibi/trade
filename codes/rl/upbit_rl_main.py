@@ -24,7 +24,7 @@ from codes.rl.upbit_rl_utils import print_before_step, print_after_step, Environ
 import argparse
 
 def main(coin_name, args):
-    env = UpbitEnvironment(coin_name=coin_name, env_type=EnvironmentType.TRAIN_VALID, serial=True)
+    env = UpbitEnvironment(coin_name=coin_name, args=args, env_type=EnvironmentType.TRAIN_VALID)
     buyer_policy = DeepBuyerPolicy(args)
     seller_policy = DeepSellerPolicy(args)
 
@@ -190,7 +190,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-p', '--per', action='store_true', help="use prioritized experience memory")
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
-    parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN")
+    parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
+    parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
 
     args = parser.parse_args()
 

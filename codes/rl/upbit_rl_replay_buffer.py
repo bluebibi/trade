@@ -36,7 +36,7 @@ class PrioritizedReplayBuffer:
         self.priorities[self.pos] = max_priority
         self.pos = (self.pos + 1) % self.capacity
 
-    def sample_memory(self, batch_size, beta=0.4):
+    def sample_priority_memory(self, batch_size, beta=0.4):
         if len(self.buffer) == self.capacity:
             prios = self.priorities
         else:

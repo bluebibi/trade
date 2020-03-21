@@ -4,8 +4,8 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, WINDOW_SIZE
-from web.db.database import naver_order_book_session, get_order_book_class
+from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME
+
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
 from common.utils import convert_unit_4, convert_unit_8, convert_unit_2
@@ -13,8 +13,6 @@ from common.utils import convert_unit_4, convert_unit_8, convert_unit_2
 from termcolor import colored
 import datetime as dt
 import pprint
-import numpy as np
-import pandas as pd
 import enum
 import matplotlib.pyplot as plt
 
@@ -39,58 +37,6 @@ class EnvironmentType(enum.Enum):
 class EnvironmentStatus(enum.Enum):
     TRYING_BUY = 0
     TRYING_SELL = 1
-
-features = ["daily_base_timestamp",
-        "ask_price_0", "ask_size_0", "ask_price_1", "ask_size_1", "ask_price_2", "ask_size_2", "ask_price_3",
-        "ask_size_3", "ask_price_4", "ask_size_4",
-        "bid_price_0", "bid_size_0", "bid_price_1", "bid_size_1", "bid_price_2", "bid_size_2", "bid_price_3",
-        "bid_size_3", "bid_price_4", "bid_size_4"]
-
-def get_rl_dataset(coin_name, train_valid_split=False):
-    order_book_class = get_order_book_class(coin_name)
-    queryset = naver_order_book_session.query(order_book_class).order_by(order_book_class.base_datetime.asc())
-    df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
-
-    # df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
-    base_datetime_df = df.filter(["base_datetime"], axis=1)
-
-    df = df.filter(features, axis=1)
-
-    for feature in features:
-        df[feature].mask(df[feature] == 0.0, 0.1, inplace=True)
-
-    base_datetime_data = pd.to_datetime(base_datetime_df["base_datetime"])
-    data = df.values
-
-    dim_0 = data.shape[0] - WINDOW_SIZE + 1
-    dim_1 = data.shape[1]
-
-    base_datetime_X = []
-    X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
-
-    for i in range(dim_0):
-        X[i] = data[i: i + WINDOW_SIZE]
-        base_datetime_X.append(str(base_datetime_data[i + WINDOW_SIZE - 1]))
-
-    base_datetime_X = np.asarray(base_datetime_X)
-
-    total_size = X.shape[0]
-
-    if train_valid_split:
-        indices = list(range(total_size))
-        train_indices = list(set(indices[:int(total_size * 0.8)]))
-        valid_indices = list(set(range(total_size)) - set(train_indices))
-        x_train = X[train_indices]
-        x_train_base_datetime = base_datetime_X[train_indices]
-        x_valid = X[valid_indices]
-        x_valid_base_datetime = base_datetime_X[valid_indices]
-
-        train_size = x_train.shape[0]
-        valid_size = x_valid.shape[0]
-
-        return x_train, x_train_base_datetime, train_size, x_valid, x_valid_base_datetime, valid_size
-    else:
-        return X, base_datetime_X, total_size
 
 
 def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_steps, info_dic):
@@ -223,10 +169,21 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
 
     plt.figure(figsize=(20, 10))
     title_str = "DQN "
+
     if args.per:
-        title_str += "[Prioritized Experience Memory]"
+        title_str += "[Prioritized Experience Memory] "
     else:
-        title_str += "[Experience Memory]"
+        title_str += "[Experience Memory] "
+
+    if args.volume:
+        title_str += "[WITH VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE)
+    else:
+        title_str += "[WITHOUT VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE_WITHOUT_VOLUME)
+
+    if args.lstm:
+        title_str += "[LSTM] "
+    else:
+        title_str += "[CNN] "
 
     plt.suptitle(title_str, fontsize=14)
 
