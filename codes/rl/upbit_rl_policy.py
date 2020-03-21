@@ -157,6 +157,7 @@ class DeepBuyerPolicy:
                 prios = loss + 1e-5
                 loss = loss.mean()
                 loss_lst.append(loss.item())
+                self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
@@ -168,8 +169,6 @@ class DeepBuyerPolicy:
             loss.backward()
             # for param in self.q.parameters():
             #     param.grad.data.clamp_(-1, 1)
-            if self.args.per:
-                self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)
@@ -296,6 +295,7 @@ class DeepSellerPolicy:
                 prios = loss + 1e-5
                 loss = loss.mean()
                 loss_lst.append(loss.item())
+                self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
@@ -306,8 +306,6 @@ class DeepSellerPolicy:
             loss.backward()
             # for param in self.q.parameters():
             #     param.grad.data.clamp_(-1, 1)
-            if self.args.per:
-                self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             self.optimizer.step()
 
         avg_loss = np.average(loss_lst)

@@ -81,12 +81,11 @@ class PrioritizedReplayBuffer:
             print("dpne_mask_batch", s_batch)
             sys.exit(-1)
 
-
     def update_priorities(self, batch_indices, batch_priorities):
         # print(batch_indices, "!!!", batch_priorities, "!!!")
 
-        for idx, prio in zip(batch_indices, batch_priorities):
-            self.priorities[idx] = prio
+        for idx, priority in zip(batch_indices, batch_priorities):
+            self.priorities[idx] = priority
 
     def size(self):
         return len(self.buffer)
