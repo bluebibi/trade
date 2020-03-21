@@ -73,12 +73,12 @@ class PrioritizedReplayBuffer:
 
             return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_, indices, weights
         except TypeError as e:
+            print("s_batch", np.asarray(s_batch).shape)
+            print("a_batch", np.asarray(a_batch).shape)
+            print("r_batch", np.asarray(r_batch).shape)
+            print("s_prime_batch", np.asarray(s_prime_batch).shape)
+            print("done_mask_batch", np.asarray(done_mask_batch).shape)
             print(e)
-            print("s_batch", s_batch[-1])
-            print("a_batch", s_batch[-1])
-            print("r_batch", s_batch[-1])
-            print("s_prime_batch", s_batch[-1])
-            print("done_mask_batch", s_batch[-1])
             sys.exit(-1)
 
     def update_priorities(self, batch_indices, batch_priorities):
@@ -115,12 +115,12 @@ class ReplayBuffer:
                    torch.tensor(r_batch), torch.tensor(s_prime_batch, dtype=torch.float), \
                    torch.tensor(done_mask_batch)
         except TypeError as e:
+            print("s_batch", np.asarray(s_batch).shape)
+            print("a_batch", np.asarray(a_batch).shape)
+            print("r_batch", np.asarray(r_batch).shape)
+            print("s_prime_batch", np.asarray(s_prime_batch).shape)
+            print("done_mask_batch", np.asarray(done_mask_batch).shape)
             print(e)
-            print("s_batch", s_batch[-1])
-            print("a_batch", s_batch[-1])
-            print("r_batch", s_batch[-1])
-            print("s_prime_batch", s_batch[-1])
-            print("done_mask_batch", s_batch[-1])
             sys.exit(-1)
 
         return s_batch_, a_batch_, r_batch_, s_prime_batch_, done_mask_batch_
