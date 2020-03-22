@@ -52,6 +52,7 @@ class UpbitEnvironment:
 
         self.balance = None
         self.total_profit = None
+        self.total_profit_rate = None
         self.hold_coin_krw = None
         self.hold_coin_quantity = None
         self.hold_coin_unit_price = None
@@ -98,6 +99,7 @@ class UpbitEnvironment:
     def reset(self, episode, epsilon, buyer_policy, seller_policy):
         self.balance = INITIAL_TOTAL_KRW
         self.total_profit = 0.0
+        self.total_profit_rate = 0.0
         self.hold_coin_krw = 0
         self.hold_coin_quantity = 0.0
         self.hold_coin_unit_price = 0.0
@@ -147,7 +149,7 @@ class UpbitEnvironment:
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = -0.01
+                reward = -0.001
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -167,13 +169,14 @@ class UpbitEnvironment:
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = -0.01
+                reward = -0.001
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
                 sold_coin_krw = info_dic["coin_krw"]
                 profit = sold_coin_krw - self.just_bought_coin_krw
                 self.total_profit += profit
+                self.total_profit_rate += profit / self.just_bought_coin_krw
                 self.balance += sold_coin_krw
 
                 self.hold_coin_krw = 0
