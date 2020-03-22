@@ -134,6 +134,9 @@ def main(args):
                             market_profitable_sells_from_model += 1
                             if from_buy_model:
                                 market_profitable_buys_from_model += 1
+                        else:
+                            if from_buy_model:
+                                market_profitable_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
