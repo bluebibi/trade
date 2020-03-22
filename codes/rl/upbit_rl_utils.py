@@ -68,7 +68,7 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
                 env.hold_coin_quantity
             ), "yellow")
     else:
-        print_str = "{0}: ".format(num_steps)
+        print_str = "{0:>6}: ".format(num_steps)
 
     if num_steps % 100 == 0:
         print(print_str, end=" ", flush=True)
@@ -109,8 +109,11 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         print(print_str, end="\n\n")
     else:
         if num_steps % 100 == 0:
-            print("Balance:{0}, market_buy_from_model:{1}/{2}, market_sell_from_model:{3}/{4}".format(
-                env.balance, env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
+            print("Balance(Profit):{0}({1}), market_buy_from_model:{2}/{3}({4}/{5}), market_sell_from_model:{6}/{7}({8}/{9})".format(
+                env.balance, env.total_profit_list[-1],
+                env.market_profitable_buy_list[-1], env.market_buy_list[-1],
+                env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
+                env.market_profitable_sell_list[-1], env.market_sell_list[-1],
                 env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1]
             ), end="\n")
 
