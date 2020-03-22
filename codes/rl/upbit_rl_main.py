@@ -182,7 +182,7 @@ def main(args):
             if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
                 draw_performance(env, args)
 
-            print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon, num_steps)
+            print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps)
 
             num_steps += 1
 
