@@ -37,11 +37,14 @@ REPLAY_MEMORY_SIZE = 1000000
 
 PERFORMANCE_FIGURE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance.png')
 
-BUYER_MODEL_FILE_NAME = 'buyer_model_{0}_{1}_W{2}_F{3}.pth'
-BUYER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', BUYER_MODEL_FILE_NAME)
+MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'policy_models')
 
-SELLER_MODEL_FILE_NAME = 'seller_model_{0}_{1}_W{2}_F{3}.pth'
-SELLER_MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', SELLER_MODEL_FILE_NAME)
+BUYER_MODEL_FILE_NAME = 'buyer_model_{0}_{1}_W{2}_F{3}_{4}.pth'
+BUYER_MODEL_SAVE_PATH = os.path.join(MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME)
+
+SELLER_MODEL_FILE_NAME = 'seller_model_{0}_{1}_W{2}_F{3}_{4}.pth'
+SELLER_MODEL_SAVE_PATH = os.path.join(MODEL_SAVE_PATH, SELLER_MODEL_FILE_NAME)
+
 S3_BUCKET_NAME = 'invest-thinkonweb'
 
 VERBOSE_STEP = False

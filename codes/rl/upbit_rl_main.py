@@ -11,16 +11,14 @@ idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
-from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt, SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2, \
-    SOURCE
-from codes.rl.upbit_rl_constants import MAX_EPISODES, \
-    REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, \
-    PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, EPSILON_FINAL
+from common.global_variables import SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2, SOURCE
+from codes.rl.upbit_rl_constants import MAX_EPISODES, REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, \
+    QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, \
+    EPSILON_FINAL, MODEL_SAVE_PATH
 from codes.rl.upbit_rl_env import UpbitEnvironment
-from codes.upbit.upbit_api import Upbit
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
-from codes.rl.upbit_rl_utils import print_before_step, print_after_step, EnvironmentType, \
-    EnvironmentStatus, BuyerAction, SellerAction, draw_performance
+from codes.rl.upbit_rl_utils import print_before_step, print_after_step, EnvironmentType, EnvironmentStatus, \
+    BuyerAction, SellerAction, draw_performance
 from common.slack import PushSlack
 import argparse
 import numpy as np
@@ -56,7 +54,9 @@ def main(args):
     beta_frames = 1000
     beta_by_episode = lambda episode: min(1.0, beta_start + episode * (1.0 - beta_start) / beta_frames)
 
-    for episode in range(MAX_EPISODES):
+    START_EPISODE = int(args.last_episode) + 1
+
+    for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
         num_steps = 0
         epsilon = linearly_decaying_epsilon(
@@ -159,9 +159,9 @@ def main(args):
                     #seller_policy.save_model()
 
                 # AWS S3로 모델 저장
-                if num_steps % SAVE_MODEL_INTERVAL == 0 or done:
-                    buyer_policy.save_model()
-                    seller_policy.save_model()
+                if num_steps != 0 and (num_steps % SAVE_MODEL_INTERVAL == 0 or done):
+                    buyer_policy.save_model(episode=episode)
+                    seller_policy.save_model(episode=episode)
 
             # TARGET Q Network 으로 Q Network 파라미터 Copy
             if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
@@ -216,8 +216,14 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
+    parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
+
+    import os
+
+    if not os.path.exists(MODEL_SAVE_PATH):
+        os.makedirs(MODEL_SAVE_PATH)
 
     main(args)
 
