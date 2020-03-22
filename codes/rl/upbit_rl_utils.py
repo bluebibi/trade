@@ -109,12 +109,14 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         print(print_str, end="\n\n")
     else:
         if num_steps % 100 == 0:
-            print("Balance(Profit):{0}({1}), market_buy_from_model:{2}/{3}({4}/{5}), market_sell_from_model:{6}/{7}({8}/{9})".format(
+            print("Balance(Profit):{0}({1}), market_buy(model):{2}/{3}({4}/{5}), market_sell(model):{6}/{7}({8}/{9}), replay_memory_buyer/seller:{10}/{11}, epsilon:{12}".format(
                 env.balance, env.total_profit_list[-1],
                 env.market_profitable_buy_list[-1], env.market_buy_list[-1],
                 env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
                 env.market_profitable_sell_list[-1], env.market_sell_list[-1],
-                env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1]
+                env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1],
+                buyer_policy.buyer_memory.size(), seller_policy.seller_memory.size(),
+                epsilon * 100
             ), end="\n")
 
 def array_2d_to_dict_list_order_book(arr_data):
