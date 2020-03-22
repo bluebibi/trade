@@ -19,7 +19,7 @@ import collections
 
 
 class PrioritizedReplayBuffer:
-    def __init__(self, capacity, prob_alpha=0.6):
+    def __init__(self, capacity, prob_alpha=0.9):
         self.prob_alpha = prob_alpha
         self.capacity = capacity
         self.buffer = []
@@ -27,7 +27,7 @@ class PrioritizedReplayBuffer:
         self.priorities = np.zeros((capacity,), dtype=np.float32)
 
     def put(self, transition):
-        max_priority = self.priorities.max() / 2.0 if self.buffer else 1.0
+        max_priority = self.priorities.mean() if self.buffer else 1.0
 
         if len(self.buffer) < self.capacity:
             self.buffer.append(transition)
@@ -46,7 +46,7 @@ class PrioritizedReplayBuffer:
         probs = prios ** self.prob_alpha
         probs /= probs.sum()
 
-        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        indices = np.random.choice(a=len(self.buffer), size=batch_size, p=probs)
         mini_batch = [self.buffer[idx] for idx in indices]
 
         total = len(self.buffer)
