@@ -68,13 +68,13 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
                 env.hold_coin_quantity
             ), "yellow")
     else:
-        print_str = "{0} ".format(num_steps)
+        print_str = "{0}: ".format(num_steps)
 
     if num_steps % 100 == 0:
         print(print_str, end=" ", flush=True)
 
 
-def print_after_step(env, action, observation, reward, done, buyer_policy, seller_policy, epsilon):
+def print_after_step(env, action, observation, reward, buyer_policy, seller_policy, epsilon, num_steps):
     if VERBOSE_STEP:
         if env.status is EnvironmentStatus.TRYING_BUY:
             if action is 0 or action is BuyerAction.BUY_HOLD:
@@ -108,7 +108,11 @@ def print_after_step(env, action, observation, reward, done, buyer_policy, selle
         )
         print(print_str, end="\n\n")
     else:
-        pass
+        if num_steps % 100 == 0:
+            print("Balance:{0}, market_buy_from_model:{1}/{2}, market_sell_from_model:{3}/{4}".format(
+                env.balance, env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
+                env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1]
+            ), end="\n")
 
 def array_2d_to_dict_list_order_book(arr_data):
     order_book = dict()
@@ -162,10 +166,7 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
 
     return sold_coin_krw, sold_coin_unit_price, sold_coin_quantity, commission_fee
 
-def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
-                     market_buy_from_model_list, market_sell_from_model_list,
-                     market_profitable_buy_list, market_profitable_sell_list,
-                     market_profitable_buy_from_model_list, market_profitable_sell_from_model_list, args):
+def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
@@ -193,38 +194,36 @@ def draw_performance(total_profit_list, buyer_loss_list, seller_loss_list, marke
 
     plt.subplot(321)
     plt.yscale('log', basey=2)
-    # plt.ylim((0, 2**10))
-    plt.plot(range(len(market_buy_list)), market_buy_list, label="Buys")
-    plt.plot(range(len(market_buy_from_model_list)), market_buy_from_model_list, linestyle="--", label="Buys by model")
-    plt.plot(range(len(market_profitable_buy_list)), market_profitable_buy_list, linestyle="-.", label="Profitable buys")
-    plt.plot(range(len(market_profitable_buy_from_model_list)), market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
+    plt.plot(range(len(env.market_buy_list)), env.market_buy_list, label="Buys")
+    plt.plot(range(len(env.market_buy_from_model_list)), env.market_buy_from_model_list, linestyle="--", label="Buys by model")
+    plt.plot(range(len(env.market_profitable_buy_list)), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
+    plt.plot(range(len(env.market_profitable_buy_from_model_list)), env.market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
     plt.subplot(322)
     plt.yscale('log', basey=2)
-    # plt.ylim((0, 2**10))
-    plt.plot(range(len(market_sell_list)), market_sell_list, label="Sells")
-    plt.plot(range(len(market_sell_from_model_list)), market_sell_from_model_list, linestyle="--", label="Sells by model")
-    plt.plot(range(len(market_profitable_sell_list)), market_profitable_sell_list, linestyle="-.", label="Profitable sells")
-    plt.plot(range(len(market_profitable_sell_from_model_list)), market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
+    plt.plot(range(len(env.market_sell_list)), env.market_sell_list, label="Sells")
+    plt.plot(range(len(env.market_sell_from_model_list)), env.market_sell_from_model_list, linestyle="--", label="Sells by model")
+    plt.plot(range(len(env.market_profitable_sell_list)), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
+    plt.plot(range(len(env.market_profitable_sell_from_model_list)), env.market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
     plt.subplot(323)
-    plt.plot(range(len(buyer_loss_list)), buyer_loss_list)
+    plt.plot(range(len(env.buyer_loss_list)), env.buyer_loss_list)
     plt.title('BUYER LOSS', fontweight="bold", size=10)
     plt.grid()
 
     plt.subplot(324)
-    plt.plot(range(len(seller_loss_list)), seller_loss_list)
+    plt.plot(range(len(env.seller_loss_list)), env.seller_loss_list)
     plt.title('SELLER LOSS', fontweight="bold", size=10)
     plt.grid()
 
     plt.subplot(313)
-    plt.plot(range(len(total_profit_list)), total_profit_list)
+    plt.plot(range(len(env.total_profit_list)), env.total_profit_list)
     plt.title('TOTAL_PROFIT', fontweight="bold", size=10)
     plt.xlabel('STEPS', size=10)
     plt.grid()

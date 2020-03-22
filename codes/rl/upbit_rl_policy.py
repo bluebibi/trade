@@ -396,7 +396,7 @@ class QNet_CNN(nn.Module):
 
 
 class QNet_LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size=256, output_size=2, num_layers=3, bias=True, ):
+    def __init__(self, input_size, hidden_size=256, output_size=2, num_layers=3, bias=True):
         super(QNet_LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size

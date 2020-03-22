@@ -39,18 +39,18 @@ def main(args):
     buyer_policy = DeepBuyerPolicy(args)
     seller_policy = DeepSellerPolicy(args)
 
-    total_profit_list = []
-    buyer_loss_list = []
-    seller_loss_list = []
-    market_buy_list = []
-    market_sell_list = []
-    market_profitable_buy_list = []
-    market_profitable_sell_list = []
+    env.total_profit_list.clear()
+    env.buyer_loss_list.clear()
+    env.seller_loss_list.clear()
+    env.market_buy_list.clear()
+    env.market_sell_list.clear()
+    env.market_profitable_buy_list.clear()
+    env.market_profitable_sell_list.clear()
 
-    market_buy_from_model_list = []
-    market_sell_from_model_list = []
-    market_profitable_buy_from_model_list = []
-    market_profitable_sell_from_model_list = []
+    env.market_buy_from_model_list.clear()
+    env.market_sell_from_model_list.clear()
+    env.market_profitable_buy_from_model_list.clear()
+    env.market_profitable_sell_from_model_list.clear()
 
     beta_start = 0.4
     beta_frames = 1000
@@ -112,15 +112,12 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is SellerAction.MARKET_SELL:
-                    # done_mask = 0.0 if done else 1.0
-
+                    if reward > 0.0: reward *= 2.0
                     buyer_policy.pending_buyer_transition[2] = reward
                     buyer_policy.pending_buyer_transition[3] = next_observation
-                    # buyer_policy.pending_buyer_transition[4] = done_mask
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
                     buyer_policy.pending_buyer_transition = None
 
-                    # done_mask = 0.0 if done else 1.0
                     action = 1
                     seller_policy.seller_memory.put((observation, action, reward, next_observation, 0.0))
                     next_env_state = EnvironmentStatus.TRYING_BUY
@@ -146,10 +143,6 @@ def main(args):
             else:
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
-            num_steps += 1
-            if not done:
-                print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon)
-
             # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             if num_steps % TRAIN_INTERVAL == 0 or done:
                 beta = beta_by_episode(episode)
@@ -174,26 +167,24 @@ def main(args):
 
 
             # 성능 그래프 그리기
-            total_profit_list.append(env.total_profit)
-            buyer_loss_list.append(buyer_loss)
-            seller_loss_list.append(seller_loss)
-            market_buy_list.append(market_buys)
-            market_sell_list.append(market_sells)
-            market_buy_from_model_list.append(market_buys_from_model)
-            market_sell_from_model_list.append(market_sells_from_model)
-            market_profitable_buy_list.append(market_profitable_buys)
-            market_profitable_sell_list.append(market_profitable_sells)
-            market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
-            market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
+            env.total_profit_list.append(env.total_profit)
+            env.buyer_loss_list.append(buyer_loss)
+            env.seller_loss_list.append(seller_loss)
+            env.market_buy_list.append(market_buys)
+            env.market_sell_list.append(market_sells)
+            env.market_buy_from_model_list.append(market_buys_from_model)
+            env.market_sell_from_model_list.append(market_sells_from_model)
+            env.market_profitable_buy_list.append(market_profitable_buys)
+            env.market_profitable_sell_list.append(market_profitable_sells)
+            env.market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
+            env.market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
 
             if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
-                draw_performance(
-                    total_profit_list, buyer_loss_list, seller_loss_list, market_buy_list, market_sell_list,
-                    market_buy_from_model_list, market_sell_from_model_list,
-                    market_profitable_buy_list, market_profitable_sell_list,
-                    market_profitable_buy_from_model_list, market_profitable_sell_from_model_list,
-                    args
-                )
+                draw_performance(env, args)
+
+            print_after_step(env, action, next_observation, reward, done, buyer_policy, seller_policy, epsilon, num_steps)
+
+            num_steps += 1
 
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation

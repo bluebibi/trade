@@ -71,6 +71,19 @@ class UpbitEnvironment:
 
         self.status = None
 
+        self.total_profit_list = []
+        self.buyer_loss_list = []
+        self.seller_loss_list = []
+        self.market_buy_list = []
+        self.market_sell_list = []
+        self.market_profitable_buy_list = []
+        self.market_profitable_sell_list = []
+
+        self.market_buy_from_model_list = []
+        self.market_sell_from_model_list = []
+        self.market_profitable_buy_from_model_list = []
+        self.market_profitable_sell_from_model_list = []
+
         init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
                    "\nWINDOW_SIZE: {4}\n".format(
             self.coin_name,
@@ -134,7 +147,7 @@ class UpbitEnvironment:
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = 0.0
+                reward = -0.01
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -154,7 +167,7 @@ class UpbitEnvironment:
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = 0.0
+                reward = -0.01
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
@@ -171,9 +184,8 @@ class UpbitEnvironment:
                 self.just_sold_coin_quantity = info_dic["coin_quantity"]
                 self.just_sold_coin_unit_price = info_dic["coin_unit_price"]
 
-                reward = float(profit) / 30000.0
-                if reward > 0.0:
-                    reward *= 2.0
+                profit_rate = (sold_coin_krw - self.just_bought_coin_krw) / self.just_bought_coin_krw
+                reward = profit_rate
 
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
