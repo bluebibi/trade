@@ -110,7 +110,7 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
     else:
         if num_steps % 100 == 0:
             print("balance(profit/profit_rate_per_sell):{0}({1}/{2:6.4f}), market_buy(model):{3}/{4}({5}/{6}), "
-                  "market_sell(model):{7}/{8}({9}/{10}), replay_memory_buyer/seller:{11}/{12}, epsilon:{13}".format(
+                  "market_sell(model):{7}/{8}({9}/{10}), replay_memory_buyer/seller:{11}/{12}, epsilon:{13:5.3f}".format(
                 env.balance, env.total_profit_list[-1],
                 env.total_profit_rate / env.market_sell_list[-1] if env.market_sell_list[-1] != 0 else 0.0,
                 env.market_profitable_buy_list[-1], env.market_buy_list[-1],
