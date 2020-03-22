@@ -112,7 +112,7 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is SellerAction.MARKET_SELL:
-                    if reward > 0.0: reward *= 2.0
+                    if reward > 0.0: reward *= 10.0
                     buyer_policy.pending_buyer_transition[2] = reward
                     buyer_policy.pending_buyer_transition[3] = next_observation
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
