@@ -70,7 +70,7 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
     else:
         print_str = "{0:>6}/{1}: ".format(num_steps, episode)
 
-    if num_steps % 100 == 0:
+    if num_steps % 1000 == 0:
         print(print_str, end=" ", flush=True)
 
 
@@ -108,7 +108,7 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         )
         print(print_str, end="\n\n")
     else:
-        if num_steps % 100 == 0:
+        if num_steps % 1000 == 0:
             print("tot_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
                   "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
                 env.balance + env.hold_coin_krw, env.total_profit_list[-1],
@@ -183,7 +183,7 @@ def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
-    plt.figure(figsize=(20, 20))
+    # plt.figure(figsize=(20, 20))
     title_str = "DQN "
 
     if args.per:
