@@ -94,8 +94,9 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is BuyerAction.MARKET_BUY:
+                    done_mask = 0.0 if done else 1.0
                     action = 1
-                    buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, 0.0]
+                    buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, done_mask]
                     next_env_state = EnvironmentStatus.TRYING_SELL
 
                     market_buys += 1
@@ -122,8 +123,9 @@ def main(args):
                     buyer_policy.buyer_memory.put(buyer_policy.pending_buyer_transition)
                     buyer_policy.pending_buyer_transition = None
 
+                    done_mask = 0.0 if done else 1.0
                     action = 1
-                    seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, 0.0])
+                    seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
                     market_sells += 1
@@ -150,27 +152,41 @@ def main(args):
             else:
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
-            # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
-            if num_steps % TRAIN_INTERVAL == 0 or done:
+            if done:
+                episode_reward = next_info_dic['episode_reward']
+                buyer_policy.update_episode_reward(episode, episode_reward)
+                seller_policy.update_episode_reward(episode, episode_reward)
+
                 beta = beta_by_episode(episode)
-                if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-                    #buyer_policy.load_model()
-                    buyer_loss = buyer_policy.train(beta)
-                    #buyer_policy.save_model()
-                if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-                    #seller_policy.load_model()
-                    seller_loss = seller_policy.train(beta)
-                    #seller_policy.save_model()
+                buyer_loss = buyer_policy.train(beta)
+                seller_loss = seller_policy.train(beta)
+                buyer_policy.save_model(episode=episode)
+                seller_policy.save_model(episode=episode)
 
-                # AWS S3로 모델 저장
-                if num_steps != 0 and (num_steps % SAVE_MODEL_INTERVAL == 0 or done):
-                    buyer_policy.save_model(episode=episode)
-                    seller_policy.save_model(episode=episode)
-
-            # TARGET Q Network 으로 Q Network 파라미터 Copy
-            if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
                 buyer_policy.qnet_copy_to_target_qnet()
                 seller_policy.qnet_copy_to_target_qnet()
+
+            # # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
+            # if num_steps % TRAIN_INTERVAL == 0 or done:
+            #     beta = beta_by_episode(episode)
+            #     if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+            #         #buyer_policy.load_model()
+            #         buyer_loss = buyer_policy.train(beta)
+            #         #buyer_policy.save_model()
+            #     if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+            #         #seller_policy.load_model()
+            #         seller_loss = seller_policy.train(beta)
+            #         #seller_policy.save_model()
+            #
+            #     # AWS S3로 모델 저장
+            #     if num_steps != 0 and (num_steps % SAVE_MODEL_INTERVAL == 0 or done):
+            #         buyer_policy.save_model(episode=episode)
+            #         seller_policy.save_model(episode=episode)
+
+            # TARGET Q Network 으로 Q Network 파라미터 Copy
+            # if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
+            #     buyer_policy.qnet_copy_to_target_qnet()
+            #     seller_policy.qnet_copy_to_target_qnet()
 
 
             # 성능 그래프 그리기
@@ -186,17 +202,13 @@ def main(args):
             env.market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
             env.market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
 
-            if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
+            # if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
+            if done:
                 draw_performance(env, args)
 
             print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps)
 
             num_steps += 1
-
-            if done:
-                episode_reward = next_info_dic['episode_reward']
-                buyer_policy.update_episode_reward(episode, episode_reward)
-                seller_policy.update_episode_reward(episode, episode_reward)
 
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation
