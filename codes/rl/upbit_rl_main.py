@@ -39,6 +39,8 @@ def main(args):
     buyer_policy = DeepBuyerPolicy(args)
     seller_policy = DeepSellerPolicy(args)
 
+    env.total_balance_per_episode_list.clear()
+
     env.total_profit_list.clear()
     env.buyer_loss_list.clear()
     env.seller_loss_list.clear()
@@ -166,6 +168,9 @@ def main(args):
                 buyer_policy.qnet_copy_to_target_qnet()
                 seller_policy.qnet_copy_to_target_qnet()
 
+                env.buyer_loss_list.append(buyer_loss)
+                env.seller_loss_list.append(seller_loss)
+                env.total_balance_per_episode_list.append(env.balance + env.hold_coin_krw)
             # # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             # if num_steps % TRAIN_INTERVAL == 0 or done:
             #     beta = beta_by_episode(episode)
@@ -191,8 +196,6 @@ def main(args):
 
             # 성능 그래프 그리기
             env.total_profit_list.append(env.total_profit)
-            env.buyer_loss_list.append(buyer_loss)
-            env.seller_loss_list.append(seller_loss)
             env.market_buy_list.append(market_buys)
             env.market_sell_list.append(market_sells)
             env.market_buy_from_model_list.append(market_buys_from_model)

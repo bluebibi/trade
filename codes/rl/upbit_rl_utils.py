@@ -183,7 +183,7 @@ def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
-    plt.figure(figsize=(20, 10))
+    plt.figure(figsize=(20, 20))
     title_str = "DQN "
 
     if args.per:
@@ -203,40 +203,50 @@ def draw_performance(env, args):
 
     plt.suptitle(title_str, fontsize=14)
 
-    plt.subplot(321)
+    plt.subplot(421)
     plt.yscale('log', basey=2)
     plt.plot(range(len(env.market_buy_list)), env.market_buy_list, label="Buys")
     plt.plot(range(len(env.market_buy_from_model_list)), env.market_buy_from_model_list, linestyle="--", label="Buys by model")
     plt.plot(range(len(env.market_profitable_buy_list)), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
     plt.plot(range(len(env.market_profitable_buy_from_model_list)), env.market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
+    plt.xlabel('STEPS', size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
-    plt.subplot(322)
+    plt.subplot(422)
     plt.yscale('log', basey=2)
     plt.plot(range(len(env.market_sell_list)), env.market_sell_list, label="Sells")
     plt.plot(range(len(env.market_sell_from_model_list)), env.market_sell_from_model_list, linestyle="--", label="Sells by model")
     plt.plot(range(len(env.market_profitable_sell_list)), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
     plt.plot(range(len(env.market_profitable_sell_from_model_list)), env.market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
+    plt.xlabel('STEPS', size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
-    plt.subplot(323)
-    plt.plot(range(len(env.buyer_loss_list)), env.buyer_loss_list)
-    plt.title('BUYER LOSS', fontweight="bold", size=10)
-    plt.grid()
-
-    plt.subplot(324)
-    plt.plot(range(len(env.seller_loss_list)), env.seller_loss_list)
-    plt.title('SELLER LOSS', fontweight="bold", size=10)
-    plt.grid()
-
-    plt.subplot(313)
+    plt.subplot(412)
     plt.plot(range(len(env.total_profit_list)), env.total_profit_list)
     plt.title('TOTAL_PROFIT', fontweight="bold", size=10)
     plt.xlabel('STEPS', size=10)
+    plt.grid()
+
+    plt.subplot(425)
+    plt.plot(range(len(env.buyer_loss_list)), env.buyer_loss_list)
+    plt.title('BUYER LOSS', fontweight="bold", size=10)
+    plt.xlabel('EPISODES', size=10)
+    plt.grid()
+
+    plt.subplot(426)
+    plt.plot(range(len(env.seller_loss_list)), env.seller_loss_list)
+    plt.title('SELLER LOSS', fontweight="bold", size=10)
+    plt.xlabel('EPISODES', size=10)
+    plt.grid()
+
+    plt.subplot(414)
+    plt.plot(range(len(env.total_balance_per_episode_list)), env.total_balance_per_episode_list)
+    plt.title('TOTAL_BALANCE_PER_EPISODE', fontweight="bold", size=10)
+    plt.xlabel('EPISODES', size=10)
     plt.grid()
 
     plt.savefig(PERFORMANCE_FIGURE_PATH)

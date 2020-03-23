@@ -72,6 +72,7 @@ class UpbitEnvironment:
 
         self.status = None
 
+        self.total_balance_per_episode_list = []
         self.total_profit_list = []
         self.buyer_loss_list = []
         self.seller_loss_list = []
