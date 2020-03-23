@@ -67,14 +67,9 @@ def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_st
                 info_dic["coin_unit_price"],
                 env.hold_coin_quantity
             ), "yellow")
-    else:
-        print_str = "{0:>6}/{1}: ".format(num_steps, episode)
-
-    if num_steps % 1000 == 0:
-        print(print_str, end=" ", flush=True)
 
 
-def print_after_step(env, action, observation, reward, buyer_policy, seller_policy, epsilon, num_steps):
+def print_after_step(env, action, observation, reward, buyer_policy, seller_policy, epsilon, num_steps, episode, done):
     if VERBOSE_STEP:
         if env.status is EnvironmentStatus.TRYING_BUY:
             if action is 0 or action is BuyerAction.BUY_HOLD:
@@ -108,19 +103,21 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         )
         print(print_str, end="\n\n")
     else:
-        if num_steps % 1000 == 0:
-            print("tot_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
+        if (num_steps != 0 and num_steps % 1000 == 0) or done:
+            header = "{0:>5}/{1}/{2}:".format(num_steps, env.total_steps, episode)
+
+            print(header, "t_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
                   "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
-                env.balance + env.hold_coin_krw, env.total_profit_list[-1],
-                env.total_profit_rate / env.market_sell_list[-1] if env.market_sell_list[-1] != 0 else 0.0,
-                env.market_profitable_buy_list[-1], env.market_buy_list[-1],
-                env.market_profitable_buy_list[-1] / env.market_buy_list[-1] if env.market_buy_list[-1] !=0 else 0.0,
-                env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
-                env.market_profitable_buy_from_model_list[-1] / env.market_buy_from_model_list[-1] if env.market_buy_from_model_list[-1] != 0 else 0.0,
-                env.market_profitable_sell_list[-1], env.market_sell_list[-1],
-                env.market_profitable_sell_list[-1] / env.market_sell_list[-1] if env.market_sell_list[-1] != 0 else 0.0,
-                env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1],
-                env.market_profitable_sell_from_model_list[-1] / env.market_sell_from_model_list[-1] if env.market_sell_from_model_list[-1] != 0 else 0.0,
+                env.balance + env.hold_coin_krw, env.total_profit,
+                env.total_profit_rate / env.market_sells if env.market_sells != 0 else 0.0,
+                env.market_profitable_buys, env.market_buys,
+                env.market_profitable_buys / env.market_buys if env.market_buys != 0 else 0.0,
+                env.market_profitable_buys_from_model, env.market_buys_from_model,
+                env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
+                env.market_profitable_sells, env.market_sells,
+                env.market_profitable_sells / env.market_sells if env.market_sells != 0 else 0.0,
+                env.market_profitable_sells_from_model, env.market_sells_from_model,
+                env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0,
                 buyer_policy.buyer_memory.size(), seller_policy.seller_memory.size(),
                 epsilon * 100
             ), end="\n")
@@ -210,7 +207,7 @@ def draw_performance(env, args):
     plt.plot(range(len(env.market_profitable_buy_list)), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
     plt.plot(range(len(env.market_profitable_buy_from_model_list)), env.market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
-    plt.xlabel('STEPS', size=10)
+    plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
@@ -221,25 +218,25 @@ def draw_performance(env, args):
     plt.plot(range(len(env.market_profitable_sell_list)), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
     plt.plot(range(len(env.market_profitable_sell_from_model_list)), env.market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
-    plt.xlabel('STEPS', size=10)
+    plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
-    plt.subplot(412)
-    plt.plot(range(len(env.total_profit_list)), env.total_profit_list)
-    plt.title('TOTAL_PROFIT', fontweight="bold", size=10)
-    plt.xlabel('STEPS', size=10)
-    plt.grid()
-
-    plt.subplot(425)
+    plt.subplot(423)
     plt.plot(range(len(env.buyer_loss_list)), env.buyer_loss_list)
     plt.title('BUYER LOSS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
 
-    plt.subplot(426)
+    plt.subplot(424)
     plt.plot(range(len(env.seller_loss_list)), env.seller_loss_list)
     plt.title('SELLER LOSS', fontweight="bold", size=10)
+    plt.xlabel('EPISODES', size=10)
+    plt.grid()
+
+    plt.subplot(413)
+    plt.plot(range(len(env.score_list)), env.score_list)
+    plt.title('SCORE', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
 

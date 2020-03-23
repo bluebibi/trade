@@ -53,7 +53,9 @@ class DeepBuyerPolicy:
         else:
             self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
             self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
-        self.load_model()
+
+        if int(args.last_episode) != 0:
+            self.load_model()
 
         if self.args.per:
             self.buyer_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
@@ -215,7 +217,9 @@ class DeepSellerPolicy:
         else:
             self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
             self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
-        self.load_model()
+
+        if int(args.last_episode) != 0:
+            self.load_model()
 
         if self.args.per:
             self.seller_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
