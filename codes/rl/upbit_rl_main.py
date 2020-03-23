@@ -95,7 +95,7 @@ def main(args):
 
                 if action is BuyerAction.MARKET_BUY:
                     action = 1
-                    buyer_policy.pending_buyer_transition = [observation, action, None, None, 0.0]
+                    buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, 0.0]
                     next_env_state = EnvironmentStatus.TRYING_SELL
 
                     market_buys += 1
@@ -105,7 +105,7 @@ def main(args):
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
-                    buyer_policy.buyer_memory.put((observation, action, reward, next_observation, done_mask))
+                    buyer_policy.buyer_memory.put((episode, observation, action, reward, next_observation, done_mask))
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
             elif env.status is EnvironmentStatus.TRYING_SELL:
@@ -117,13 +117,13 @@ def main(args):
                     if reward > 0.0:
                         reward *= 10.0
 
-                    buyer_policy.pending_buyer_transition[2] = reward
-                    buyer_policy.pending_buyer_transition[3] = next_observation
+                    buyer_policy.pending_buyer_transition[3] = reward
+                    buyer_policy.pending_buyer_transition[4] = next_observation
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
                     buyer_policy.pending_buyer_transition = None
 
                     action = 1
-                    seller_policy.seller_memory.put((observation, action, reward, next_observation, 0.0))
+                    seller_policy.seller_memory.put((episode, observation, action, reward, next_observation, 0.0))
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
                     market_sells += 1
@@ -144,7 +144,7 @@ def main(args):
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
-                    seller_policy.seller_memory.put((observation, action, reward, next_observation, done_mask))
+                    seller_policy.seller_memory.put((episode, observation, action, reward, next_observation, done_mask))
                     next_env_state = EnvironmentStatus.TRYING_SELL
 
             else:
@@ -193,13 +193,15 @@ def main(args):
 
             num_steps += 1
 
+            if done:
+                episode_reward = info_dic['episode_reward']
+                buyer_policy.update_episode_reward(episode, episode_reward)
+                seller_policy.update_episode_reward(episode, episode_reward)
+
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation
             info_dic = next_info_dic
             env.status = next_env_state
-
-            if env.balance <= 0.0:
-                done = True
 
         pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
             SOURCE,

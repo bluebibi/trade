@@ -194,6 +194,11 @@ class DeepBuyerPolicy:
         #print("*** Buyer Policy Trained (Loss: {0}) ***\n".format(avg_loss))
         return avg_loss
 
+    def update_episode_reward(self, episode, episode_reward):
+        for transition in self.buyer_memory.buffer:
+            if transition[0] == episode:
+                transition[3] += episode_reward
+
 
 class DeepSellerPolicy:
     def __init__(self, args=None):
@@ -350,6 +355,11 @@ class DeepSellerPolicy:
         avg_loss = np.average(loss_lst)
         #print("*** Seller Policy Trained (Loss: {0}) ***\n".format(avg_loss))
         return avg_loss
+
+    def update_episode_reward(self, episode, episode_reward):
+        for transition in self.seller_memory.buffer:
+            if transition[0] == episode:
+                transition[3] += episode_reward
 
 
 class QNet_CNN(nn.Module):

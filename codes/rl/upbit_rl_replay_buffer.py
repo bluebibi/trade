@@ -58,7 +58,7 @@ class PrioritizedReplayBuffer:
         s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []
 
         for transition in mini_batch:
-            s, a, r, s_prime, done_mask = transition
+            _, s, a, r, s_prime, done_mask = transition
             s_batch.append(s)
             a_batch.append([a])
             r_batch.append([r])
@@ -105,7 +105,7 @@ class ReplayBuffer:
         s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []
 
         for transition in mini_batch:
-            s, a, r, s_prime, done_mask = transition
+            _, s, a, r, s_prime, done_mask = transition
             s_batch.append(s)
             a_batch.append([a])
             r_batch.append([r])

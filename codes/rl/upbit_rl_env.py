@@ -192,14 +192,15 @@ class UpbitEnvironment:
 
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
-        if self.steps_left == 0 or self.balance <= 0.0:
+        if self.steps_left == 0 or self.balance + self.hold_coin_krw <= 0.0:
             done = True
             next_info_dic = {
                 "change_index": 0.0,
                 "coin_krw": -1.0,
                 "coin_unit_price": -1.0,
                 "coin_quantity": -1.0,
-                "commission_fee": -1.0
+                "commission_fee": -1.0,
+                "episode_reward": (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             }
             if self.args.volume:
                 next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE))
