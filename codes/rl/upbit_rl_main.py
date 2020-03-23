@@ -203,13 +203,14 @@ def main(args):
             info_dic = next_info_dic
             env.status = next_env_state
 
-        # pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
-        #     SOURCE,
-        #     coin_name,
-        #     episode + 1, MAX_EPISODES,
-        #     num_steps, env.total_steps,
-        #     0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
-        # ))
+        if args.slack:
+            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
+                SOURCE,
+                coin_name,
+                episode + 1, MAX_EPISODES,
+                num_steps, env.total_steps,
+                0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
+            ))
 
 
 if __name__ == "__main__":
@@ -223,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
+    parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
