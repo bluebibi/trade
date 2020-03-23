@@ -80,7 +80,7 @@ class DeepBuyerPolicy:
         buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            int(self.args.int(self.args.window_size)),
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
