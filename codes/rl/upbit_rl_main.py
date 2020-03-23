@@ -229,7 +229,7 @@ def main(args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -coin=BTC
+    ## python upbit_rl_main.py -p -v -last_episode=121 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
