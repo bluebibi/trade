@@ -19,7 +19,7 @@ import copy
 
 from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, get_buying_price_by_order_book, \
     get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction
-from codes.rl.upbit_rl_constants import BUY_AMOUNT, WINDOW_SIZE, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
+from codes.rl.upbit_rl_constants import BUY_AMOUNT, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
     SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES
 from web.db.database import naver_order_book_session, get_order_book_class
 
@@ -42,7 +42,7 @@ class UpbitEnvironment:
             self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         self.observation_space = spaces.Box(
-            low=0, high=1, shape=(WINDOW_SIZE, self.input_size), dtype=np.float16
+            low=0, high=1, shape=(int(args.window_size), self.input_size), dtype=np.float16
         )
         self.env_type = env_type
 
@@ -104,7 +104,7 @@ class UpbitEnvironment:
             self.observation_space,
             self.buyer_action_space,
             self.seller_action_space,
-            WINDOW_SIZE
+            int(args.window_size)
         )
 
         print(init_str)
@@ -172,7 +172,7 @@ class UpbitEnvironment:
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = -0.001
+                reward = float(self.args.hold_reward)
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -192,7 +192,7 @@ class UpbitEnvironment:
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = -0.001
+                reward = float(self.args.hold_reward)
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
@@ -228,9 +228,9 @@ class UpbitEnvironment:
 
             reward = (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             if self.args.volume:
-                next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE))
+                next_observation = np.zeros(shape=(int(self.args.window_size), SIZE_OF_FEATURE))
             else:
-                next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE_WITHOUT_VOLUME))
+                next_observation = np.zeros(shape=(int(self.args.window_size), SIZE_OF_FEATURE_WITHOUT_VOLUME))
         else:
             done = False
             next_observation, next_info_dic = self._next_observation(next_env_status=next_env_status)
@@ -301,15 +301,15 @@ class UpbitEnvironment:
         base_datetime_data = pd.to_datetime(base_datetime_df["base_datetime"])
         data = df.values
 
-        dim_0 = data.shape[0] - WINDOW_SIZE + 1
+        dim_0 = data.shape[0] - int(self.args.window_size) + 1
         dim_1 = data.shape[1]
 
         base_datetime_X = []
-        X = np.zeros(shape=(dim_0, WINDOW_SIZE, dim_1))
+        X = np.zeros(shape=(dim_0, int(self.args.window_size), dim_1))
 
         for i in range(dim_0):
-            X[i] = data[i: i + WINDOW_SIZE]
-            base_datetime_X.append(str(base_datetime_data[i + WINDOW_SIZE - 1]))
+            X[i] = data[i: i + int(self.args.window_size)]
+            base_datetime_X.append(str(base_datetime_data[i + int(self.args.window_size) - 1]))
 
         base_datetime_X = np.asarray(base_datetime_X)
 

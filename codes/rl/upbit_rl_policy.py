@@ -25,7 +25,7 @@ import torch
 
 from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
     BUYER_MODEL_SAVE_PATH, SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, \
-    TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, WINDOW_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
+    TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
     TRAIN_REPEATS_STEPS, TRAIN_BATCH_MIN_SIZE_STEPS
 
 is_cuda = torch.cuda.is_available()
@@ -52,8 +52,8 @@ class DeepBuyerPolicy:
             self.q = QNet_LSTM(input_size=self.input_size)
             self.q_target = QNet_LSTM(input_size=self.input_size)
         else:
-            self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
-            self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
+            self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
+            self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
 
         if int(args.last_episode) != 0:
             self.load_model()
@@ -80,7 +80,7 @@ class DeepBuyerPolicy:
         buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.int(self.args.window_size)),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -88,7 +88,7 @@ class DeepBuyerPolicy:
         buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -107,7 +107,7 @@ class DeepBuyerPolicy:
         buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -119,7 +119,7 @@ class DeepBuyerPolicy:
         last_buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             self.args.last_episode
         )
@@ -127,7 +127,7 @@ class DeepBuyerPolicy:
         last_buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             self.args.last_episode
         )
@@ -223,8 +223,8 @@ class DeepSellerPolicy:
             self.q = QNet_LSTM(input_size=self.input_size)
             self.q_target = QNet_LSTM(input_size=self.input_size)
         else:
-            self.q = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
-            self.q_target = QNet_CNN(input_size=self.input_size, input_height=WINDOW_SIZE)
+            self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
+            self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
 
         if int(args.last_episode) != 0:
             self.load_model()
@@ -250,7 +250,7 @@ class DeepSellerPolicy:
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -258,7 +258,7 @@ class DeepSellerPolicy:
         seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -277,7 +277,7 @@ class DeepSellerPolicy:
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             episode
         )
@@ -289,7 +289,7 @@ class DeepSellerPolicy:
         last_seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             self.args.last_episode
         )
@@ -297,7 +297,7 @@ class DeepSellerPolicy:
         last_seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
-            WINDOW_SIZE,
+            int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             self.args.last_episode
         )
