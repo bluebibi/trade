@@ -194,7 +194,7 @@ def main(args):
             num_steps += 1
 
             if done:
-                episode_reward = info_dic['episode_reward']
+                episode_reward = next_info_dic['episode_reward']
                 buyer_policy.update_episode_reward(episode, episode_reward)
                 seller_policy.update_episode_reward(episode, episode_reward)
 
