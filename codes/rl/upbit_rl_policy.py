@@ -25,7 +25,8 @@ import torch
 
 from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
     BUYER_MODEL_SAVE_PATH, SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, \
-    TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, WINDOW_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME
+    TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, WINDOW_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
+    TRAIN_REPEATS_STEPS, TRAIN_BATCH_MIN_SIZE_STEPS
 
 is_cuda = torch.cuda.is_available()
 if is_cuda:
@@ -151,9 +152,17 @@ class DeepBuyerPolicy:
 
     def train(self, beta):
         loss_lst = []
-        for i in range(TRAIN_REPEATS):
+
+        if self.args.steps:
+            train_repeats = TRAIN_REPEATS_STEPS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
+        else:
+            train_repeats = TRAIN_REPEATS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE
+
+        for i in range(train_repeats):
             train_batch_size = min(
-                TRAIN_BATCH_MIN_SIZE,
+                train_batch_min_size,
                 int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
 
@@ -176,7 +185,6 @@ class DeepBuyerPolicy:
 
                 prios = torch.abs(q_a - target) + 1e-5
 
-                # prios = loss + 1e-5
                 loss = loss.mean()
                 loss_lst.append(loss.item())
                 self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
@@ -314,9 +322,17 @@ class DeepSellerPolicy:
 
     def train(self, beta):
         loss_lst = []
-        for i in range(TRAIN_REPEATS):
+
+        if self.args.steps:
+            train_repeats = TRAIN_REPEATS_STEPS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
+        else:
+            train_repeats = TRAIN_REPEATS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE
+
+        for i in range(train_repeats):
             train_batch_size = min(
-                TRAIN_BATCH_MIN_SIZE,
+                train_batch_min_size,
                 int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
 
@@ -338,8 +354,6 @@ class DeepSellerPolicy:
                 loss = (q_a - target).pow(2) * weights
 
                 prios = torch.abs(q_a - target) + 1e-5
-
-                # prios = loss + 1e-5
 
                 loss = loss.mean()
                 loss_lst.append(loss.item())

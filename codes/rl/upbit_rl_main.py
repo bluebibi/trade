@@ -12,8 +12,8 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from common.global_variables import SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2, SOURCE
-from codes.rl.upbit_rl_constants import MAX_EPISODES, REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL, \
-    QNET_COPY_TO_TARGET_QNET_INTERVAL, EPSILON_START, PERFORMANCE_GRAPH_DRAW_INTERVAL, SAVE_MODEL_INTERVAL, \
+from codes.rl.upbit_rl_constants import MAX_EPISODES, REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL_STEPS, \
+    QNET_COPY_TO_TARGET_QNET_INTERVAL_EPISODES, QNET_COPY_TO_TARGET_QNET_INTERVAL_STEPS, EPSILON_START, \
     EPSILON_FINAL, MODEL_SAVE_PATH
 from codes.rl.upbit_rl_env import UpbitEnvironment
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
@@ -76,6 +76,8 @@ def main(args):
 
         from_buy_model = 0
         score = 0.0
+        beta = beta_by_episode(episode)
+
         while not done:
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
@@ -85,7 +87,10 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is BuyerAction.MARKET_BUY:
-                    done_mask = 0.0 if done else 1.0
+                    if args.steps:
+                        done_mask = 0.0
+                    else:
+                        done_mask = 0.0 if done else 1.0
                     action = 1
                     buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, done_mask]
                     next_env_state = EnvironmentStatus.TRYING_SELL
@@ -118,7 +123,10 @@ def main(args):
                     buyer_policy.pending_buyer_transition = None
                     score += reward
 
-                    done_mask = 0.0 if done else 1.0
+                    if args.steps:
+                        done_mask = 0.0
+                    else:
+                        done_mask = 0.0 if done else 1.0
                     action = 1
                     seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
                     next_env_state = EnvironmentStatus.TRYING_BUY
@@ -151,20 +159,27 @@ def main(args):
             print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps,
                              episode, done)
 
+            if args.steps:
+                # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
+                if num_steps % TRAIN_INTERVAL_STEPS == 0 or done:
+                    if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+                        _ = buyer_policy.train(beta)
+                    if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
+                        _ = seller_policy.train(beta)
+
+                #TARGET Q Network 으로 Q Network 파라미터 Copy
+                if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL_STEPS == 0:
+                    buyer_policy.qnet_copy_to_target_qnet()
+                    seller_policy.qnet_copy_to_target_qnet()
+
             if done:
-                # episode_reward = next_info_dic['episode_reward']
-                # buyer_policy.update_episode_reward(episode, episode_reward)
-                # seller_policy.update_episode_reward(episode, episode_reward)
-
-                beta = beta_by_episode(episode)
-
                 buyer_loss = buyer_policy.train(beta)
                 seller_loss = seller_policy.train(beta)
 
                 buyer_policy.save_model(episode=episode)
                 seller_policy.save_model(episode=episode)
 
-                if episode != 0 and episode % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
+                if episode != 0 and episode % QNET_COPY_TO_TARGET_QNET_INTERVAL_EPISODES == 0:
                     buyer_policy.qnet_copy_to_target_qnet()
                     seller_policy.qnet_copy_to_target_qnet()
 
@@ -187,29 +202,6 @@ def main(args):
 
                 draw_performance(env, args)
 
-            # # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
-            # if num_steps % TRAIN_INTERVAL == 0 or done:
-            #     beta = beta_by_episode(episode)
-            #     if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-            #         #buyer_policy.load_model()
-            #         buyer_loss = buyer_policy.train(beta)
-            #         #buyer_policy.save_model()
-            #     if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
-            #         #seller_policy.load_model()
-            #         seller_loss = seller_policy.train(beta)
-            #         #seller_policy.save_model()
-            #
-            #     # AWS S3로 모델 저장
-            #     if num_steps != 0 and (num_steps % SAVE_MODEL_INTERVAL == 0 or done):
-            #         buyer_policy.save_model(episode=episode)
-            #         seller_policy.save_model(episode=episode)
-
-            # TARGET Q Network 으로 Q Network 파라미터 Copy
-            # if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
-            #     buyer_policy.qnet_copy_to_target_qnet()
-            #     seller_policy.qnet_copy_to_target_qnet()
-
-
             num_steps += 1
 
             # 다음 스텝 수행을 위한 사전 준비
@@ -228,7 +220,7 @@ def main(args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -coin=BTC
+    ## python upbit_rl_main.py -p -v -s -last_episode=0 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
@@ -236,6 +228,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
+    parser.add_argument('-s', '--steps', action='store_true', help="train between steps within an episode")
     parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
