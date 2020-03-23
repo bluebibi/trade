@@ -183,7 +183,7 @@ def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
 
-    # plt.figure(figsize=(20, 20))
+    plt.figure(figsize=(18, 18))
     title_str = "DQN "
 
     if args.per:

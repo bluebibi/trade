@@ -218,13 +218,13 @@ def main(args):
             info_dic = next_info_dic
             env.status = next_env_state
 
-        pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
-            SOURCE,
-            coin_name,
-            episode + 1, MAX_EPISODES,
-            num_steps, env.total_steps,
-            0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
-        ))
+        # pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
+        #     SOURCE,
+        #     coin_name,
+        #     episode + 1, MAX_EPISODES,
+        #     num_steps, env.total_steps,
+        #     0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
+        # ))
 
 
 if __name__ == "__main__":
