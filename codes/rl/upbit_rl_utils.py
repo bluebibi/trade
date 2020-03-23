@@ -42,14 +42,14 @@ class EnvironmentStatus(enum.Enum):
 
 def print_before_step(env, coin_name, episode, max_episodes, num_steps, total_steps, info_dic):
     if VERBOSE_STEP:
-        print_str = "[{0}:{1}/{2}:{3}/{4}, Balance: {5}, TOTAL_PROFIT: {6}, " \
+        print_str = "[{0}:{1}/{2}:{3}/{4}, TOTAL_BALANCE: {5}, TOTAL_PROFIT: {6}, " \
                 "HOLD_COIN_KRW: {7:>7d} (COIN_PRICE: {8:>8.2f}, HOLD_COINS: {9:>8.2f}), {10:>12}] ".format(
             coin_name,
             episode+1,
             max_episodes,
             num_steps+1,
             total_steps,
-            env.balance,
+            env.balance + env.hold_coin_krw,
             env.total_profit,
             env.hold_coin_krw,
             env.hold_coin_unit_price,
@@ -109,17 +109,22 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         print(print_str, end="\n\n")
     else:
         if num_steps % 100 == 0:
-            print("balance(profit/profit_rate_per_sell):{0}({1}/{2:6.4f}), market_buy(model):{3}/{4}({5}/{6}), "
-                  "market_sell(model):{7}/{8}({9}/{10}), replay_memory_buyer/seller:{11}/{12}, epsilon:{13:5.3f}".format(
-                env.balance, env.total_profit_list[-1],
+            print("tot_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
+                  "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
+                env.balance + env.hold_coin_krw, env.total_profit_list[-1],
                 env.total_profit_rate / env.market_sell_list[-1] if env.market_sell_list[-1] != 0 else 0.0,
                 env.market_profitable_buy_list[-1], env.market_buy_list[-1],
+                env.market_profitable_buy_list[-1] / env.market_buy_list[-1] if env.market_buy_list[-1] !=0 else 0.0,
                 env.market_profitable_buy_from_model_list[-1], env.market_buy_from_model_list[-1],
+                env.market_profitable_buy_from_model_list[-1] / env.market_buy_from_model_list[-1] if env.market_buy_from_model_list[-1] != 0 else 0.0,
                 env.market_profitable_sell_list[-1], env.market_sell_list[-1],
+                env.market_profitable_sell_list[-1] / env.market_sell_list[-1] if env.market_sell_list[-1] != 0 else 0.0,
                 env.market_profitable_sell_from_model_list[-1], env.market_sell_from_model_list[-1],
+                env.market_profitable_sell_from_model_list[-1] / env.market_sell_from_model_list[-1] if env.market_sell_from_model_list[-1] != 0 else 0.0,
                 buyer_policy.buyer_memory.size(), seller_policy.seller_memory.size(),
                 epsilon * 100
             ), end="\n")
+
 
 def array_2d_to_dict_list_order_book(arr_data):
     order_book = dict()
@@ -172,6 +177,7 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
     sold_coin_quantity = convert_unit_8(readyset_quantity)
 
     return sold_coin_krw, sold_coin_unit_price, sold_coin_quantity, commission_fee
+
 
 def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):

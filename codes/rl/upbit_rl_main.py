@@ -25,11 +25,13 @@ import numpy as np
 
 pusher = PushSlack(SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2)
 
+
 def linearly_decaying_epsilon(max_episodes, episode, warmup_episodes, max_epsilon, min_epsilon):
     steps_left = max_episodes + warmup_episodes - episode
     bonus = (max_epsilon - min_epsilon) * steps_left / max_episodes
     bonus = np.clip(bonus, 0., max_epsilon - min_epsilon)
     return min_epsilon + bonus
+
 
 def main(args):
     coin_name = args.coin
@@ -112,7 +114,9 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is SellerAction.MARKET_SELL:
-                    if reward > 0.0: reward *= 10.0
+                    if reward > 0.0:
+                        reward *= 10.0
+
                     buyer_policy.pending_buyer_transition[2] = reward
                     buyer_policy.pending_buyer_transition[3] = next_observation
                     buyer_policy.buyer_memory.put(tuple(buyer_policy.pending_buyer_transition))
@@ -202,7 +206,7 @@ def main(args):
             coin_name,
             episode + 1, MAX_EPISODES,
             num_steps, env.total_steps,
-            0.0 if env.balance <= 0.0 else env.balance
+            0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
         ))
 
 

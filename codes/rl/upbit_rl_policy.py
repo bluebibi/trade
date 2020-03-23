@@ -141,6 +141,9 @@ class DeepBuyerPolicy:
             if os.path.exists(last_buyer_model_file_path):
                 self.q.load_state_dict(torch.load(last_buyer_model_file_path))
                 print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+            else:
+                print("THERE IS NO SAVED MODEL: {0}".format(last_buyer_model_file_path))
+                exit(-1)
 
         self.qnet_copy_to_target_qnet()
 
@@ -294,6 +297,9 @@ class DeepSellerPolicy:
             if os.path.exists(last_seller_model_file_path):
                 self.q.load_state_dict(torch.load(last_seller_model_file_path))
                 print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+            else:
+                print("THERE IS NO SAVED MODEL: {0}".format(last_seller_model_file_path))
+                exit(-1)
 
         self.qnet_copy_to_target_qnet()
 
