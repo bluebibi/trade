@@ -73,20 +73,9 @@ def main(args):
         observation, info_dic = env.reset(
             episode, epsilon, buyer_policy, seller_policy
         )
-        buyer_loss = 0.0
-        seller_loss = 0.0
-        market_buys = 0
-        market_sells = 0
-        market_profitable_buys = 0
-        market_profitable_sells = 0
-
-        market_buys_from_model = 0
-        market_sells_from_model = 0
-        market_profitable_buys_from_model = 0
-        market_profitable_sells_from_model = 0
 
         from_buy_model = 0
-
+        score = 0.0
         while not done:
             print_before_step(env, coin_name, episode, MAX_EPISODES, num_steps, env.total_steps, info_dic)
 
@@ -101,14 +90,17 @@ def main(args):
                     buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, done_mask]
                     next_env_state = EnvironmentStatus.TRYING_SELL
 
-                    market_buys += 1
+                    env.market_buys += 1
 
                     if from_buy_model:
-                        market_buys_from_model += 1
+                        env.market_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
                     buyer_policy.buyer_memory.put([episode, observation, action, reward, next_observation, done_mask])
+
+                    score += reward
+
                     next_env_state = EnvironmentStatus.TRYING_BUY
 
             elif env.status is EnvironmentStatus.TRYING_SELL:
@@ -124,53 +116,77 @@ def main(args):
                     buyer_policy.pending_buyer_transition[4] = next_observation
                     buyer_policy.buyer_memory.put(buyer_policy.pending_buyer_transition)
                     buyer_policy.pending_buyer_transition = None
+                    score += reward
 
                     done_mask = 0.0 if done else 1.0
                     action = 1
                     seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
                     next_env_state = EnvironmentStatus.TRYING_BUY
+                    score += reward
 
-                    market_sells += 1
+                    env.market_sells += 1
 
                     if from_sell_model:
-                        market_sells_from_model += 1
+                        env.market_sells_from_model += 1
 
                     if reward > 0.0:
-                        market_profitable_sells += 1
-                        market_profitable_buys += 1
+                        env.market_profitable_sells += 1
+                        env.market_profitable_buys += 1
                         if from_sell_model:
-                            market_profitable_sells_from_model += 1
+                            env.market_profitable_sells_from_model += 1
                             if from_buy_model:
-                                market_profitable_buys_from_model += 1
+                                env.market_profitable_buys_from_model += 1
                         else:
                             if from_buy_model:
-                                market_profitable_buys_from_model += 1
+                                env.market_profitable_buys_from_model += 1
                 else:
                     done_mask = 0.0 if done else 1.0
                     action = 0
                     seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
+                    score += reward
                     next_env_state = EnvironmentStatus.TRYING_SELL
-
             else:
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
+            print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps,
+                             episode, done)
+
             if done:
-                episode_reward = next_info_dic['episode_reward']
-                buyer_policy.update_episode_reward(episode, episode_reward)
-                seller_policy.update_episode_reward(episode, episode_reward)
+                # episode_reward = next_info_dic['episode_reward']
+                # buyer_policy.update_episode_reward(episode, episode_reward)
+                # seller_policy.update_episode_reward(episode, episode_reward)
 
                 beta = beta_by_episode(episode)
+
                 buyer_loss = buyer_policy.train(beta)
                 seller_loss = seller_policy.train(beta)
+
                 buyer_policy.save_model(episode=episode)
                 seller_policy.save_model(episode=episode)
 
-                buyer_policy.qnet_copy_to_target_qnet()
-                seller_policy.qnet_copy_to_target_qnet()
+                if episode != 0 and episode % QNET_COPY_TO_TARGET_QNET_INTERVAL == 0:
+                    buyer_policy.qnet_copy_to_target_qnet()
+                    seller_policy.qnet_copy_to_target_qnet()
 
+                # 성능 그래프 그리기
                 env.buyer_loss_list.append(buyer_loss)
                 env.seller_loss_list.append(seller_loss)
                 env.total_balance_per_episode_list.append(env.balance + env.hold_coin_krw)
+
+                env.market_buy_list.append(env.market_buys)
+                env.market_sell_list.append(env.market_sells)
+                env.market_buy_from_model_list.append(env.market_buys_from_model)
+                env.market_sell_from_model_list.append(env.market_sells_from_model)
+                env.market_profitable_buy_list.append(env.market_profitable_buys)
+                env.market_profitable_sell_list.append(env.market_profitable_sells)
+                env.market_profitable_buy_from_model_list.append(env.market_profitable_buys_from_model)
+                env.market_profitable_sell_from_model_list.append(env.market_profitable_sells_from_model)
+
+                env.total_profit_list.append(env.total_profit)
+                env.score_list.append(score)
+
+                draw_performance(env, args)
+
             # # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
             # if num_steps % TRAIN_INTERVAL == 0 or done:
             #     beta = beta_by_episode(episode)
@@ -193,23 +209,6 @@ def main(args):
             #     buyer_policy.qnet_copy_to_target_qnet()
             #     seller_policy.qnet_copy_to_target_qnet()
 
-
-            # 성능 그래프 그리기
-            env.total_profit_list.append(env.total_profit)
-            env.market_buy_list.append(market_buys)
-            env.market_sell_list.append(market_sells)
-            env.market_buy_from_model_list.append(market_buys_from_model)
-            env.market_sell_from_model_list.append(market_sells_from_model)
-            env.market_profitable_buy_list.append(market_profitable_buys)
-            env.market_profitable_sell_list.append(market_profitable_sells)
-            env.market_profitable_buy_from_model_list.append(market_profitable_buys_from_model)
-            env.market_profitable_sell_from_model_list.append(market_profitable_sells_from_model)
-
-            # if num_steps % PERFORMANCE_GRAPH_DRAW_INTERVAL == 0 or done:
-            if done:
-                draw_performance(env, args)
-
-            print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps)
 
             num_steps += 1
 

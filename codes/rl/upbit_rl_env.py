@@ -72,6 +72,16 @@ class UpbitEnvironment:
 
         self.status = None
 
+        self.market_buys = None
+        self.market_sells = None
+        self.market_profitable_buys = None
+        self.market_profitable_sells = None
+
+        self.market_buys_from_model = None
+        self.market_sells_from_model = None
+        self.market_profitable_buys_from_model = None
+        self.market_profitable_sells_from_model = None
+
         self.total_balance_per_episode_list = []
         self.total_profit_list = []
         self.buyer_loss_list = []
@@ -85,6 +95,8 @@ class UpbitEnvironment:
         self.market_sell_from_model_list = []
         self.market_profitable_buy_from_model_list = []
         self.market_profitable_sell_from_model_list = []
+
+        self.score_list = []
 
         init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
                    "\nWINDOW_SIZE: {4}\n".format(
@@ -104,6 +116,16 @@ class UpbitEnvironment:
         self.hold_coin_krw = 0
         self.hold_coin_quantity = 0.0
         self.hold_coin_unit_price = 0.0
+
+        self.market_buys = 0
+        self.market_sells = 0
+        self.market_profitable_buys = 0
+        self.market_profitable_sells = 0
+
+        self.market_buys_from_model = 0
+        self.market_sells_from_model = 0
+        self.market_profitable_buys_from_model = 0
+        self.market_profitable_sells_from_model = 0
 
         self.just_bought_coin_krw = None
         self.just_bought_coin_quantity = None
@@ -203,6 +225,8 @@ class UpbitEnvironment:
                 "commission_fee": -1.0,
                 "episode_reward": (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             }
+
+            reward = (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             if self.args.volume:
                 next_observation = np.zeros(shape=(WINDOW_SIZE, SIZE_OF_FEATURE))
             else:
