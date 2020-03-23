@@ -153,12 +153,12 @@ class DeepBuyerPolicy:
     def train(self, beta):
         loss_lst = []
 
-        if self.args.steps:
-            train_repeats = TRAIN_REPEATS_STEPS
-            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
-        else:
+        if self.args.train_episode_ends:
             train_repeats = TRAIN_REPEATS
             train_batch_min_size = TRAIN_BATCH_MIN_SIZE
+        else:
+            train_repeats = TRAIN_REPEATS_STEPS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
 
         for i in range(train_repeats):
             train_batch_size = min(
@@ -323,12 +323,12 @@ class DeepSellerPolicy:
     def train(self, beta):
         loss_lst = []
 
-        if self.args.steps:
-            train_repeats = TRAIN_REPEATS_STEPS
-            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
-        else:
+        if self.args.train_episode_ends:
             train_repeats = TRAIN_REPEATS
             train_batch_min_size = TRAIN_BATCH_MIN_SIZE
+        else:
+            train_repeats = TRAIN_REPEATS_STEPS
+            train_batch_min_size = TRAIN_BATCH_MIN_SIZE_STEPS
 
         for i in range(train_repeats):
             train_batch_size = min(

@@ -87,10 +87,7 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is BuyerAction.MARKET_BUY:
-                    if args.steps:
-                        done_mask = 0.0
-                    else:
-                        done_mask = 0.0 if done else 1.0
+                    done_mask = 0.0
                     action = 1
                     buyer_policy.pending_buyer_transition = [episode, observation, action, None, None, done_mask]
                     next_env_state = EnvironmentStatus.TRYING_SELL
@@ -123,10 +120,7 @@ def main(args):
                     buyer_policy.pending_buyer_transition = None
                     score += reward
 
-                    if args.steps:
-                        done_mask = 0.0
-                    else:
-                        done_mask = 0.0 if done else 1.0
+                    done_mask = 0.0
                     action = 1
                     seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
                     next_env_state = EnvironmentStatus.TRYING_BUY
@@ -159,7 +153,7 @@ def main(args):
             print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps,
                              episode, done)
 
-            if args.steps:
+            if not args.train_episode_ends:
                 # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
                 if num_steps % TRAIN_INTERVAL_STEPS == 0 or done:
                     if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
@@ -228,7 +222,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--federated', action='store_true', help="use federated learning")
     parser.add_argument('-l', '--lstm', action='store_true', help="use LSTM (default CNN)")
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
-    parser.add_argument('-s', '--steps', action='store_true', help="train between steps within an episode")
+    parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
