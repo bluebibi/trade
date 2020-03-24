@@ -14,7 +14,7 @@ sys.path.append(PROJECT_HOME)
 from common.global_variables import SLACK_WEBHOOK_URL_1, SLACK_WEBHOOK_URL_2, SOURCE
 from codes.rl.upbit_rl_constants import MAX_EPISODES, REPLAY_MEMORY_THRESHOLD_FOR_TRAIN, TRAIN_INTERVAL_STEPS, \
     QNET_COPY_TO_TARGET_QNET_INTERVAL_EPISODES, QNET_COPY_TO_TARGET_QNET_INTERVAL_STEPS, EPSILON_START, \
-    EPSILON_FINAL, MODEL_SAVE_PATH
+    EPSILON_FINAL, MODEL_SAVE_PATH, PERFORMANCE_SAVE_PATH
 from codes.rl.upbit_rl_env import UpbitEnvironment
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
 from codes.rl.upbit_rl_utils import print_before_step, print_after_step, EnvironmentType, EnvironmentStatus, \
@@ -49,10 +49,10 @@ def main(args):
     env.market_profitable_buy_list.clear()
     env.market_profitable_sell_list.clear()
 
-    env.market_buy_from_model_list.clear()
-    env.market_sell_from_model_list.clear()
-    env.market_profitable_buy_from_model_list.clear()
-    env.market_profitable_sell_from_model_list.clear()
+    env.market_buy_by_model_list.clear()
+    env.market_sell_by_model_list.clear()
+    env.market_profitable_buy_by_model_list.clear()
+    env.market_profitable_sell_by_model_list.clear()
 
     beta_start = 0.4
     beta_frames = 1000
@@ -184,12 +184,12 @@ def main(args):
 
                 env.market_buy_list.append(env.market_buys)
                 env.market_sell_list.append(env.market_sells)
-                env.market_buy_from_model_list.append(env.market_buys_from_model)
-                env.market_sell_from_model_list.append(env.market_sells_from_model)
+                env.market_buy_by_model_list.append(env.market_buys_from_model)
+                env.market_sell_by_model_list.append(env.market_sells_from_model)
                 env.market_profitable_buy_list.append(env.market_profitable_buys)
                 env.market_profitable_sell_list.append(env.market_profitable_sells)
-                env.market_profitable_buy_from_model_list.append(env.market_profitable_buys_from_model)
-                env.market_profitable_sell_from_model_list.append(env.market_profitable_sells_from_model)
+                env.market_profitable_buy_by_model_list.append(env.market_profitable_buys_from_model)
+                env.market_profitable_sell_by_model_list.append(env.market_profitable_sells_from_model)
 
                 env.total_profit_list.append(env.total_profit)
                 env.score_list.append(score)
@@ -240,6 +240,9 @@ if __name__ == "__main__":
 
     if not os.path.exists(MODEL_SAVE_PATH):
         os.makedirs(MODEL_SAVE_PATH)
+
+    if not os.path.exists(PERFORMANCE_SAVE_PATH):
+        os.makedirs(PERFORMANCE_SAVE_PATH)
 
     main(args)
 

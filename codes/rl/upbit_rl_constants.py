@@ -39,10 +39,9 @@ TRAIN_BATCH_MIN_SIZE = 1024
 TRAIN_REPEATS = 10
 QNET_COPY_TO_TARGET_QNET_INTERVAL_EPISODES = 2 # EPISODES
 
-
-PERFORMANCE_FIGURE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance.png')
-
 MODEL_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'policy_models')
+PERFORMANCE_SAVE_PATH = os.path.join(PROJECT_HOME, 'codes', 'rl', 'performance')
+PERFORMANCE_FIGURE_PATH = os.path.join(PERFORMANCE_SAVE_PATH, 'performance.png')
 
 BUYER_MODEL_FILE_NAME = 'buyer_model_{0}_{1}_W{2}_F{3}_{4}.pth'
 BUYER_MODEL_SAVE_PATH = os.path.join(MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME)

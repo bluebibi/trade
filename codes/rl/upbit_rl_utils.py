@@ -1,3 +1,4 @@
+import pickle
 import sys,os
 
 import pandas as pd
@@ -7,7 +8,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    VERBOSE_STEP
+    VERBOSE_STEP, PERFORMANCE_SAVE_PATH
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
@@ -205,9 +206,9 @@ def draw_performance(env, args):
     plt.subplot(421)
     plt.yscale('log', basey=2)
     plt.plot(range(len(env.market_buy_list)), env.market_buy_list, label="Buys")
-    plt.plot(range(len(env.market_buy_from_model_list)), env.market_buy_from_model_list, linestyle="--", label="Buys by model")
+    plt.plot(range(len(env.market_buy_by_model_list)), env.market_buy_by_model_list, linestyle="--", label="Buys by model")
     plt.plot(range(len(env.market_profitable_buy_list)), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
-    plt.plot(range(len(env.market_profitable_buy_from_model_list)), env.market_profitable_buy_from_model_list, linestyle=":", label="Profitable buys by model")
+    plt.plot(range(len(env.market_profitable_buy_by_model_list)), env.market_profitable_buy_by_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
@@ -216,9 +217,9 @@ def draw_performance(env, args):
     plt.subplot(422)
     plt.yscale('log', basey=2)
     plt.plot(range(len(env.market_sell_list)), env.market_sell_list, label="Sells")
-    plt.plot(range(len(env.market_sell_from_model_list)), env.market_sell_from_model_list, linestyle="--", label="Sells by model")
+    plt.plot(range(len(env.market_sell_by_model_list)), env.market_sell_by_model_list, linestyle="--", label="Sells by model")
     plt.plot(range(len(env.market_profitable_sell_list)), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
-    plt.plot(range(len(env.market_profitable_sell_from_model_list)), env.market_profitable_sell_from_model_list, linestyle=":", label="Profitable sells by model")
+    plt.plot(range(len(env.market_profitable_sell_by_model_list)), env.market_profitable_sell_by_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
@@ -259,6 +260,24 @@ def draw_performance(env, args):
     plt.grid()
 
     plt.savefig(PERFORMANCE_FIGURE_PATH)
+
+    performance_dic = {
+        "market_buy_list": env.market_buy_list,
+        "market_buy_by_model_list": env.market_buy_by_model_list,
+        "market_profitable_buy_list": env.market_profitable_buy_list,
+        "market_profitable_buy_by_model_list": env.market_profitable_buy_by_model_list,
+        "market_sell_list": env.market_sell_list,
+        "market_sell_by_model_list": env.market_sell_by_model_list,
+        "market_profitable_sell_list": env.market_profitable_sell_list,
+        "market_profitable_sell_by_model_list": env.market_profitable_sell_by_model_list,
+        "buyer_loss_list": env.buyer_loss_list,
+        "seller_loss_list": env.seller_loss_list,
+        "score_list": env.score_list,
+        "total_balance_per_episode_list": env.total_balance_per_episode_list
+    }
+
+    with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'wb') as fout:
+        pickle.dump(performance_dic, fout)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
+import pickle
 import warnings
+
+from caffe2.perfkernels.hp_emblookup_codegen import fout
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 warnings.filterwarnings("ignore")
@@ -20,7 +23,7 @@ import copy
 from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, get_buying_price_by_order_book, \
     get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES
+    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES, PERFORMANCE_SAVE_PATH
 from web.db.database import naver_order_book_session, get_order_book_class
 
 
@@ -84,21 +87,44 @@ class UpbitEnvironment:
 
         self.just_bought_x = None
 
-        self.total_balance_per_episode_list = []
         self.total_profit_list = []
-        self.buyer_loss_list = []
-        self.seller_loss_list = []
-        self.market_buy_list = []
-        self.market_sell_list = []
-        self.market_profitable_buy_list = []
-        self.market_profitable_sell_list = []
 
-        self.market_buy_from_model_list = []
-        self.market_sell_from_model_list = []
-        self.market_profitable_buy_from_model_list = []
-        self.market_profitable_sell_from_model_list = []
 
-        self.score_list = []
+        if args.last_episode == 0:
+            self.market_buy_list = []
+            self.market_buy_by_model_list = []
+            self.market_profitable_buy_list = []
+            self.market_profitable_buy_by_model_list = []
+
+            self.market_sell_list = []
+            self.market_sell_by_model_list = []
+            self.market_profitable_sell_list = []
+            self.market_profitable_sell_by_model_list = []
+
+            self.buyer_loss_list = []
+            self.seller_loss_list = []
+
+            self.score_list = []
+            self.total_balance_per_episode_list = []
+        else:
+            with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'rb') as fin:
+                performance_dic = pickle.load(fin)
+
+            self.market_buy_list = performance_dic["market_buy_list"]
+            self.market_buy_by_model_list = performance_dic["market_buy_by_model_list"]
+            self.market_profitable_buy_list = performance_dic["market_profitable_buy_list"]
+            self.market_profitable_buy_by_model_list = performance_dic["market_profitable_buy_by_model_list"]
+
+            self.market_sell_list = performance_dic["market_sell_list"]
+            self.market_sell_by_model_list = performance_dic["market_sell_by_model_list"]
+            self.market_profitable_sell_list = performance_dic["market_profitable_sell_list"]
+            self.market_profitable_sell_by_model_list = performance_dic["market_profitable_sell_by_model_list"]
+
+            self.buyer_loss_list = performance_dic["buyer_loss_list"]
+            self.seller_loss_list = performance_dic["seller_loss_list"]
+
+            self.score_list = performance_dic["score_list"]
+            self.total_balance_per_episode_list = performance_dic["total_balance_per_episode_list"]
 
         init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
                    "\nWINDOW_SIZE: {4}\n".format(
