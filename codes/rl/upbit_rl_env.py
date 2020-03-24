@@ -5,7 +5,7 @@ warnings.filterwarnings("ignore")
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=ConvergenceWarning)
 
-import sys,os
+import sys, os
 
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
@@ -82,6 +82,8 @@ class UpbitEnvironment:
         self.market_profitable_buys_from_model = None
         self.market_profitable_sells_from_model = None
 
+        self.just_bought_x = None
+
         self.total_balance_per_episode_list = []
         self.total_profit_list = []
         self.buyer_loss_list = []
@@ -127,6 +129,8 @@ class UpbitEnvironment:
         self.market_profitable_buys_from_model = 0
         self.market_profitable_sells_from_model = 0
 
+        self.just_bought_x = None
+
         self.just_bought_coin_krw = None
         self.just_bought_coin_quantity = None
         self.just_bought_coin_unit_price = None
@@ -138,7 +142,8 @@ class UpbitEnvironment:
         self.status = EnvironmentStatus.TRYING_BUY
 
         if self.env_type is EnvironmentType.TRAIN_VALID:
-            self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args, train_valid_split=False)
+            self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args,
+                                                                                train_valid_split=False)
         else:
             pass
             # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
@@ -184,6 +189,8 @@ class UpbitEnvironment:
                 self.just_bought_coin_krw = info_dic["coin_krw"]
                 self.just_bought_coin_quantity = info_dic["coin_quantity"]
                 self.just_bought_coin_unit_price = info_dic["coin_unit_price"]
+
+                self.just_bought_x = info_dic["current_x"]
 
                 reward = "Pending"
                 next_env_status = EnvironmentStatus.TRYING_SELL
@@ -249,41 +256,38 @@ class UpbitEnvironment:
                 BUY_AMOUNT, order_book_list
             )
             base_data = current_x[0]
+            print("TRYING_BUY", base_data)
         else:
             coin_krw, coin_unit_price, coin_quantity, commission_fee = get_selling_price_by_order_book(
                 self.hold_coin_quantity, order_book_list
             )
-            base_data = self.data[self.current_step - 1][-1]
-
-        # mean_price_list = []
-        # for j in range(WINDOW_SIZE):
-        #     mean_price = (current_x[j][1] + current_x[j][11]) / 2
-        #     mean_price_list.append(mean_price)
-        #
-        # cf = changefinder.ChangeFinderARIMA()
-        # c = [cf.update(p) for p in mean_price_list]
-        #
-        # change_index = c[-1]
-
-        current_x = current_x / base_data
+            base_data = self.just_bought_x
+            print("TRYING_SELL", base_data)
+        current_x_normalized = current_x / base_data
 
         if not self.args.volume:
-            current_x = np.delete(current_x, [2 * (size_idx + 1) for size_idx in range(10)], axis=1)
+            current_x_normalized = np.delete(current_x_normalized, [2 * (size_idx + 1) for size_idx in range(10)],
+                                             axis=1)
 
-        assert current_x.shape == self.observation_space.shape, \
-               "current_x.shape: {0}, self.observation_space.shape: {1}".format(current_x.shape, self.observation_space.shape)
+        assert current_x_normalized.shape == self.observation_space.shape, \
+            "current_x.shape: {0}, self.observation_space.shape: {1}".format(
+                current_x_normalized.shape, self.observation_space.shape
+            )
 
-        assert type(coin_krw) is type(10), "Type mismatch"
+        assert type(coin_krw) is type(10), "Type mismatch: {0} - {1}".format(
+            type(coin_krw), type(10)
+        )
 
         info_dic = {
             "change_index": 0.0,
             "coin_krw": coin_krw,
             "coin_unit_price": coin_unit_price,
             "coin_quantity": coin_quantity,
-            "commission_fee": commission_fee
+            "commission_fee": commission_fee,
+            "current_x": current_x
         }
 
-        return current_x, info_dic
+        return current_x_normalized, info_dic
 
     def get_rl_dataset(self, coin_name, args, train_valid_split=False):
         order_book_class = get_order_book_class(coin_name)
