@@ -204,13 +204,17 @@ def main(args):
             env.status = next_env_state
 
         if args.slack:
-            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}".format(
+            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                 SOURCE,
                 coin_name,
                 episode + 1, MAX_EPISODES,
                 num_steps, env.total_steps,
                 0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
-                env.score_list[-1]
+                env.score_list[-1],
+                env.market_profitable_buys_from_model, env.market_buys_from_model,
+                env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
+                env.market_profitable_sells_from_model, env.market_sells_from_model,
+                env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
             ))
 
 
