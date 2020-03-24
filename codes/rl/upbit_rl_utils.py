@@ -106,7 +106,7 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         print(print_str, end="\n\n")
     else:
         if (num_steps != 0 and num_steps % 1000 == 0) or done:
-            header = "{0:>5}/{1}/{2}:".format(num_steps, env.total_steps, episode)
+            header = "{0:>5}/{1}/{2}:".format(num_steps+1, env.total_steps, episode)
 
             print(header, "t_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
                   "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
