@@ -1,13 +1,8 @@
-import collections
-import random
+import pandas as pd
+import numpy as np
 
-buffer = collections.deque(maxlen=1000)
+a = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4]
 
-buffer.append({1: []})
-buffer.append({2: []})
-buffer.append({3: []})
+df_rolling = pd.DataFrame(a).rolling(3).mean().fillna(0.0).values.squeeze(axis=1)
 
-mini_batch = random.sample(buffer, 2)
-
-for element in buffer:
-    print(element.keys())
+print(df_rolling)

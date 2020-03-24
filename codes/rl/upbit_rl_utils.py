@@ -1,5 +1,7 @@
 import sys,os
 
+import pandas as pd
+
 idx = os.getcwd().index("trade")
 PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
@@ -236,12 +238,22 @@ def draw_performance(env, args):
 
     plt.subplot(413)
     plt.plot(range(len(env.score_list)), env.score_list)
+    plt.plot(
+        range(len(env.score_list)),
+        pd.DataFrame(env.score_list).rolling(10).mean().fillna(0.0).values.squeeze(axis=1),
+        color="red"
+    )
     plt.title('SCORE', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
 
     plt.subplot(414)
     plt.plot(range(len(env.total_balance_per_episode_list)), env.total_balance_per_episode_list)
+    plt.plot(
+        range(len(env.total_balance_per_episode_list)),
+        pd.DataFrame(env.total_balance_per_episode_list).rolling(10).mean().fillna(0.0).values.squeeze(axis=1),
+        color="red"
+    )
     plt.title('TOTAL_BALANCE_PER_EPISODE', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
