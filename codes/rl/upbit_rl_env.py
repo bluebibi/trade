@@ -190,7 +190,7 @@ class UpbitEnvironment:
                 self.just_bought_coin_quantity = info_dic["coin_quantity"]
                 self.just_bought_coin_unit_price = info_dic["coin_unit_price"]
 
-                self.just_bought_x = info_dic["current_x"]
+                self.just_bought_x = info_dic["last_current_x"]
 
                 reward = "Pending"
                 next_env_status = EnvironmentStatus.TRYING_SELL
@@ -256,13 +256,14 @@ class UpbitEnvironment:
                 BUY_AMOUNT, order_book_list
             )
             base_data = current_x[0]
-            print("TRYING_BUY", base_data)
+            # print("TRYING_BUY", base_data)
         else:
             coin_krw, coin_unit_price, coin_quantity, commission_fee = get_selling_price_by_order_book(
                 self.hold_coin_quantity, order_book_list
             )
             base_data = self.just_bought_x
-            print("TRYING_SELL", base_data)
+            # print("TRYING_SELL", base_data)
+
         current_x_normalized = current_x / base_data
 
         if not self.args.volume:
@@ -284,7 +285,7 @@ class UpbitEnvironment:
             "coin_unit_price": coin_unit_price,
             "coin_quantity": coin_quantity,
             "commission_fee": commission_fee,
-            "current_x": current_x
+            "last_current_x": current_x[-1]
         }
 
         return current_x_normalized, info_dic
