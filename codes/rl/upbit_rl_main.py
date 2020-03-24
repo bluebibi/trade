@@ -204,12 +204,17 @@ def main(args):
             env.status = next_env_state
 
         if args.slack:
-            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}".format(
+            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                 SOURCE,
                 coin_name,
                 episode + 1, MAX_EPISODES,
                 num_steps, env.total_steps,
-                0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw
+                0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
+                env.score_list[-1],
+                env.market_profitable_buys_from_model, env.market_buys_from_model,
+                env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
+                env.market_profitable_sells_from_model, env.market_sells_from_model,
+                env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
             ))
 
 
@@ -226,6 +231,8 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-last_episode', required=True, help="start episode number")
+    parser.add_argument('-hold_reward', required=True, help="hold reward")
+    parser.add_argument('-window_size', required=True, help="hold reward")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
 
