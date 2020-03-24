@@ -220,7 +220,7 @@ def main(args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -v -e -last_episode=0 -hold_reward=-0.001 -window_size=36 -coin=BTC
+    ## python upbit_rl_main.py -p -v -e -last_episode=0 -reward_hold=-0.001 -window_size=36 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
@@ -231,8 +231,8 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-last_episode', required=True, help="start episode number")
-    parser.add_argument('-hold_reward', required=True, help="hold reward")
-    parser.add_argument('-window_size', required=True, help="hold reward")
+    parser.add_argument('-reward_hold', required=True, help="hold reward")
+    parser.add_argument('-window_size', required=True, help="window size")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
 
