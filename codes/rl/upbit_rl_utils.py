@@ -1,6 +1,7 @@
 import pickle
 import sys,os
 
+import numpy as np
 import pandas as pd
 
 idx = os.getcwd().index("trade")
@@ -107,7 +108,7 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         print(print_str, end="\n\n")
     else:
         if (num_steps != 0 and num_steps % 1000 == 0) or done:
-            header = "{0:>5}/{1}/{2}:".format(num_steps+1, env.total_steps, episode)
+            header = "{0:>5}/{1}/{2}:".format(num_steps, env.total_steps, episode)
 
             print(header, "t_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
                   "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
@@ -179,6 +180,23 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
     return sold_coin_krw, sold_coin_unit_price, sold_coin_quantity, commission_fee
 
 
+def exp_moving_average(values, window):
+    """ Numpy implementation of EMA
+    """
+    if window >= len(values):
+        if len(values) == 0:
+            sma = 0.0
+        else:
+            sma = np.mean(np.asarray(values))
+        a = [sma] * len(values)
+    else:
+        weights = np.exp(np.linspace(-1., 0., window))
+        weights /= weights.sum()
+        a = np.convolve(values, weights, mode='full')[:len(values)]
+        a[:window] = a[window]
+    return a
+
+
 def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
@@ -241,7 +259,7 @@ def draw_performance(env, args):
     plt.plot(range(len(env.score_list)), env.score_list)
     plt.plot(
         range(len(env.score_list)),
-        pd.DataFrame(env.score_list).rolling(10).mean().fillna(0.0).values.squeeze(axis=1),
+        exp_moving_average(env.score_list, 10),
         color="red"
     )
     plt.title('SCORE', fontweight="bold", size=10)
@@ -252,7 +270,7 @@ def draw_performance(env, args):
     plt.plot(range(len(env.total_balance_per_episode_list)), env.total_balance_per_episode_list)
     plt.plot(
         range(len(env.total_balance_per_episode_list)),
-        pd.DataFrame(env.total_balance_per_episode_list).rolling(10).mean().fillna(0.0).values.squeeze(axis=1),
+        exp_moving_average(env.total_balance_per_episode_list, 10),
         color="red"
     )
     plt.title('TOTAL_BALANCE_PER_EPISODE', fontweight="bold", size=10)

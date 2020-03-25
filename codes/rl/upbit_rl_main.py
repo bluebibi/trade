@@ -112,7 +112,7 @@ def main(args):
 
                 if action is SellerAction.MARKET_SELL:
                     if reward > 0.0:
-                        reward *= 10.0
+                        reward *= 25.0
 
                     buyer_policy.pending_buyer_transition[3] = reward
                     buyer_policy.pending_buyer_transition[4] = next_observation
@@ -166,6 +166,8 @@ def main(args):
                     buyer_policy.qnet_copy_to_target_qnet()
                     seller_policy.qnet_copy_to_target_qnet()
 
+            num_steps += 1
+
             if done:
                 buyer_loss = buyer_policy.train(beta)
                 seller_loss = seller_policy.train(beta)
@@ -195,8 +197,6 @@ def main(args):
                 env.score_list.append(score)
 
                 draw_performance(env, args)
-
-            num_steps += 1
 
             # 다음 스텝 수행을 위한 사전 준비
             observation = next_observation
@@ -230,6 +230,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
+    parser.add_argument('-u', '--pseudo', action='store_true', help="pseudo rl data")
     parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-reward_hold', required=True, help="hold reward")
     parser.add_argument('-window_size', required=True, help="window size")

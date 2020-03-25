@@ -1,7 +1,5 @@
 import pickle
 import warnings
-
-from caffe2.perfkernels.hp_emblookup_codegen import fout
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 warnings.filterwarnings("ignore")
@@ -89,8 +87,7 @@ class UpbitEnvironment:
 
         self.total_profit_list = []
 
-
-        if args.last_episode == 0:
+        if args.last_episode == 0 or not os.path.exists(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl')):
             self.market_buy_list = []
             self.market_buy_by_model_list = []
             self.market_profitable_buy_list = []
@@ -168,8 +165,12 @@ class UpbitEnvironment:
         self.status = EnvironmentStatus.TRYING_BUY
 
         if self.env_type is EnvironmentType.TRAIN_VALID:
-            self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args,
-                                                                                train_valid_split=False)
+            if self.args.pseudo:
+                self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(self.coin_name, self.args,
+                                                                                            train_valid_split=False)
+            else:
+                self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args,
+                                                                                    train_valid_split=False)
         else:
             pass
             # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
@@ -315,6 +316,24 @@ class UpbitEnvironment:
         }
 
         return current_x_normalized, info_dic
+
+    def get_rl_pseudo_dataset(self, coin_name, args, train_valid_split=False):
+        total_size = 5000
+
+        X = np.ones(shape=(total_size, 36, 21))
+
+        for i in range(0, total_size, 100):
+            if id == 0:
+                continue
+
+            for j in range(36):
+                X[i][j] = X[i][j] * (j + 1)
+
+        base_datetime_X = [None] * total_size
+        base_datetime_X[0] = "2020-03-25 18:00:00"
+        base_datetime_X[-1] = "2020-06-25 18:00:00"
+
+        return X, base_datetime_X, total_size
 
     def get_rl_dataset(self, coin_name, args, train_valid_split=False):
         order_book_class = get_order_book_class(coin_name)
