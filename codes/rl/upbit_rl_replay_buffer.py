@@ -52,7 +52,7 @@ class PrioritizedReplayBuffer:
         total = len(self.buffer)
         weights = (total * probs[indices]) ** (-beta)
         weights /= weights.max()
-        weights = np.array(weights, dtype=np.float32)
+        #weights = np.array(weights, dtype=np.float32)
         weights = torch.FloatTensor(weights)
 
         s_batch, a_batch, r_batch, s_prime_batch, done_mask_batch = [], [], [], [], []

@@ -166,11 +166,13 @@ class UpbitEnvironment:
 
         if self.env_type is EnvironmentType.TRAIN_VALID:
             if self.args.pseudo:
-                self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(self.coin_name, self.args,
-                                                                                            train_valid_split=False)
+                self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(
+                    self.coin_name, self.args, train_valid_split=False
+                )
             else:
-                self.data, self.data_datetime, self.data_size = self.get_rl_dataset(self.coin_name, self.args,
-                                                                                    train_valid_split=False)
+                self.data, self.data_datetime, self.data_size = self.get_rl_dataset(
+                    self.coin_name, self.args, train_valid_split=False
+                )
         else:
             pass
             # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
@@ -318,7 +320,7 @@ class UpbitEnvironment:
         return current_x_normalized, info_dic
 
     def get_rl_pseudo_dataset(self, coin_name, args, train_valid_split=False):
-        total_size = 5000
+        total_size = int(args.data_limit)
 
         X = np.ones(shape=(total_size, 36, 21))
 
@@ -337,7 +339,9 @@ class UpbitEnvironment:
 
     def get_rl_dataset(self, coin_name, args, train_valid_split=False):
         order_book_class = get_order_book_class(coin_name)
-        queryset = naver_order_book_session.query(order_book_class).order_by(order_book_class.base_datetime.asc())
+        queryset = naver_order_book_session.query(order_book_class).order_by(
+            order_book_class.base_datetime.asc()
+        ).limit(int(args.data_limit))
         df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
 
         # df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
