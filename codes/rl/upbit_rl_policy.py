@@ -182,12 +182,12 @@ class DeepBuyerPolicy:
             if self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
-                loss = (q_a - target).pow(2)
+                loss = (q_a - target).pow(2) * weights
                 #loss = (target - q_a) * weights
 
                 prios = torch.abs(q_a - target) + 1e-5
 
-                loss = loss.mean() * weights
+                loss = loss.mean()
                 loss_lst.append(loss.item())
                 self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
@@ -354,12 +354,12 @@ class DeepSellerPolicy:
             if self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
-                loss = (target - q_a).pow(2)
+                loss = (target - q_a).pow(2) * weights
                 #loss = (target - q_a) * weights
 
                 prios = torch.abs(q_a - target) + 1e-5
 
-                loss = loss.mean() * weights
+                loss = loss.mean()
                 loss_lst.append(loss.item())
                 self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
