@@ -320,16 +320,25 @@ class UpbitEnvironment:
         return current_x_normalized, info_dic
 
     def get_rl_pseudo_dataset(self, coin_name, args, train_valid_split=False):
-        total_size = int(args.data_limit)
+        data_size = int(args.data_limit)
 
-        X = np.ones(shape=(total_size, 36, 21))
+        data = np.ones(shape=(data_size, 21)) * 100
+        for i in range(100, data_size, 100):
+            for j in range(i - 30, i):
+                data[j] = data[j] - (i - j)
 
-        for i in range(0, total_size, 100):
-            if id == 0:
-                continue
+            for j in range(i, i + 30):
+                data[j] = data[j] + (j - i)
 
-            for j in range(36):
-                X[i][j] = X[i][j] * (j + 1)
+        dim_0 = data.shape[0] - int(self.args.window_size) + 1
+        dim_1 = data.shape[1]
+
+        X = np.zeros(shape=(dim_0, int(self.args.window_size), dim_1))
+
+        for i in range(dim_0):
+            X[i] = data[i: i + int(self.args.window_size)]
+
+        total_size = X.shape[0]
 
         base_datetime_X = [None] * total_size
         base_datetime_X[0] = "2020-03-25 18:00:00"
