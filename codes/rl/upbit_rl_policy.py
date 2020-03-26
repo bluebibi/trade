@@ -166,6 +166,7 @@ class DeepBuyerPolicy:
                 int(self.buyer_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
 
+            indices = weights = None
             if self.args.per:
                 s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_priority_memory(
                     train_batch_size, beta=beta
@@ -181,12 +182,12 @@ class DeepBuyerPolicy:
             if self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
-                #loss = (q_a - target).pow(2) * weights
-                loss = (target - q_a) * weights
+                loss = (q_a - target).pow(2)
+                #loss = (target - q_a) * weights
 
                 prios = torch.abs(q_a - target) + 1e-5
 
-                loss = loss.mean()
+                loss = loss.mean() * weights
                 loss_lst.append(loss.item())
                 self.buyer_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
@@ -337,6 +338,7 @@ class DeepSellerPolicy:
                 int(self.seller_memory.size() * TRAIN_BATCH_SIZE_PERCENT / 100)
             )
 
+            indices = weights = None
             if self.args.per:
                 s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_priority_memory(
                     train_batch_size, beta=beta
@@ -352,12 +354,12 @@ class DeepSellerPolicy:
             if self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
-                #loss = (q_a - target).pow(2) * weights
-                loss = (target - q_a) * weights
+                loss = (target - q_a).pow(2)
+                #loss = (target - q_a) * weights
 
                 prios = torch.abs(q_a - target) + 1e-5
 
-                loss = loss.mean()
+                loss = loss.mean() * weights
                 loss_lst.append(loss.item())
                 self.seller_memory.update_priorities(indices, prios.data.cpu().numpy())
             else:
