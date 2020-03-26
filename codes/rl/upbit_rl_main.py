@@ -150,6 +150,8 @@ def main(args):
             else:
                 raise ValueError("Environment Status Error: {0}".format(env.status))
 
+            num_steps += 1
+
             print_after_step(env, action, next_observation, reward, buyer_policy, seller_policy, epsilon, num_steps,
                              episode, done)
 
@@ -165,8 +167,6 @@ def main(args):
                 if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL_STEPS == 0:
                     buyer_policy.qnet_copy_to_target_qnet()
                     seller_policy.qnet_copy_to_target_qnet()
-
-            num_steps += 1
 
             if done:
                 buyer_loss = buyer_policy.train(beta)
@@ -234,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument('-last_episode', required=True, help="start episode number")
     parser.add_argument('-reward_hold', required=True, help="hold reward")
     parser.add_argument('-window_size', required=True, help="window size")
+    parser.add_argument('-data_limit', required=True, help="data_limit")
     parser.add_argument('-coin', required=True, help="coin name")
     args = parser.parse_args()
 
