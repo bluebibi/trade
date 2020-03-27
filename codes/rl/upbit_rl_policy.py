@@ -77,33 +77,38 @@ class DeepBuyerPolicy:
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
 
-    def save_model(self, episode):
-        self.remove_model()
+    def save_model(self, episode, max_score,
+                   max_market_profitable_buys_from_model_rate,
+                   max_market_profitable_sells_from_model_rate):
 
-        buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
-            "LSTM" if self.args.lstm else "CNN",
-            self.args.coin,
-            int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
-        )
+        self.remove_model()
 
         buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
+            "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
+                episode, max_score, max_market_profitable_buys_from_model_rate, max_market_profitable_sells_from_model_rate
+            )
         )
 
         torch.save(self.q.state_dict(), buyer_model_file_path)
 
-        if self.args.federated:
-            s3.upload_file(
-                buyer_model_file_path,
-                S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(buyer_model_file_name)
-            )
+        # buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
+        #     "LSTM" if self.args.lstm else "CNN",
+        #     self.args.coin,
+        #     int(self.args.window_size),
+        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     episode
+        # )
+
+        # if self.args.federated:
+        #     s3.upload_file(
+        #         buyer_model_file_path,
+        #         S3_BUCKET_NAME,
+        #         "REINFORCEMENT_LEARNING/{0}".format(buyer_model_file_name)
+        #     )
 
     def remove_model(self):
         buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
@@ -118,37 +123,44 @@ class DeepBuyerPolicy:
             os.remove(name)
 
     def load_model(self):
-        last_buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
-            "LSTM" if self.args.lstm else "CNN",
-            self.args.coin,
-            int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            self.args.last_episode
-        )
-
         last_buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            self.args.last_episode
+            "*"
         )
 
-        if self.args.federated:
-            s3.download_file(
-                S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(last_buyer_model_file_name),
-                last_buyer_model_file_path
-            )
-            self.q.load_state_dict(torch.load(last_buyer_model_file_path))
-            print("LOADED BY EXISTING BUYER POLICY MODEL FROM AWS S3!!!\n")
-        else:
-            if os.path.exists(last_buyer_model_file_path):
-                self.q.load_state_dict(torch.load(last_buyer_model_file_path))
-                print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
-            else:
-                print("THERE IS NO SAVED MODEL: {0}".format(last_buyer_model_file_path))
-                exit(-1)
+        # last_buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
+        #     "LSTM" if self.args.lstm else "CNN",
+        #     self.args.coin,
+        #     int(self.args.window_size),
+        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     "*"
+        # )
+
+        for name in glob.glob(last_buyer_model_file_path):
+            self.q.load_state_dict(torch.load(name))
+            print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL FILE: {0}!!!\n".format(
+                name
+            ))
+            break
+
+        # if self.args.federated:
+        #     s3.download_file(
+        #         S3_BUCKET_NAME,
+        #         "REINFORCEMENT_LEARNING/{0}".format(last_buyer_model_file_name),
+        #         last_buyer_model_file_path
+        #     )
+        #     self.q.load_state_dict(torch.load(last_buyer_model_file_path))
+        #     print("LOADED BY EXISTING BUYER POLICY MODEL FROM AWS S3!!!\n")
+        # else:
+        #     if os.path.exists(last_buyer_model_file_path):
+        #         self.q.load_state_dict(torch.load(last_buyer_model_file_path))
+        #         print("LOADED BY EXISTING BUYER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+        #     else:
+        #         print("THERE IS NO SAVED MODEL: {0}".format(last_buyer_model_file_path))
+        #         exit(-1)
 
         self.qnet_copy_to_target_qnet()
 
@@ -250,7 +262,10 @@ class DeepSellerPolicy:
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
 
-    def save_model(self, episode):
+    def save_model(self, episode, max_score,
+                   max_market_profitable_buys_from_model_rate,
+                   max_market_profitable_sells_from_model_rate):
+
         self.remove_model()
 
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
@@ -258,25 +273,27 @@ class DeepSellerPolicy:
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
-        )
-
-        seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
-            "LSTM" if self.args.lstm else "CNN",
-            self.args.coin,
-            int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
+            "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
+                episode, max_score, max_market_profitable_buys_from_model_rate, max_market_profitable_sells_from_model_rate
+            )
         )
 
         torch.save(self.q.state_dict(), seller_model_file_path)
 
-        if self.args.federated:
-            s3.upload_file(
-                seller_model_file_path,
-                S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(seller_model_file_name)
-            )
+        # seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
+        #     "LSTM" if self.args.lstm else "CNN",
+        #     self.args.coin,
+        #     int(self.args.window_size),
+        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     episode
+        # )
+
+        # if self.args.federated:
+        #     s3.upload_file(
+        #         seller_model_file_path,
+        #         S3_BUCKET_NAME,
+        #         "REINFORCEMENT_LEARNING/{0}".format(seller_model_file_name)
+        #     )
 
     def remove_model(self):
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
@@ -296,32 +313,39 @@ class DeepSellerPolicy:
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            self.args.last_episode
+            "*"
         )
 
-        last_seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
-            "LSTM" if self.args.lstm else "CNN",
-            self.args.coin,
-            int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            self.args.last_episode
-        )
+        # last_seller_model_file_name = SELLER_MODEL_FILE_NAME.format(
+        #     "LSTM" if self.args.lstm else "CNN",
+        #     self.args.coin,
+        #     int(self.args.window_size),
+        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     "*"
+        # )
 
-        if self.args.federated:
-            s3.download_file(
-                S3_BUCKET_NAME,
-                "REINFORCEMENT_LEARNING/{0}".format(last_seller_model_file_name),
-                last_seller_model_file_path
-            )
-            self.q.load_state_dict(torch.load(last_seller_model_file_path))
-            print("LOADED BY EXISTING SELLER POLICY MODEL FROM AWS S3!!!\n")
-        else:
-            if os.path.exists(last_seller_model_file_path):
-                self.q.load_state_dict(torch.load(last_seller_model_file_path))
-                print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
-            else:
-                print("THERE IS NO SAVED MODEL: {0}".format(last_seller_model_file_path))
-                exit(-1)
+        for name in glob.glob(last_seller_model_file_path):
+            self.q.load_state_dict(torch.load(name))
+            print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL FILE: {0}!!!\n".format(
+                name
+            ))
+            break
+
+        # if self.args.federated:
+        #     s3.download_file(
+        #         S3_BUCKET_NAME,
+        #         "REINFORCEMENT_LEARNING/{0}".format(last_seller_model_file_name),
+        #         last_seller_model_file_path
+        #     )
+        #     self.q.load_state_dict(torch.load(last_seller_model_file_path))
+        #     print("LOADED BY EXISTING SELLER POLICY MODEL FROM AWS S3!!!\n")
+        # else:
+        #     if os.path.exists(last_seller_model_file_path):
+        #         self.q.load_state_dict(torch.load(last_seller_model_file_path))
+        #         print("LOADED BY EXISTING SELLER POLICY MODEL FROM LOCAL STORAGE!!!\n")
+        #     else:
+        #         print("THERE IS NO SAVED MODEL: {0}".format(last_seller_model_file_path))
+        #         exit(-1)
 
         self.qnet_copy_to_target_qnet()
 

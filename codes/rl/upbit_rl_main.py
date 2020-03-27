@@ -60,7 +60,9 @@ def main(args):
 
     START_EPISODE = int(args.last_episode) + 1
 
-    max_score = -1000.0
+    max_score = 0.0
+    max_market_profitable_buys_from_model_rate = 0.0
+    max_market_profitable_sells_from_model_rate = 0.0
 
     for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
@@ -207,14 +209,28 @@ def main(args):
 
         model_save_condition_list = [
             score >= max_score,
-            market_profitable_buys_from_model_rate > 0.5,
-            market_profitable_sells_from_model_rate > 0.5
+            market_profitable_buys_from_model_rate > max_market_profitable_buys_from_model_rate,
+            market_profitable_sells_from_model_rate > max_market_profitable_sells_from_model_rate
         ]
 
         if all(model_save_condition_list):
             max_score = score
-            buyer_policy.save_model(episode=episode)
-            seller_policy.save_model(episode=episode)
+            max_market_profitable_buys_from_model_rate = market_profitable_buys_from_model_rate
+            max_market_profitable_sells_from_model_rate = market_profitable_sells_from_model_rate
+
+            buyer_policy.save_model(
+                episode=episode,
+                max_score=max_score,
+                max_market_profitable_buys_from_model_rate=max_market_profitable_buys_from_model_rate,
+                max_market_profitable_sells_from_model_rate=max_market_profitable_sells_from_model_rate
+            )
+
+            seller_policy.save_model(
+                episode=episode,
+                max_score=max_score,
+                max_market_profitable_buys_from_model_rate=max_market_profitable_buys_from_model_rate,
+                max_market_profitable_sells_from_model_rate=max_market_profitable_sells_from_model_rate
+            )
 
             if args.slack:
                 pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
@@ -244,7 +260,7 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-u', '--pseudo', action='store_true', help="pseudo rl data")
-    parser.add_argument('-last_episode', required=True, help="start episode number")
+    parser.add_argument('-last_episode', required=True, help="start episode number. '-last_episode=0' means that model parameters are not loaded.")
     parser.add_argument('-hold_reward', required=True, help="hold reward")
     parser.add_argument('-window_size', required=True, help="window size")
     parser.add_argument('-data_limit', required=True, help="data_limit")
