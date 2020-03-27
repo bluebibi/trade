@@ -60,6 +60,8 @@ def main(args):
 
     START_EPISODE = int(args.last_episode) + 1
 
+    max_score = -1000.0
+
     for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
         num_steps = 0
@@ -111,9 +113,9 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is SellerAction.MARKET_SELL:
-                    if reward > 0.0:
-                        reward *= 25.0
-
+                    # if reward > 0.0:
+                    #     reward *= 25.0
+                    #
                     buyer_policy.pending_buyer_transition[3] = reward
                     buyer_policy.pending_buyer_transition[4] = next_observation
                     buyer_policy.buyer_memory.put(buyer_policy.pending_buyer_transition)
@@ -172,9 +174,6 @@ def main(args):
                 buyer_loss = buyer_policy.train(beta)
                 seller_loss = seller_policy.train(beta)
 
-                buyer_policy.save_model(episode=episode)
-                seller_policy.save_model(episode=episode)
-
                 if episode != 0 and episode % QNET_COPY_TO_TARGET_QNET_INTERVAL_EPISODES == 0:
                     buyer_policy.qnet_copy_to_target_qnet()
                     seller_policy.qnet_copy_to_target_qnet()
@@ -203,24 +202,38 @@ def main(args):
             info_dic = next_info_dic
             env.status = next_env_state
 
-        if args.slack:
-            pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
-                SOURCE,
-                coin_name,
-                episode + 1, MAX_EPISODES,
-                num_steps, env.total_steps,
-                0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
-                env.score_list[-1],
-                env.market_profitable_buys_from_model, env.market_buys_from_model,
-                env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
-                env.market_profitable_sells_from_model, env.market_sells_from_model,
-                env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
-            ))
+        market_profitable_buys_from_model_rate = env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0
+        market_profitable_sells_from_model_rate = env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
+
+        model_save_condition_list = [
+            score >= max_score,
+            market_profitable_buys_from_model_rate > 0.5,
+            market_profitable_sells_from_model_rate > 0.5
+        ]
+
+        if all(model_save_condition_list):
+            max_score = score
+            buyer_policy.save_model(episode=episode)
+            seller_policy.save_model(episode=episode)
+
+            if args.slack:
+                pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
+                    SOURCE,
+                    coin_name,
+                    episode + 1, MAX_EPISODES,
+                    num_steps, env.total_steps,
+                    0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
+                    env.score_list[-1],
+                    env.market_profitable_buys_from_model, env.market_buys_from_model,
+                    env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
+                    env.market_profitable_sells_from_model, env.market_sells_from_model,
+                    env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
+                ))
 
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -v -e -last_episode=0 -reward_hold=-0.001 -window_size=36 -coin=BTC
+    ## python upbit_rl_main.py -p -v -e -u -data_limit=3000 -last_episode=0 -hold_reward=-0.000 -window_size=36 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
@@ -232,7 +245,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-u', '--pseudo', action='store_true', help="pseudo rl data")
     parser.add_argument('-last_episode', required=True, help="start episode number")
-    parser.add_argument('-reward_hold', required=True, help="hold reward")
+    parser.add_argument('-hold_reward', required=True, help="hold reward")
     parser.add_argument('-window_size', required=True, help="window size")
     parser.add_argument('-data_limit', required=True, help="data_limit")
     parser.add_argument('-coin', required=True, help="coin name")

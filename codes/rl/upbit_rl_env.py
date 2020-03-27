@@ -206,7 +206,7 @@ class UpbitEnvironment:
 
         if self.status is EnvironmentStatus.TRYING_BUY:
             if action is BuyerAction.BUY_HOLD:
-                reward = float(self.args.reward_hold)
+                reward = float(self.args.hold_reward)
                 next_env_status = EnvironmentStatus.TRYING_BUY
 
             elif action is BuyerAction.MARKET_BUY:
@@ -228,7 +228,7 @@ class UpbitEnvironment:
                 self.hold_coin_unit_price = info_dic["coin_unit_price"]
                 self.hold_coin_krw = info_dic["coin_krw"]
                 self.hold_coin_quantity = info_dic["coin_quantity"]
-                reward = float(self.args.reward_hold)
+                reward = float(self.args.hold_reward)
                 next_env_status = EnvironmentStatus.TRYING_SELL
 
             elif action is SellerAction.MARKET_SELL:
@@ -262,7 +262,7 @@ class UpbitEnvironment:
                 "episode_reward": (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             }
 
-            reward = (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
+            # reward = (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             if self.args.volume:
                 next_observation = np.zeros(shape=(int(self.args.window_size), SIZE_OF_FEATURE))
             else:

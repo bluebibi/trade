@@ -1,3 +1,4 @@
+import glob
 import math
 import warnings
 
@@ -77,6 +78,8 @@ class DeepBuyerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self, episode):
+        self.remove_model()
+
         buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
@@ -94,7 +97,6 @@ class DeepBuyerPolicy:
         )
 
         torch.save(self.q.state_dict(), buyer_model_file_path)
-        self.remove_model(episode - 1)
 
         if self.args.federated:
             s3.upload_file(
@@ -103,17 +105,17 @@ class DeepBuyerPolicy:
                 "REINFORCEMENT_LEARNING/{0}".format(buyer_model_file_name)
             )
 
-    def remove_model(self, episode):
+    def remove_model(self):
         buyer_model_file_path = BUYER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
+            "*"
         )
 
-        if os.path.exists(buyer_model_file_path):
-            os.remove(buyer_model_file_path)
+        for name in glob.glob(buyer_model_file_path):
+            os.remove(name)
 
     def load_model(self):
         last_buyer_model_file_name = BUYER_MODEL_FILE_NAME.format(
@@ -249,6 +251,8 @@ class DeepSellerPolicy:
         self.q_target.load_state_dict(self.q.state_dict())
 
     def save_model(self, episode):
+        self.remove_model()
+
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
@@ -266,7 +270,6 @@ class DeepSellerPolicy:
         )
 
         torch.save(self.q.state_dict(), seller_model_file_path)
-        self.remove_model(episode - 1)
 
         if self.args.federated:
             s3.upload_file(
@@ -275,17 +278,17 @@ class DeepSellerPolicy:
                 "REINFORCEMENT_LEARNING/{0}".format(seller_model_file_name)
             )
 
-    def remove_model(self, episode):
+    def remove_model(self):
         seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
-            episode
+            "*"
         )
 
-        if os.path.exists(seller_model_file_path):
-            os.remove(seller_model_file_path)
+        for name in glob.glob(seller_model_file_path):
+            os.remove(name)
 
     def load_model(self):
         last_seller_model_file_path = SELLER_MODEL_SAVE_PATH.format(
