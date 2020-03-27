@@ -223,10 +223,10 @@ def draw_performance(env, args):
 
     plt.subplot(421)
     plt.yscale('log', basey=2)
-    plt.plot(range(len(env.market_buy_list)), env.market_buy_list, label="Buys")
-    plt.plot(range(len(env.market_buy_by_model_list)), env.market_buy_by_model_list, linestyle="--", label="Buys by model")
-    plt.plot(range(len(env.market_profitable_buy_list)), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
-    plt.plot(range(len(env.market_profitable_buy_by_model_list)), env.market_profitable_buy_by_model_list, linestyle=":", label="Profitable buys by model")
+    plt.plot(range(1, len(env.market_buy_list) + 1), env.market_buy_list, label="Buys")
+    plt.plot(range(1, len(env.market_buy_by_model_list) + 1), env.market_buy_by_model_list, linestyle="--", label="Buys by model")
+    plt.plot(range(1, len(env.market_profitable_buy_list) + 1), env.market_profitable_buy_list, linestyle="-.", label="Profitable buys")
+    plt.plot(range(1, len(env.market_profitable_buy_by_model_list) + 1), env.market_profitable_buy_by_model_list, linestyle=":", label="Profitable buys by model")
     plt.title('MARKET BUYS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
@@ -234,29 +234,29 @@ def draw_performance(env, args):
 
     plt.subplot(422)
     plt.yscale('log', basey=2)
-    plt.plot(range(len(env.market_sell_list)), env.market_sell_list, label="Sells")
-    plt.plot(range(len(env.market_sell_by_model_list)), env.market_sell_by_model_list, linestyle="--", label="Sells by model")
-    plt.plot(range(len(env.market_profitable_sell_list)), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
-    plt.plot(range(len(env.market_profitable_sell_by_model_list)), env.market_profitable_sell_by_model_list, linestyle=":", label="Profitable sells by model")
+    plt.plot(range(1, len(env.market_sell_list) + 1), env.market_sell_list, label="Sells")
+    plt.plot(range(1, len(env.market_sell_by_model_list) + 1), env.market_sell_by_model_list, linestyle="--", label="Sells by model")
+    plt.plot(range(1, len(env.market_profitable_sell_list) + 1), env.market_profitable_sell_list, linestyle="-.", label="Profitable sells")
+    plt.plot(range(1, len(env.market_profitable_sell_by_model_list) + 1), env.market_profitable_sell_by_model_list, linestyle=":", label="Profitable sells by model")
     plt.title('MARKET SELLS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.legend(loc='upper left')
     plt.grid()
 
     plt.subplot(423)
-    plt.plot(range(len(env.buyer_loss_list)), env.buyer_loss_list)
+    plt.plot(range(1, len(env.buyer_loss_list) + 1), env.buyer_loss_list)
     plt.title('BUYER LOSS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
 
     plt.subplot(424)
-    plt.plot(range(len(env.seller_loss_list)), env.seller_loss_list)
+    plt.plot(range(1, len(env.seller_loss_list) + 1), env.seller_loss_list)
     plt.title('SELLER LOSS', fontweight="bold", size=10)
     plt.xlabel('EPISODES', size=10)
     plt.grid()
 
     plt.subplot(413)
-    plt.plot(range(len(env.score_list)), env.score_list)
+    plt.plot(range(1, len(env.score_list) + 1), env.score_list)
     plt.plot(
         range(len(env.score_list)),
         exp_moving_average(env.score_list, 10),
@@ -267,7 +267,7 @@ def draw_performance(env, args):
     plt.grid()
 
     plt.subplot(414)
-    plt.plot(range(len(env.total_balance_per_episode_list)), env.total_balance_per_episode_list)
+    plt.plot(range(1, len(env.total_balance_per_episode_list) + 1), env.total_balance_per_episode_list)
     plt.plot(
         range(len(env.total_balance_per_episode_list)),
         exp_moving_average(env.total_balance_per_episode_list, 10),
