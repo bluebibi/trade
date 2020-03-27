@@ -115,10 +115,7 @@ def main(args):
                 next_observation, reward, done, next_info_dic = env.step_with_info_dic(action, info_dic)
 
                 if action is SellerAction.MARKET_SELL:
-                    # if reward > 0.0:
-                    #     reward *= 25.0
-                    #
-                    buyer_policy.pending_buyer_transition[3] = reward
+                    buyer_policy.pending_buyer_transition[3] = reward * 10 if reward > 0.0 else reward
                     buyer_policy.pending_buyer_transition[4] = next_observation
                     buyer_policy.buyer_memory.put(buyer_policy.pending_buyer_transition)
                     buyer_policy.pending_buyer_transition = None
@@ -126,7 +123,11 @@ def main(args):
 
                     done_mask = 0.0
                     action = 1
-                    seller_policy.seller_memory.put([episode, observation, action, reward, next_observation, done_mask])
+                    seller_policy.seller_memory.put([
+                        episode, observation, action,
+                        reward * 10 if reward > 0.0 else reward,
+                        next_observation, done_mask
+                    ])
                     next_env_state = EnvironmentStatus.TRYING_BUY
                     score += reward
 
