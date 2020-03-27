@@ -210,8 +210,8 @@ def main(args):
 
         model_save_condition_list = [
             score >= max_score,
-            market_profitable_buys_from_model_rate > max_market_profitable_buys_from_model_rate,
-            market_profitable_sells_from_model_rate > max_market_profitable_sells_from_model_rate
+            market_profitable_buys_from_model_rate >= 0.5,
+            market_profitable_sells_from_model_rate >= 0.5
         ]
 
         if all(model_save_condition_list):
