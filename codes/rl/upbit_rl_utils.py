@@ -258,7 +258,7 @@ def draw_performance(env, args):
     plt.subplot(413)
     plt.plot(range(1, len(env.score_list) + 1), env.score_list)
     plt.plot(
-        range(len(env.score_list)),
+        range(1, len(env.score_list) + 1),
         exp_moving_average(env.score_list, 10),
         color="red"
     )
@@ -269,7 +269,7 @@ def draw_performance(env, args):
     plt.subplot(414)
     plt.plot(range(1, len(env.total_balance_per_episode_list) + 1), env.total_balance_per_episode_list)
     plt.plot(
-        range(len(env.total_balance_per_episode_list)),
+        range(1, len(env.total_balance_per_episode_list) + 1),
         exp_moving_average(env.total_balance_per_episode_list, 10),
         color="red"
     )
