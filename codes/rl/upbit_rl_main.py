@@ -60,7 +60,7 @@ def main(args):
 
     START_EPISODE = int(args.last_episode) + 1
 
-    max_score = 0.0
+    max_total_balance_per_episode = 0.0
 
     for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
@@ -179,10 +179,12 @@ def main(args):
                     buyer_policy.qnet_copy_to_target_qnet()
                     seller_policy.qnet_copy_to_target_qnet()
 
+                total_balance_per_episode = env.balance + env.hold_coin_krw
+
                 # 성능 그래프 그리기
                 env.buyer_loss_list.append(buyer_loss)
                 env.seller_loss_list.append(seller_loss)
-                env.total_balance_per_episode_list.append(env.balance + env.hold_coin_krw)
+                env.total_balance_per_episode_list.append(total_balance_per_episode)
 
                 env.market_buy_list.append(env.market_buys)
                 env.market_sell_list.append(env.market_sells)
@@ -207,24 +209,24 @@ def main(args):
         market_profitable_sells_from_model_rate = env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
 
         model_save_condition_list = [
-            score >= max_score,
+            max_total_balance_per_episode >= total_balance_per_episode,
             # market_profitable_buys_from_model_rate >= 0.5,
             # market_profitable_sells_from_model_rate >= 0.5
         ]
 
         if all(model_save_condition_list):
-            max_score = score
+            max_total_balance_per_episode = total_balance_per_episode
 
             buyer_policy.save_model(
                 episode=episode,
-                max_score=max_score,
+                max_total_balance_per_episode=max_total_balance_per_episode,
                 market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
                 market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
             seller_policy.save_model(
                 episode=episode,
-                max_score=max_score,
+                max_total_balance_per_episode=max_total_balance_per_episode,
                 market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
                 market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
@@ -235,7 +237,7 @@ def main(args):
                     coin_name,
                     episode + 1, MAX_EPISODES,
                     num_steps, env.total_steps,
-                    0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
+                    max_total_balance_per_episode,
                     env.score_list[-1],
                     env.market_profitable_buys_from_model, env.market_buys_from_model,
                     market_profitable_buys_from_model_rate,

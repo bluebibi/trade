@@ -77,7 +77,7 @@ class DeepBuyerPolicy:
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
 
-    def save_model(self, episode, max_score,
+    def save_model(self, episode, max_total_balance_per_episode,
                    market_profitable_buys_from_model_rate,
                    market_profitable_sells_from_model_rate):
 
@@ -89,7 +89,7 @@ class DeepBuyerPolicy:
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
-                episode, max_score, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
+                episode, max_total_balance_per_episode, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
             )
         )
 
@@ -262,7 +262,7 @@ class DeepSellerPolicy:
     def qnet_copy_to_target_qnet(self):
         self.q_target.load_state_dict(self.q.state_dict())
 
-    def save_model(self, episode, max_score,
+    def save_model(self, episode, max_total_balance_per_episode,
                    market_profitable_buys_from_model_rate,
                    market_profitable_sells_from_model_rate):
 
@@ -274,7 +274,7 @@ class DeepSellerPolicy:
             int(self.args.window_size),
             SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
             "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
-                episode, max_score, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
+                episode, max_total_balance_per_episode, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
             )
         )
 
