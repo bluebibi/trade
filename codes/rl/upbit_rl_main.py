@@ -209,7 +209,7 @@ def main(args):
         market_profitable_sells_from_model_rate = env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
 
         model_save_condition_list = [
-            max_total_balance_per_episode >= total_balance_per_episode,
+            total_balance_per_episode >= max_total_balance_per_episode,
             # market_profitable_buys_from_model_rate >= 0.5,
             # market_profitable_sells_from_model_rate >= 0.5
         ]
