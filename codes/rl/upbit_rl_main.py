@@ -61,8 +61,6 @@ def main(args):
     START_EPISODE = int(args.last_episode) + 1
 
     max_score = 0.0
-    max_market_profitable_buys_from_model_rate = 0.0
-    max_market_profitable_sells_from_model_rate = 0.0
 
     for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
@@ -216,21 +214,19 @@ def main(args):
 
         if all(model_save_condition_list):
             max_score = score
-            max_market_profitable_buys_from_model_rate = market_profitable_buys_from_model_rate
-            max_market_profitable_sells_from_model_rate = market_profitable_sells_from_model_rate
 
             buyer_policy.save_model(
                 episode=episode,
                 max_score=max_score,
-                max_market_profitable_buys_from_model_rate=max_market_profitable_buys_from_model_rate,
-                max_market_profitable_sells_from_model_rate=max_market_profitable_sells_from_model_rate
+                market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
+                market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
             seller_policy.save_model(
                 episode=episode,
                 max_score=max_score,
-                max_market_profitable_buys_from_model_rate=max_market_profitable_buys_from_model_rate,
-                max_market_profitable_sells_from_model_rate=max_market_profitable_sells_from_model_rate
+                market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
+                market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
             if args.slack:
@@ -242,9 +238,9 @@ def main(args):
                     0.0 if env.balance + env.hold_coin_krw <= 0.0 else env.balance + env.hold_coin_krw,
                     env.score_list[-1],
                     env.market_profitable_buys_from_model, env.market_buys_from_model,
-                    env.market_profitable_buys_from_model / env.market_buys_from_model if env.market_buys_from_model != 0 else 0.0,
+                    market_profitable_buys_from_model_rate,
                     env.market_profitable_sells_from_model, env.market_sells_from_model,
-                    env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
+                    market_profitable_sells_from_model_rate
                 ))
 
 
