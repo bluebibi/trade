@@ -235,7 +235,7 @@ def main(args):
                 pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                     SOURCE,
                     coin_name,
-                    episode + 1, MAX_EPISODES,
+                    episode, MAX_EPISODES,
                     num_steps, env.total_steps,
                     max_total_balance_per_episode,
                     env.score_list[-1],
