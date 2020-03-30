@@ -89,7 +89,7 @@ class UpbitEnvironment:
 
         self.last_episode = 0
 
-        if self.env_type is EnvironmentType.TRAIN_VALID:
+        if self.env_type in [EnvironmentType.TRAIN, EnvironmentType.VALID]:
             if self.args.pseudo:
                 self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(
                     self.coin_name, self.args, train_valid_split=False

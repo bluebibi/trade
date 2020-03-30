@@ -202,8 +202,6 @@ def load_performance(env):
     with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'rb') as fin:
         performance_dic = pickle.load(fin)
 
-    print(performance_dic)
-
     env.market_buy_list = performance_dic["market_buy_list"]
     env.market_buy_by_model_list = performance_dic["market_buy_by_model_list"]
     env.market_profitable_buy_list = performance_dic["market_profitable_buy_list"]
