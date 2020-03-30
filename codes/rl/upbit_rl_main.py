@@ -18,7 +18,7 @@ from codes.rl.upbit_rl_constants import MAX_EPISODES, REPLAY_MEMORY_THRESHOLD_FO
 from codes.rl.upbit_rl_env import UpbitEnvironment
 from codes.rl.upbit_rl_policy import DeepBuyerPolicy, DeepSellerPolicy
 from codes.rl.upbit_rl_utils import print_before_step, print_after_step, EnvironmentType, EnvironmentStatus, \
-    BuyerAction, SellerAction, draw_performance
+    BuyerAction, SellerAction, draw_performance, save_performance
 from common.slack import PushSlack
 import argparse
 import numpy as np
@@ -35,32 +35,17 @@ def linearly_decaying_epsilon(max_episodes, episode, warmup_episodes, max_epsilo
 
 def main(args):
     coin_name = args.coin
-    env = UpbitEnvironment(coin_name=coin_name, args=args, env_type=EnvironmentType.TRAIN_VALID)
+    env = UpbitEnvironment(coin_name=coin_name, args=args, env_type=EnvironmentType.TRAIN)
     buyer_policy = DeepBuyerPolicy(args)
     seller_policy = DeepSellerPolicy(args)
-
-    env.total_balance_per_episode_list.clear()
-
-    env.total_profit_list.clear()
-    env.buyer_loss_list.clear()
-    env.seller_loss_list.clear()
-    env.market_buy_list.clear()
-    env.market_sell_list.clear()
-    env.market_profitable_buy_list.clear()
-    env.market_profitable_sell_list.clear()
-
-    env.market_buy_by_model_list.clear()
-    env.market_sell_by_model_list.clear()
-    env.market_profitable_buy_by_model_list.clear()
-    env.market_profitable_sell_by_model_list.clear()
 
     beta_start = 0.4
     beta_frames = 1000
     beta_by_episode = lambda episode: min(1.0, beta_start + episode * (1.0 - beta_start) / beta_frames)
 
-    START_EPISODE = int(args.last_episode) + 1
+    START_EPISODE = int(env.last_episode) + 1
 
-    max_total_balance_per_episode = 0.0
+    total_balance_per_episode = 0.0
 
     for episode in range(START_EPISODE, MAX_EPISODES):
         done = False
@@ -198,6 +183,7 @@ def main(args):
                 env.total_profit_list.append(env.total_profit)
                 env.score_list.append(score)
 
+                save_performance(env)
                 draw_performance(env, args)
 
             # 다음 스텝 수행을 위한 사전 준비
@@ -209,46 +195,46 @@ def main(args):
         market_profitable_sells_from_model_rate = env.market_profitable_sells_from_model / env.market_sells_from_model if env.market_sells_from_model != 0 else 0.0
 
         model_save_condition_list = [
-            total_balance_per_episode >= max_total_balance_per_episode,
-            # market_profitable_buys_from_model_rate >= 0.5,
-            # market_profitable_sells_from_model_rate >= 0.5
+            total_balance_per_episode >= env.max_total_balance_per_episode,
+            env.market_profitable_buys_from_model != 0,
+            env.market_profitable_sells_from_model != 0
         ]
 
         if all(model_save_condition_list):
-            max_total_balance_per_episode = total_balance_per_episode
+            env.max_total_balance_per_episode = total_balance_per_episode
 
             buyer_policy.save_model(
                 episode=episode,
-                max_total_balance_per_episode=max_total_balance_per_episode,
+                max_total_balance_per_episode=env.max_total_balance_per_episode,
                 market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
                 market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
             seller_policy.save_model(
                 episode=episode,
-                max_total_balance_per_episode=max_total_balance_per_episode,
+                max_total_balance_per_episode=env.max_total_balance_per_episode,
                 market_profitable_buys_from_model_rate=market_profitable_buys_from_model_rate,
                 market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
             if args.slack:
-                pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
+                pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                     SOURCE,
                     coin_name,
                     episode, MAX_EPISODES,
                     num_steps, env.total_steps,
-                    max_total_balance_per_episode,
+                    env.max_total_balance_per_episode,
                     env.score_list[-1],
                     env.market_profitable_buys_from_model, env.market_buys_from_model,
                     market_profitable_buys_from_model_rate,
                     env.market_profitable_sells_from_model, env.market_sells_from_model,
                     market_profitable_sells_from_model_rate
                 ))
-
+        env.last_episode = episode
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -v -e -u -data_limit=3000 -last_episode=0 -hold_reward=-0.000 -window_size=36 -coin=BTC
+    ## python upbit_rl_main.py -p -v -e -u -data_limit=3000 -hold_reward=-0.000 -window_size=36 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
@@ -259,7 +245,6 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--train_episode_ends', action='store_true', help="train only when an episode ends")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-u', '--pseudo', action='store_true', help="pseudo rl data")
-    parser.add_argument('-last_episode', required=True, help="start episode number. '-last_episode=0' means that model parameters are not loaded.")
     parser.add_argument('-hold_reward', required=True, help="hold reward")
     parser.add_argument('-window_size', required=True, help="window size")
     parser.add_argument('-data_limit', required=True, help="data_limit")

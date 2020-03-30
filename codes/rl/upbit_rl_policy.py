@@ -41,8 +41,9 @@ s3 = boto3.client('s3')
 
 
 class DeepBuyerPolicy:
-    def __init__(self, args=None):
+    def __init__(self, args=None, play=False):
         self.args = args
+        self.play = play
 
         if self.args.volume:
             self.input_size = SIZE_OF_FEATURE
@@ -56,10 +57,10 @@ class DeepBuyerPolicy:
             self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
             self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
 
-        if int(args.last_episode) != 0:
+        if self.play:
             self.load_model()
 
-        if self.args.per:
+        if hasattr(self.args, "per") and self.args.per:
             self.buyer_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
         else:
             self.buyer_memory = ReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
@@ -181,7 +182,7 @@ class DeepBuyerPolicy:
             )
 
             indices = weights = None
-            if self.args.per:
+            if hasattr(self.args, "per") and self.args.per:
                 s, a, r, s_prime, done_mask, indices, weights = self.buyer_memory.sample_priority_memory(
                     train_batch_size, beta=beta
                 )
@@ -193,7 +194,7 @@ class DeepBuyerPolicy:
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
 
-            if self.args.per:
+            if hasattr(self.args, "per") and self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
                 loss = (q_a - target).pow(2) * weights
@@ -227,8 +228,9 @@ class DeepBuyerPolicy:
 
 
 class DeepSellerPolicy:
-    def __init__(self, args=None):
+    def __init__(self, args=None, play=False):
         self.args = args
+        self.play = play
 
         if self.args.volume:
             self.input_size = SIZE_OF_FEATURE
@@ -242,10 +244,10 @@ class DeepSellerPolicy:
             self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
             self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
 
-        if int(args.last_episode) != 0:
+        if self.play:
             self.load_model()
 
-        if self.args.per:
+        if hasattr(self.args, "per") and self.args.per:
             self.seller_memory = PrioritizedReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
         else:
             self.seller_memory = ReplayBuffer(capacity=REPLAY_MEMORY_SIZE)
@@ -366,7 +368,7 @@ class DeepSellerPolicy:
             )
 
             indices = weights = None
-            if self.args.per:
+            if hasattr(self.args, "per") and self.args.per:
                 s, a, r, s_prime, done_mask, indices, weights = self.seller_memory.sample_priority_memory(
                     train_batch_size, beta=beta
                 )
@@ -378,7 +380,7 @@ class DeepSellerPolicy:
             max_q_prime = self.q_target(s_prime).max(1)[0].unsqueeze(1).detach()
             target = r + GAMMA * max_q_prime * done_mask
 
-            if self.args.per:
+            if hasattr(self.args, "per") and self.args.per:
                 q_a = torch.squeeze(q_a, dim=1)
                 target = torch.squeeze(target, dim=1)
                 loss = (target - q_a).pow(2) * weights
