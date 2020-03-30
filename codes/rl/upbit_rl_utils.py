@@ -9,7 +9,7 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    VERBOSE_STEP, PERFORMANCE_SAVE_PATH
+    VERBOSE_STEP, PERFORMANCE_SAVE_PATH, PLAY_FIGURE_PATH
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
@@ -35,8 +35,9 @@ class SellerAction(enum.Enum):
 
 
 class EnvironmentType(enum.Enum):
-    TRAIN_VALID = 0
-    LIVE = 1
+    TRAIN = 0
+    VALID = 1
+    LIVE = 2
 
 
 class EnvironmentStatus(enum.Enum):
@@ -197,6 +198,58 @@ def exp_moving_average(values, window):
     return a
 
 
+def load_performance(env):
+    with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'rb') as fin:
+        performance_dic = pickle.load(fin)
+
+    print(performance_dic)
+
+    env.market_buy_list = performance_dic["market_buy_list"]
+    env.market_buy_by_model_list = performance_dic["market_buy_by_model_list"]
+    env.market_profitable_buy_list = performance_dic["market_profitable_buy_list"]
+    env.market_profitable_buy_by_model_list = performance_dic["market_profitable_buy_by_model_list"]
+
+    env.market_sell_list = performance_dic["market_sell_list"]
+    env.market_sell_by_model_list = performance_dic["market_sell_by_model_list"]
+    env.market_profitable_sell_list = performance_dic["market_profitable_sell_list"]
+    env.market_profitable_sell_by_model_list = performance_dic["market_profitable_sell_by_model_list"]
+
+    env.buyer_loss_list = performance_dic["buyer_loss_list"]
+    env.seller_loss_list = performance_dic["seller_loss_list"]
+
+    env.score_list = performance_dic["score_list"]
+    env.total_balance_per_episode_list = performance_dic["total_balance_per_episode_list"]
+
+    env.max_total_balance_per_episode = performance_dic["max_total_balance_per_episode"]
+    env.last_episode = performance_dic["last_episode"]
+
+
+def save_performance(env):
+    performance_dic = {
+        "market_buy_list": env.market_buy_list,
+        "market_buy_by_model_list": env.market_buy_by_model_list,
+        "market_profitable_buy_list": env.market_profitable_buy_list,
+        "market_profitable_buy_by_model_list": env.market_profitable_buy_by_model_list,
+
+        "market_sell_list": env.market_sell_list,
+        "market_sell_by_model_list": env.market_sell_by_model_list,
+        "market_profitable_sell_list": env.market_profitable_sell_list,
+        "market_profitable_sell_by_model_list": env.market_profitable_sell_by_model_list,
+
+        "buyer_loss_list": env.buyer_loss_list,
+        "seller_loss_list": env.seller_loss_list,
+
+        "score_list": env.score_list,
+        "total_balance_per_episode_list": env.total_balance_per_episode_list,
+
+        "max_total_balance_per_episode": env.max_total_balance_per_episode,
+        "last_episode": env.last_episode
+    }
+
+    with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'wb') as fout:
+        pickle.dump(performance_dic, fout)
+
+
 def draw_performance(env, args):
     if os.path.exists(PERFORMANCE_FIGURE_PATH):
         os.remove(PERFORMANCE_FIGURE_PATH)
@@ -204,7 +257,7 @@ def draw_performance(env, args):
     plt.figure(figsize=(18, 18))
     title_str = "DQN "
 
-    if args.per:
+    if hasattr(args, "per") and args.per:
         title_str += "[Prioritized Experience Memory] "
     else:
         title_str += "[Experience Memory] "
@@ -279,23 +332,24 @@ def draw_performance(env, args):
 
     plt.savefig(PERFORMANCE_FIGURE_PATH)
 
-    performance_dic = {
-        "market_buy_list": env.market_buy_list,
-        "market_buy_by_model_list": env.market_buy_by_model_list,
-        "market_profitable_buy_list": env.market_profitable_buy_list,
-        "market_profitable_buy_by_model_list": env.market_profitable_buy_by_model_list,
-        "market_sell_list": env.market_sell_list,
-        "market_sell_by_model_list": env.market_sell_by_model_list,
-        "market_profitable_sell_list": env.market_profitable_sell_list,
-        "market_profitable_sell_by_model_list": env.market_profitable_sell_by_model_list,
-        "buyer_loss_list": env.buyer_loss_list,
-        "seller_loss_list": env.seller_loss_list,
-        "score_list": env.score_list,
-        "total_balance_per_episode_list": env.total_balance_per_episode_list
-    }
 
-    with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'wb') as fout:
-        pickle.dump(performance_dic, fout)
+def draw_play_record(coin_unit_price_list, market_buy_step_list, market_sell_step_list):
+    if os.path.exists(PLAY_FIGURE_PATH):
+        os.remove(PLAY_FIGURE_PATH)
+
+    plt.figure(figsize=(27, 9))
+    title_str = "DQN "
+    plt.subplot(111)
+    plt.plot(range(len(coin_unit_price_list[:-1])), coin_unit_price_list[:-1])
+    plt.scatter(*zip(*market_buy_step_list), color="r")
+    plt.scatter(*zip(*market_sell_step_list), color="b")
+    plt.title('COIN PRICE CHANGE', fontweight="bold", size=10)
+    plt.xlabel('STEPS (10 minutes)', size=10)
+    plt.grid()
+
+    plt.suptitle(title_str, fontsize=14)
+
+    plt.savefig(PLAY_FIGURE_PATH)
 
 
 if __name__ == "__main__":

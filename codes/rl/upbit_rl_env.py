@@ -19,7 +19,7 @@ from sklearn import preprocessing
 import copy
 
 from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, get_buying_price_by_order_book, \
-    get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction
+    get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction, load_performance
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
     SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES, PERFORMANCE_SAVE_PATH
 from web.db.database import naver_order_book_session, get_order_book_class
@@ -30,7 +30,7 @@ class UpbitEnvironment:
     scaler = preprocessing.MinMaxScaler()
     viewer = None
 
-    def __init__(self, coin_name, args, env_type=EnvironmentType.TRAIN_VALID):
+    def __init__(self, coin_name, args, env_type=EnvironmentType.TRAIN):
         self.coin_name = coin_name
         self.args = args
 
@@ -87,7 +87,9 @@ class UpbitEnvironment:
 
         self.total_profit_list = []
 
-        if args.last_episode == 0 or not os.path.exists(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl')):
+        self.last_episode = 0
+
+        if self.env_type is EnvironmentType.VALID or not os.path.exists(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl')):
             self.market_buy_list = []
             self.market_buy_by_model_list = []
             self.market_profitable_buy_list = []
@@ -103,25 +105,11 @@ class UpbitEnvironment:
 
             self.score_list = []
             self.total_balance_per_episode_list = []
+
+            self.max_total_balance_per_episode = 0.0
+            self.last_episode = 0
         else:
-            with open(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl'), 'rb') as fin:
-                performance_dic = pickle.load(fin)
-
-            self.market_buy_list = performance_dic["market_buy_list"]
-            self.market_buy_by_model_list = performance_dic["market_buy_by_model_list"]
-            self.market_profitable_buy_list = performance_dic["market_profitable_buy_list"]
-            self.market_profitable_buy_by_model_list = performance_dic["market_profitable_buy_by_model_list"]
-
-            self.market_sell_list = performance_dic["market_sell_list"]
-            self.market_sell_by_model_list = performance_dic["market_sell_by_model_list"]
-            self.market_profitable_sell_list = performance_dic["market_profitable_sell_list"]
-            self.market_profitable_sell_by_model_list = performance_dic["market_profitable_sell_by_model_list"]
-
-            self.buyer_loss_list = performance_dic["buyer_loss_list"]
-            self.seller_loss_list = performance_dic["seller_loss_list"]
-
-            self.score_list = performance_dic["score_list"]
-            self.total_balance_per_episode_list = performance_dic["total_balance_per_episode_list"]
+            load_performance(self)
 
         init_str = "[COIN NAME: {0}] INIT\nOBSERVATION SPACE: {1}\nBUYER_ACTION SPACE: {2}\nSELLER_ACTION_SPACE: {3}" \
                    "\nWINDOW_SIZE: {4}\n".format(
@@ -164,7 +152,7 @@ class UpbitEnvironment:
 
         self.status = EnvironmentStatus.TRYING_BUY
 
-        if self.env_type is EnvironmentType.TRAIN_VALID:
+        if self.env_type in [EnvironmentType.TRAIN, EnvironmentType.VALID]:
             if self.args.pseudo:
                 self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(
                     self.coin_name, self.args, train_valid_split=False
@@ -175,7 +163,7 @@ class UpbitEnvironment:
                 )
         else:
             pass
-            # raise ValueError("Problem at self.env_type : {0}".format(self.env_type))
+
 
         self.current_step = 0
         self.steps_left = self.data_size
