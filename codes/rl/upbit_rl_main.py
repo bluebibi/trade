@@ -196,8 +196,8 @@ def main(args):
 
         model_save_condition_list = [
             total_balance_per_episode >= env.max_total_balance_per_episode,
-            env.market_buys_from_model != 0,
-            env.market_sells_from_model != 0
+            env.market_profitable_buys_from_model != 0,
+            env.market_profitable_sells_from_model != 0
         ]
 
         if all(model_save_condition_list):
@@ -218,7 +218,7 @@ def main(args):
             )
 
             if args.slack:
-                pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7:6.3f}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
+                pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                     SOURCE,
                     coin_name,
                     episode, MAX_EPISODES,
