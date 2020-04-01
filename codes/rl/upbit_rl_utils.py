@@ -9,7 +9,8 @@ PROJECT_HOME = os.getcwd()[:idx] + "trade"
 sys.path.append(PROJECT_HOME)
 
 from codes.rl.upbit_rl_constants import PERFORMANCE_FIGURE_PATH, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    VERBOSE_STEP, PERFORMANCE_SAVE_PATH, PLAY_FIGURE_PATH
+    VERBOSE_STEP, PERFORMANCE_SAVE_PATH, PLAY_FIGURE_PATH, SIZE_OF_OHLCV_FEATURE, SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME, \
+    COMMISSION_RATE
 
 from codes.upbit.upbit_api import Upbit
 from common.global_variables import CLIENT_ID_UPBIT, CLIENT_SECRET_UPBIT, fmt
@@ -111,9 +112,9 @@ def print_after_step(env, action, observation, reward, buyer_policy, seller_poli
         if (num_steps != 0 and num_steps % 1000 == 0) or done:
             header = "{0:>5}/{1}/{2}:".format(num_steps, env.total_steps, episode)
 
-            print(header, "t_balance(profit/rate_per_sell):{0}({1}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
+            print(header, "t_balance(profit/rate_per_sell):{0:8d}({1:8d}/{2:6.4f}), Buy(model):{3}/{4}={5:5.3f}({6}/{7}={8:5.3f}), "
                   "Sell(model):{9}/{10}={11:5.3f}({12}/{13}={14:5.3f}), memory_buyer/seller:{15}/{16}, Eps:{17:5.3f}".format(
-                env.balance + env.hold_coin_krw, env.total_profit,
+                int(env.balance + env.hold_coin_krw), int(env.total_profit),
                 env.total_profit_rate / env.market_sells if env.market_sells != 0 else 0.0,
                 env.market_profitable_buys, env.market_buys,
                 env.market_profitable_buys / env.market_buys if env.market_buys != 0 else 0.0,
@@ -142,7 +143,7 @@ def array_2d_to_dict_list_order_book(arr_data):
 
 
 def get_buying_price_by_order_book(readyset_krw, order_book):
-    commission_fee = int(readyset_krw * 0.0015)
+    commission_fee = int(readyset_krw * COMMISSION_RATE)
     buying_krw = readyset_krw - commission_fee
     bought_coin_quantity = 0.0
     for order in order_book['orderbook_units']:
@@ -173,7 +174,7 @@ def get_selling_price_by_order_book(readyset_quantity, order_book):
             selling_quantity = selling_quantity - float(order['bid_size'])
             selling_krw += order['bid_price'] * float(order['bid_size'])
 
-    commission_fee = int(round(selling_krw * 0.0015))
+    commission_fee = int(round(selling_krw * COMMISSION_RATE))
     sold_coin_krw = int(round(selling_krw - commission_fee))
     sold_coin_unit_price = convert_unit_2(selling_krw / readyset_quantity)
     sold_coin_quantity = convert_unit_8(readyset_quantity)
@@ -260,10 +261,16 @@ def draw_performance(env, args):
     else:
         title_str += "[Experience Memory] "
 
-    if args.volume:
-        title_str += "[WITH VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE)
+    if args.ohlc:
+        if args.volume:
+            title_str += "[OHLC WITH VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_OHLCV_FEATURE)
+        else:
+            title_str += "[OHLC WITHOUT VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME)
     else:
-        title_str += "[WITHOUT VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE_WITHOUT_VOLUME)
+        if args.volume:
+            title_str += "[WITH VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE)
+        else:
+            title_str += "[WITHOUT VOLUME FEATURES (FEATURE SIZE:{0})] ".format(SIZE_OF_FEATURE_WITHOUT_VOLUME)
 
     if args.lstm:
         title_str += "[LSTM] "

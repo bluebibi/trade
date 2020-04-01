@@ -217,6 +217,8 @@ def main(args):
                 market_profitable_sells_from_model_rate=market_profitable_sells_from_model_rate
             )
 
+            print("NEW MODEL SAVED AT {0} EPISODE".format(episode))
+
             if args.slack:
                 pusher.send_message("me", "[{0}] {1}, {2}/{3}, {4}/{5}, {6}, {7}, {8}/{9}={10:5.3f}, {11}/{12}={13:5.3f}".format(
                     SOURCE,
@@ -231,6 +233,7 @@ def main(args):
                     market_profitable_sells_from_model_rate
                 ))
         env.last_episode = episode
+
 
 if __name__ == "__main__":
     ##

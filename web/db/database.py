@@ -47,6 +47,12 @@ naver_order_book_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/reco
 naver_order_book_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_order_book_engine))
 
 
+naver_ohlcv_price_engine = create_engine('mysql+mysqlconnector://{0}:{1}@{2}/record?use_pure=True'.format(
+            NAVER_MYSQL_ID, NAVER_MYSQL_PASSWORD, NAVER_MYSQL_HOST
+        ), encoding='utf-8')
+naver_ohlcv_price_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=naver_ohlcv_price_engine))
+
+
 class Model(Base):
     __tablename__ = 'MODEL'
     __table_args__ = {'extend_existing': True}
@@ -201,6 +207,41 @@ def get_order_book_class(coin_name):
 
    return OrderBook
 
+
+def get_ohlcv_class(coin_name, TimeUnit):
+   class Ohlcv(Base):
+        __tablename__ = "KRW_{0}_PRICE_{1}".format(coin_name, TimeUnit)
+        __table_args__ = {'extend_existing': True}
+
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        datetime_utc = Column(DateTime, unique=True, index=True)
+        datetime_krw = Column(DateTime, unique=True, index=True)
+        daily_base_timestamp = Column(Integer)
+
+        open = Column(Float)
+        high = Column(Float)
+        low = Column(Float)
+        final = Column(Float)
+        volume = Column(Float)
+
+        def __init__(self, *args, **kw):
+            super(Ohlcv, self).__init__(*args, **kw)
+
+        def get_id(self):
+            return self.id
+
+        def __repr__(self):
+            return str({
+                "id": self.id,
+                "datetime_krw": self.datetime_krw,
+                "open": self.open,
+                "high": self.high,
+                "low": self.low,
+                "final": self.final,
+                "volume": self.volume
+            })
+
+   return Ohlcv
 
 class BuySell(Base):
     __tablename__ = "BUY_SELL"

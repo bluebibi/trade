@@ -1,3 +1,4 @@
+import enum
 import os
 
 idx = os.getcwd().index("trade")
@@ -13,11 +14,21 @@ FEATURES_WITHOUT_VOLUME = ["daily_base_timestamp",
         "ask_price_0", "ask_price_1", "ask_price_2", "ask_price_3", "ask_price_4",
         "bid_price_0", "bid_price_1", "bid_price_2", "bid_price_3", "bid_price_4"]
 
+OHLCV_FEATURES = ["daily_base_timestamp", "open", "high", "low", "final", "volume"]
+
+OHLCV_FEATURES_WITHOUT_VOLUME = ["daily_base_timestamp", "open", "high", "low", "final"]
+
 SIZE_OF_FEATURE = len(FEATURES)
 SIZE_OF_FEATURE_WITHOUT_VOLUME = len(FEATURES_WITHOUT_VOLUME)
 
+SIZE_OF_OHLCV_FEATURE = len(OHLCV_FEATURES)
+SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME = len(OHLCV_FEATURES_WITHOUT_VOLUME)
+
 INITIAL_TOTAL_KRW = 1000000
 BUY_AMOUNT = 100000
+COMMISSION_RATE = 0.0015
+SLIPPAGE_RATE = 0.001  # 10000000 + 10000 = 10010000
+
 MAX_EPISODES = 2000
 GAMMA = 1.0
 LEARNING_RATE = 0.001
@@ -54,3 +65,9 @@ SELLER_MODEL_SAVE_PATH = os.path.join(MODEL_SAVE_PATH, SELLER_MODEL_FILE_NAME)
 S3_BUCKET_NAME = 'invest-thinkonweb'
 
 VERBOSE_STEP = False
+
+
+class TimeUnit(enum.Enum):
+    TEN_MINUTES = "10_MIN"
+    ONE_HOUR = "1_HOUR"
+    ONE_DAY = "1_DAY"

@@ -21,8 +21,9 @@ import copy
 from codes.rl.upbit_rl_utils import array_2d_to_dict_list_order_book, get_buying_price_by_order_book, \
     get_selling_price_by_order_book, EnvironmentType, EnvironmentStatus, BuyerAction, SellerAction, load_performance
 from codes.rl.upbit_rl_constants import BUY_AMOUNT, INITIAL_TOTAL_KRW, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES, PERFORMANCE_SAVE_PATH
-from web.db.database import naver_order_book_session, get_order_book_class
+    SIZE_OF_FEATURE, FEATURES, FEATURES_WITHOUT_VOLUME, MAX_EPISODES, PERFORMANCE_SAVE_PATH, TimeUnit, OHLCV_FEATURES, \
+    SIZE_OF_OHLCV_FEATURE, SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME, COMMISSION_RATE, SLIPPAGE_RATE
+from web.db.database import naver_order_book_session, get_order_book_class, get_ohlcv_class, naver_ohlcv_price_session
 
 
 class UpbitEnvironment:
@@ -37,10 +38,16 @@ class UpbitEnvironment:
         self.buyer_action_space = spaces.Discrete(2)
         self.seller_action_space = spaces.Discrete(2)
 
-        if self.args.volume:
-            self.input_size = SIZE_OF_FEATURE
+        if self.args.ohlc:
+            if self.args.volume:
+                self.input_size = SIZE_OF_OHLCV_FEATURE
+            else:
+                self.input_size = SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME
         else:
-            self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
+            if self.args.volume:
+                self.input_size = SIZE_OF_FEATURE
+            else:
+                self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(int(args.window_size), self.input_size), dtype=np.float16
@@ -206,7 +213,10 @@ class UpbitEnvironment:
                 self.just_bought_coin_quantity = info_dic["coin_quantity"]
                 self.just_bought_coin_unit_price = info_dic["coin_unit_price"]
 
-                self.just_bought_x = info_dic["last_current_x"]
+                if self.args.ohlc:
+                    self.just_bought_x = info_dic["last_current_x"][4]
+                else:
+                    self.just_bought_x = info_dic["last_current_x"]
 
                 reward = "Pending"
                 next_env_status = EnvironmentStatus.TRYING_SELL
@@ -241,7 +251,6 @@ class UpbitEnvironment:
         if self.steps_left == 0 or self.balance + self.hold_coin_krw <= 0.0:
             done = True
             next_info_dic = {
-                "change_index": 0.0,
                 "coin_krw": -1.0,
                 "coin_unit_price": -1.0,
                 "coin_quantity": -1.0,
@@ -249,11 +258,8 @@ class UpbitEnvironment:
                 "episode_reward": (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
             }
 
-            # reward = (self.balance + self.hold_coin_krw - INITIAL_TOTAL_KRW) / INITIAL_TOTAL_KRW
-            if self.args.volume:
-                next_observation = np.zeros(shape=(int(self.args.window_size), SIZE_OF_FEATURE))
-            else:
-                next_observation = np.zeros(shape=(int(self.args.window_size), SIZE_OF_FEATURE_WITHOUT_VOLUME))
+            next_observation = np.zeros(shape=(int(self.args.window_size), self.input_size))
+
         else:
             done = False
             next_observation, next_info_dic = self._next_observation(next_env_status=next_env_status)
@@ -265,38 +271,54 @@ class UpbitEnvironment:
     def _next_observation(self, next_env_status):
         current_x = copy.deepcopy(self.data[self.current_step])
 
-        order_book_list = array_2d_to_dict_list_order_book(current_x[-1])
-
-        if next_env_status is EnvironmentStatus.TRYING_BUY:
-            coin_krw, coin_unit_price, coin_quantity, commission_fee = get_buying_price_by_order_book(
-                BUY_AMOUNT, order_book_list
-            )
-            base_data = current_x[0]
-            # print("TRYING_BUY", base_data)
+        if self.args.ohlc:
+            if next_env_status is EnvironmentStatus.TRYING_BUY:
+                coin_krw = BUY_AMOUNT - BUY_AMOUNT * COMMISSION_RATE
+                coin_unit_price = current_x[-1][4] + current_x[-1][4] * SLIPPAGE_RATE
+                coin_quantity = coin_krw / coin_unit_price
+                commission_fee = BUY_AMOUNT * COMMISSION_RATE
+                base_data = current_x[-1][4]
+            else:
+                coin_unit_price = current_x[-1][4] - current_x[-1][4] * SLIPPAGE_RATE
+                coin_krw = self.hold_coin_quantity * coin_unit_price - self.hold_coin_quantity * coin_unit_price * COMMISSION_RATE
+                coin_quantity = self.hold_coin_quantity
+                commission_fee = self.hold_coin_quantity * coin_unit_price * COMMISSION_RATE
+                base_data = self.just_bought_x
         else:
-            coin_krw, coin_unit_price, coin_quantity, commission_fee = get_selling_price_by_order_book(
-                self.hold_coin_quantity, order_book_list
-            )
-            base_data = self.just_bought_x
-            # print("TRYING_SELL", base_data)
+            order_book_list = array_2d_to_dict_list_order_book(current_x[-1])
+
+            if next_env_status is EnvironmentStatus.TRYING_BUY:
+                coin_krw, coin_unit_price, coin_quantity, commission_fee = get_buying_price_by_order_book(
+                    BUY_AMOUNT, order_book_list
+                )
+                base_data = current_x[0]
+                # print("TRYING_BUY", base_data)
+            else:
+                coin_krw, coin_unit_price, coin_quantity, commission_fee = get_selling_price_by_order_book(
+                    self.hold_coin_quantity, order_book_list
+                )
+                base_data = self.just_bought_x
+                # print("TRYING_SELL", base_data)
 
         current_x_normalized = current_x / base_data
 
-        if not self.args.volume:
-            current_x_normalized = np.delete(current_x_normalized, [2 * (size_idx + 1) for size_idx in range(10)],
-                                             axis=1)
+        if self.args.ohlc:
+            if not self.args.volume:
+                current_x_normalized = np.delete(
+                    current_x_normalized, [5], axis=1
+                )
+        else:
+            if not self.args.volume:
+                current_x_normalized = np.delete(
+                    current_x_normalized, [2 * (size_idx + 1) for size_idx in range(10)], axis=1
+                )
 
         assert current_x_normalized.shape == self.observation_space.shape, \
             "current_x.shape: {0}, self.observation_space.shape: {1}".format(
                 current_x_normalized.shape, self.observation_space.shape
             )
 
-        assert type(coin_krw) is type(10), "Type mismatch: {0} - {1}".format(
-            type(coin_krw), type(10)
-        )
-
         info_dic = {
-            "change_index": 0.0,
             "coin_krw": coin_krw,
             "coin_unit_price": coin_unit_price,
             "coin_quantity": coin_quantity,
@@ -334,21 +356,35 @@ class UpbitEnvironment:
         return X, base_datetime_X, total_size
 
     def get_rl_dataset(self, coin_name, args, train_valid_split=False):
-        order_book_class = get_order_book_class(coin_name)
-        queryset = naver_order_book_session.query(order_book_class).order_by(
-            order_book_class.base_datetime.asc()
-        ).limit(int(args.data_limit))
-        df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
+        if args.ohlc:
+            ohlcv_class = get_ohlcv_class(coin_name, TimeUnit.TEN_MINUTES.value)
+            queryset = naver_ohlcv_price_session.query(ohlcv_class).order_by(
+                ohlcv_class.datetime_krw.asc()
+            ).limit(int(args.data_limit))
+            df = pd.read_sql(queryset.statement, naver_ohlcv_price_session.bind)
+            base_datetime_df = df.filter(["datetime_krw"], axis=1)
 
-        # df = df.drop(["id", "base_datetime", "collect_timestamp"], axis=1)
-        base_datetime_df = df.filter(["base_datetime"], axis=1)
+            df = df.filter(OHLCV_FEATURES, axis=1)
 
-        df = df.filter(FEATURES, axis=1)
+            for feature in OHLCV_FEATURES:
+                df[feature].mask(df[feature] == 0.0, 0.1, inplace=True)
 
-        for feature in FEATURES:
-            df[feature].mask(df[feature] == 0.0, 0.1, inplace=True)
+            base_datetime_data = pd.to_datetime(base_datetime_df["datetime_krw"])
+        else:
+            order_book_class = get_order_book_class(coin_name)
+            queryset = naver_order_book_session.query(order_book_class).order_by(
+                order_book_class.base_datetime.asc()
+            ).limit(int(args.data_limit))
+            df = pd.read_sql(queryset.statement, naver_order_book_session.bind)
+            base_datetime_df = df.filter(["base_datetime"], axis=1)
 
-        base_datetime_data = pd.to_datetime(base_datetime_df["base_datetime"])
+            df = df.filter(FEATURES, axis=1)
+
+            for feature in FEATURES:
+                df[feature].mask(df[feature] == 0.0, 0.1, inplace=True)
+
+            base_datetime_data = pd.to_datetime(base_datetime_df["base_datetime"])
+
         data = df.values
 
         dim_0 = data.shape[0] - int(self.args.window_size) + 1

@@ -27,7 +27,7 @@ import torch
 from codes.rl.upbit_rl_constants import GAMMA, LEARNING_RATE, TRAIN_BATCH_SIZE_PERCENT, TRAIN_REPEATS, \
     BUYER_MODEL_SAVE_PATH, SELLER_MODEL_SAVE_PATH, BUYER_MODEL_FILE_NAME, S3_BUCKET_NAME, SELLER_MODEL_FILE_NAME, \
     TRAIN_BATCH_MIN_SIZE, REPLAY_MEMORY_SIZE, SIZE_OF_FEATURE, SIZE_OF_FEATURE_WITHOUT_VOLUME, \
-    TRAIN_REPEATS_STEPS, TRAIN_BATCH_MIN_SIZE_STEPS
+    TRAIN_REPEATS_STEPS, TRAIN_BATCH_MIN_SIZE_STEPS, SIZE_OF_OHLCV_FEATURE, SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME
 
 is_cuda = torch.cuda.is_available()
 if is_cuda:
@@ -45,17 +45,35 @@ class DeepBuyerPolicy:
         self.args = args
         self.play = play
 
-        if self.args.volume:
-            self.input_size = SIZE_OF_FEATURE
+        if self.args.ohlc:
+            if self.args.volume:
+                self.input_size = SIZE_OF_OHLCV_FEATURE
+            else:
+                self.input_size = SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME
         else:
-            self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
+            if self.args.volume:
+                self.input_size = SIZE_OF_FEATURE
+            else:
+                self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         if self.args.lstm:
             self.q = QNet_LSTM(input_size=self.input_size)
             self.q_target = QNet_LSTM(input_size=self.input_size)
         else:
-            self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
-            self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
+            if self.args.ohlc:
+                self.q = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[2, 2, 2]
+                )
+                self.q_target = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[2, 2, 2]
+                )
+            else:
+                self.q = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[3, 3, 3]
+                )
+                self.q_target = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[3, 3, 3]
+                )
 
         if self.play:
             self.load_model()
@@ -88,7 +106,7 @@ class DeepBuyerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
                 episode, max_total_balance_per_episode, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
             )
@@ -100,7 +118,7 @@ class DeepBuyerPolicy:
         #     "LSTM" if self.args.lstm else "CNN",
         #     self.args.coin,
         #     int(self.args.window_size),
-        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     self.input_size,
         #     episode
         # )
 
@@ -116,7 +134,7 @@ class DeepBuyerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "*"
         )
 
@@ -128,7 +146,7 @@ class DeepBuyerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "*"
         )
 
@@ -136,7 +154,7 @@ class DeepBuyerPolicy:
         #     "LSTM" if self.args.lstm else "CNN",
         #     self.args.coin,
         #     int(self.args.window_size),
-        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     self.input_size,
         #     "*"
         # )
 
@@ -232,17 +250,35 @@ class DeepSellerPolicy:
         self.args = args
         self.play = play
 
-        if self.args.volume:
-            self.input_size = SIZE_OF_FEATURE
+        if self.args.ohlc:
+            if self.args.volume:
+                self.input_size = SIZE_OF_OHLCV_FEATURE
+            else:
+                self.input_size = SIZE_OF_OHLCV_FEATURE_WITHOUT_VOLUME
         else:
-            self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
+            if self.args.volume:
+                self.input_size = SIZE_OF_FEATURE
+            else:
+                self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         if self.args.lstm:
             self.q = QNet_LSTM(input_size=self.input_size)
             self.q_target = QNet_LSTM(input_size=self.input_size)
         else:
-            self.q = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
-            self.q_target = QNet_CNN(input_size=self.input_size, input_height=int(self.args.window_size))
+            if self.args.ohlc:
+                self.q = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[2, 2, 2]
+                )
+                self.q_target = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[2, 2, 2]
+                )
+            else:
+                self.q = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[3, 3, 3]
+                )
+                self.q_target = QNet_CNN(
+                    input_size=self.input_size, input_height=int(self.args.window_size), conv_kernel_size_list=[3, 3, 3]
+                )
 
         if self.play:
             self.load_model()
@@ -274,7 +310,7 @@ class DeepSellerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "{0}_{1:3.2f}_{2:3.2f}_{3:3.2f}".format(
                 episode, max_total_balance_per_episode, market_profitable_buys_from_model_rate, market_profitable_sells_from_model_rate
             )
@@ -302,7 +338,7 @@ class DeepSellerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "*"
         )
 
@@ -314,7 +350,7 @@ class DeepSellerPolicy:
             "LSTM" if self.args.lstm else "CNN",
             self.args.coin,
             int(self.args.window_size),
-            SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+            self.input_size,
             "*"
         )
 
@@ -322,7 +358,7 @@ class DeepSellerPolicy:
         #     "LSTM" if self.args.lstm else "CNN",
         #     self.args.coin,
         #     int(self.args.window_size),
-        #     SIZE_OF_FEATURE if self.args.volume else SIZE_OF_FEATURE_WITHOUT_VOLUME,
+        #     self.input_size,
         #     "*"
         # )
 
@@ -423,28 +459,28 @@ class QNet_CNN(nn.Module):
     def get_pool2d_size(w, h, kernel_size, stride):
         return math.floor((w - kernel_size) / stride) + 1, math.floor((h - kernel_size) / stride) + 1
 
-    def __init__(self, input_height, input_size, output_size=2):  #input_size=36, input_height=21
+    def __init__(self, input_height, input_size, output_size=2, conv_kernel_size_list=[2, 2, 2]):  #input_size=36, input_height=21
         super(QNet_CNN, self).__init__()
         self.output_size = output_size
 
         self.layer = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3),   # [batch_size,1,28,28] -> [batch_size,16,24,24]
+            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=conv_kernel_size_list[0]),   # [batch_size,1,28,28] -> [batch_size,16,24,24]
             nn.BatchNorm2d(num_features=2),
             nn.LeakyReLU(),
-            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3),  # [batch_size,16,24,24] -> [batch_size,32,20,20]
+            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=conv_kernel_size_list[1]),  # [batch_size,16,24,24] -> [batch_size,32,20,20]
             nn.BatchNorm2d(num_features=4),
             nn.LeakyReLU(),
             nn.MaxPool2d(kernel_size=2, stride=1),                      # [batch_size,32,20,20] -> [batch_size,32,10,10]
-            nn.Conv2d(in_channels=4, out_channels=6, kernel_size=3),  # [batch_size,32,10,10] -> [batch_size,64,6,6]
+            nn.Conv2d(in_channels=4, out_channels=6, kernel_size=conv_kernel_size_list[2]),  # [batch_size,32,10,10] -> [batch_size,64,6,6]
             nn.BatchNorm2d(num_features=6),
             nn.LeakyReLU(),
             nn.MaxPool2d(kernel_size=2, stride=1)                       # [batch_size,64,6,6] -> [batch_size,64,3,3]
         )
 
-        w, h = self.get_conv2d_size(w=input_size, h=input_height, kernel_size=3, padding_size=0, stride=1)
-        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
+        w, h = self.get_conv2d_size(w=input_size, h=input_height, kernel_size=conv_kernel_size_list[0], padding_size=0, stride=1)
+        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=conv_kernel_size_list[1], padding_size=0, stride=1)
         w, h = self.get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
-        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=3, padding_size=0, stride=1)
+        w, h = self.get_conv2d_size(w=w, h=h, kernel_size=conv_kernel_size_list[2], padding_size=0, stride=1)
         w, h = self.get_pool2d_size(w=w, h=h, kernel_size=2, stride=1)
 
         self.fc_layer = nn.Sequential(
