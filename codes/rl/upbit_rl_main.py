@@ -225,7 +225,7 @@ def main(args):
                     coin_name,
                     episode, MAX_EPISODES,
                     num_steps, env.total_steps,
-                    env.max_total_balance_per_episode,
+                    int(env.max_total_balance_per_episode),
                     env.score_list[-1],
                     env.market_profitable_buys_from_model, env.market_buys_from_model,
                     market_profitable_buys_from_model_rate,
