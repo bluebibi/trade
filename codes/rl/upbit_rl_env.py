@@ -89,6 +89,18 @@ class UpbitEnvironment:
 
         self.last_episode = 0
 
+        if self.env_type in [EnvironmentType.TRAIN, EnvironmentType.VALID]:
+            if self.args.pseudo:
+                self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(
+                    self.coin_name, self.args, train_valid_split=False
+                )
+            else:
+                self.data, self.data_datetime, self.data_size = self.get_rl_dataset(
+                    self.coin_name, self.args, train_valid_split=False
+                )
+        else:
+            pass
+
         if self.env_type is EnvironmentType.VALID or not os.path.exists(os.path.join(PERFORMANCE_SAVE_PATH, 'performance.pkl')):
             self.market_buy_list = []
             self.market_buy_by_model_list = []
@@ -151,19 +163,6 @@ class UpbitEnvironment:
         self.just_sold_coin_unit_price = None
 
         self.status = EnvironmentStatus.TRYING_BUY
-
-        if self.env_type in [EnvironmentType.TRAIN, EnvironmentType.VALID]:
-            if self.args.pseudo:
-                self.data, self.data_datetime, self.data_size = self.get_rl_pseudo_dataset(
-                    self.coin_name, self.args, train_valid_split=False
-                )
-            else:
-                self.data, self.data_datetime, self.data_size = self.get_rl_dataset(
-                    self.coin_name, self.args, train_valid_split=False
-                )
-        else:
-            pass
-
 
         self.current_step = 0
         self.steps_left = self.data_size
