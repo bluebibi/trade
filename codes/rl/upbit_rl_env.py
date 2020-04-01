@@ -214,7 +214,7 @@ class UpbitEnvironment:
                 self.just_bought_coin_unit_price = info_dic["coin_unit_price"]
 
                 if self.args.ohlc:
-                    self.just_bought_x = info_dic["last_current_x"][4]
+                    self.just_bought_x = info_dic["last_current_x"]
                 else:
                     self.just_bought_x = info_dic["last_current_x"]
 
@@ -277,7 +277,7 @@ class UpbitEnvironment:
                 coin_unit_price = current_x[-1][4] + current_x[-1][4] * SLIPPAGE_RATE
                 coin_quantity = coin_krw / coin_unit_price
                 commission_fee = BUY_AMOUNT * COMMISSION_RATE
-                base_data = current_x[-1][4]
+                base_data = current_x[0]
             else:
                 coin_unit_price = current_x[-1][4] - current_x[-1][4] * SLIPPAGE_RATE
                 coin_krw = self.hold_coin_quantity * coin_unit_price - self.hold_coin_quantity * coin_unit_price * COMMISSION_RATE

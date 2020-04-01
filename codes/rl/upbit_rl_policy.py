@@ -57,8 +57,12 @@ class DeepBuyerPolicy:
                 self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         if self.args.lstm:
-            self.q = QNet_LSTM(input_size=self.input_size)
-            self.q_target = QNet_LSTM(input_size=self.input_size)
+            if self.args.ohlc:
+                self.q = QNet_LSTM(input_size=self.input_size, hidden_size=[64, 24])
+                self.q_target = QNet_LSTM(input_size=self.input_size, hidden_size=[64, 24])
+            else:
+                self.q = QNet_LSTM(input_size=self.input_size, hidden_size=[256, 128])
+                self.q_target = QNet_LSTM(input_size=self.input_size, hidden_size=[256, 128])
         else:
             if self.args.ohlc:
                 self.q = QNet_CNN(
@@ -262,8 +266,12 @@ class DeepSellerPolicy:
                 self.input_size = SIZE_OF_FEATURE_WITHOUT_VOLUME
 
         if self.args.lstm:
-            self.q = QNet_LSTM(input_size=self.input_size)
-            self.q_target = QNet_LSTM(input_size=self.input_size)
+            if self.args.ohlc:
+                self.q = QNet_LSTM(input_size=self.input_size, hidden_size=[64, 24])
+                self.q_target = QNet_LSTM(input_size=self.input_size, hidden_size=[64, 24])
+            else:
+                self.q = QNet_LSTM(input_size=self.input_size, hidden_size=[256, 128])
+                self.q_target = QNet_LSTM(input_size=self.input_size, hidden_size=[256, 128])
         else:
             if self.args.ohlc:
                 self.q = QNet_CNN(
@@ -512,10 +520,10 @@ class QNet_CNN(nn.Module):
 
 
 class QNet_LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size=256, output_size=2, num_layers=3, bias=True):
+    def __init__(self, input_size, hidden_size=[256, 128], output_size=2, num_layers=3, bias=True):
         super(QNet_LSTM, self).__init__()
         self.input_size = input_size
-        self.hidden_size = hidden_size
+        self.hidden_size = hidden_size[0]
         self.output_size = output_size
         self.num_layers = num_layers
 
@@ -528,9 +536,9 @@ class QNet_LSTM(nn.Module):
         )
 
         self.fc_layer = nn.Sequential(
-            nn.Linear(self.hidden_size, 128),
+            nn.Linear(self.hidden_size, hidden_size[1]),
             nn.LeakyReLU(),
-            nn.Linear(128, self.output_size)
+            nn.Linear(hidden_size[1], self.output_size)
         )
 
     def forward(self, x):
