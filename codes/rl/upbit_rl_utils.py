@@ -346,8 +346,10 @@ def draw_play_record(coin_unit_price_list, market_buy_step_list, market_sell_ste
     title_str = "DQN "
     plt.subplot(111)
     plt.plot(range(len(coin_unit_price_list[:-1])), coin_unit_price_list[:-1])
-    plt.scatter(*zip(*market_buy_step_list), color="r")
-    plt.scatter(*zip(*market_sell_step_list), color="b")
+    if market_buy_step_list:
+        plt.scatter(*zip(*market_buy_step_list), color="r")
+    if market_sell_step_list:
+        plt.scatter(*zip(*market_sell_step_list), color="b")
     plt.title('COIN PRICE CHANGE', fontweight="bold", size=10)
     plt.xlabel('STEPS (10 minutes)', size=10)
     plt.grid()
