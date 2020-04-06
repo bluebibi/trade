@@ -187,6 +187,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--volume', action='store_true', help="use volume information in order book")
     parser.add_argument('-s', '--slack', action='store_true', help="slack message when an episode ends")
     parser.add_argument('-u', '--pseudo', action='store_true', help="pseudo rl data")
+    parser.add_argument('-o', '--ohlc', action='store_true', help="Open-high-low-close")
     parser.add_argument('-window_size', required=True, help="window size")
     parser.add_argument('-hold_reward', required=True, help="hold reward")
     parser.add_argument('-data_limit', required=True, help="data_limit")
