@@ -179,7 +179,7 @@ def main(args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_play.py -v -s -u -window_size=36 -data_limit=10000 -hold_reward=-0.002 -coin=BTC
+    ## python upbit_rl_play.py -v -s -o -window_size=36 -data_limit=10000 -hold_reward=-0.002 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
