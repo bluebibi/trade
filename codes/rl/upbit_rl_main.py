@@ -232,7 +232,7 @@ def main(args):
 
 if __name__ == "__main__":
     ##
-    ## python upbit_rl_main.py -p -v -e -u -data_limit=3000 -hold_reward=-0.000 -window_size=36 -coin=BTC
+    ## python upbit_rl_main.py -p -v -e -s -o -data_limit=10000 -hold_reward=-0.002 -window_size=36 -coin=BTC
     ##
     parser = argparse.ArgumentParser()
 
