@@ -317,7 +317,7 @@ def draw_performance(env, args):
     plt.plot(range(1, len(env.score_list) + 1), env.score_list)
     plt.plot(
         range(1, len(env.score_list) + 1),
-        exp_moving_average(env.score_list, 10),
+        exp_moving_average(env.score_list, 25),
         color="red"
     )
     plt.title('SCORE', fontweight="bold", size=10)
@@ -328,7 +328,7 @@ def draw_performance(env, args):
     plt.plot(range(1, len(env.total_balance_per_episode_list) + 1), env.total_balance_per_episode_list)
     plt.plot(
         range(1, len(env.total_balance_per_episode_list) + 1),
-        exp_moving_average(env.total_balance_per_episode_list, 10),
+        exp_moving_average(env.total_balance_per_episode_list, 25),
         color="red"
     )
     plt.title('TOTAL_BALANCE_PER_EPISODE', fontweight="bold", size=10)

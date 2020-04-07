@@ -145,16 +145,11 @@ def main(args):
 
             if not args.train_episode_ends:
                 # Replay Memory 저장 샘플이 충분하다면 buyer_policy 또는 seller_policy 강화학습 훈련 (딥러닝 모델 최적화)
-                if num_steps % TRAIN_INTERVAL_STEPS == 0 or done:
+                if num_steps % TRAIN_INTERVAL_STEPS == 0:
                     if buyer_policy.buyer_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                         _ = buyer_policy.train(beta)
                     if seller_policy.seller_memory.size() >= REPLAY_MEMORY_THRESHOLD_FOR_TRAIN:
                         _ = seller_policy.train(beta)
-
-                #TARGET Q Network 으로 Q Network 파라미터 Copy
-                if num_steps % QNET_COPY_TO_TARGET_QNET_INTERVAL_STEPS == 0:
-                    buyer_policy.qnet_copy_to_target_qnet()
-                    seller_policy.qnet_copy_to_target_qnet()
 
             if done:
                 buyer_loss = buyer_policy.train(beta)
