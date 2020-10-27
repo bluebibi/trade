@@ -19,7 +19,7 @@ chardet==3.0.4
 Click==7.0
 cloudpickle==1.2.2
 colorama==0.3.9
-cryptography==2.7
+cryptography==3.2
 cycler==0.10.0
 docker==3.7.3
 docker-compose==1.23.2
